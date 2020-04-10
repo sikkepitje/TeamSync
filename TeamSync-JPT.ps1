@@ -18,6 +18,7 @@ $magisterPass = $null
 $magisterUrl = $null
 $teamnaam_prefix = ""
 
+Write-Host " "
 Write-Host "Start..."
 $herePath = Split-Path -parent $MyInvocation.MyCommand.Definition
 $inputPath = $herePath + "\data_in"
@@ -30,12 +31,15 @@ New-Item -path $outputPath -ItemType Directory -ea:Silentlycontinue
 # Files IN
 $filename_incl_docent = $inputPath + "\incl_docent.csv"
 $filename_incl_klas  = $inputPath + "\incl_klas.csv"
+$filename_excl_studie   = $inputPath + "\excl_studie.csv"
 $filename_incl_studie   = $inputPath + "\incl_studie.csv"
 $filename_excl_vak  = $inputPath + "\excl_vak.csv"
+$filename_excl_lesgroep = $inputPath + "\excl_lesgroep.csv"
 
 # Files TEMP
 $filename_t_leerling = $tempPath + "\leerling.csv"
 $filename_t_docent = $tempPath + "\docent.csv"
+$filename_t_vak = $tempPath + "\vak.csv"
 
 # Files OUT
 $filename_School = $outputPath + "\School.csv"
@@ -92,10 +96,15 @@ $teacher =  @() # "SIS ID,School SIS ID,Username,First Name,Last Name"
 $teacherroster =  @() # "Section SIS ID,SIS ID"
 
 $team = @()
+$vaktotaal = @()
 
 $filter_excl_vak = @()
 if (Test-Path $filename_excl_vak) {
     $filter_excl_vak = Get-Content -Path $filename_excl_vak 
+}
+$filter_excl_lesgroep = @()
+if (Test-Path $filename_excl_lesgroep) {
+    $filter_excl_lesgroep = Get-Content -Path $filename_excl_lesgroep 
 }
 
 # haal sessiontoken
@@ -115,10 +124,15 @@ $leerlingen | Export-Csv -Path $filename_t_leerling -Delimiter ";" -NoTypeInform
 Write-Host "Leerlingen:" $leerlingen.count
 
 # voorfilteren
+if (Test-Path $filename_excl_studie) {
+    $filter_excl_studie = $(Get-Content -Path $filename_excl_studie) -join '|'
+    $leerlingen = $leerlingen | Where-Object {$_.Studie -notmatch $filter_excl_studie}
+    Write-Host "Leerlingen na uitsluitend filteren studie:" $leerlingen.count
+}
 if (Test-Path $filename_incl_studie) {
     $filter_incl_studie = $(Get-Content -Path $filename_incl_studie) -join '|'
     $leerlingen = $leerlingen | Where-Object {$_.Studie -match $filter_incl_studie}
-    Write-Host "Leerlingen na filteren studie:" $leerlingen.count
+    Write-Host "Leerlingen na insluitend filteren studie:" $leerlingen.count
 }
 if (Test-Path $filename_incl_klas) {
     $filter_incl_klas = $(Get-Content -Path $filename_incl_klas) -join '|'
@@ -133,6 +147,7 @@ foreach ($leerling in $leerlingen) {
     $nieuwteam = @()
 
     # verzamel de stamklassen
+    # een team voor elke klas
     if ($leerling.Klas -notmatch 'Vavo*') {
         $klas = $teamnaam_prefix + $leerling.Klas
         $nieuwteam += $klas
@@ -146,13 +161,14 @@ foreach ($leerling in $leerlingen) {
     }
 
     # verzamel de lesgroepen
+    # een team voor elke lesgroep
     $leerjaar = $leerling.Klas[0]
     $jaarlaag_heeft_lesgroepen = "3", "4", "5", "6"
     if ($leerjaar -in $jaarlaag_heeft_lesgroepen) {
         # lesgroepen alleen bovenbouwll
         $data = ADFunction -U $magisterUrl -Ses $MyToken -F "GetLeerlingGroepen"-st $stamnr
         foreach ($node in $data.vakken.vak) {
-            if ($lesgroepen_behalve -notcontains $node.groep) {
+            if ($filter_excl_lesgroep -notcontains $node.groep) {
                 # filtervoorbeeld
                 # if ($node.groep -ne "6ventlC") { # filtervoorbeeld 2
                 $lesgroep = $teamnaam_prefix + $node.groep
@@ -167,10 +183,12 @@ foreach ($leerling in $leerlingen) {
     }
 
     # verzamel de vakken
+    # een team voor elk vak 
     $data = ADFunction -U $magisterUrl -Ses $MyToken -F "GetLeerlingVakken" -st $stamnr
     foreach ($node in $data.vakken.vak) {
+        $vaktotaal += $node.vak
         if ($filter_excl_vak -notcontains $node.vak) {
-            $vak = $teamnaam_prefix + $node.vak + "_(vak)"  # voor elk vak een team
+            $vak = $teamnaam_prefix + $node.vak
             $nieuwteam += $vak
 
             $stenrec = 1 | Select-Object 'Section SIS ID','SIS ID'
@@ -200,9 +218,7 @@ foreach ($leerling in $leerlingen) {
 }
 Write-Progress -Activity "Magister data verwerken" -status "Leerling" -Completed
 
-Write-Host "Teams (tussentijds) voor sorteren:" $team.count 
 $team = $team | Sort-Object -Unique
-Write-Host "Teams (tussentijds) na sorteren:" $team.count
 Write-Host "Aanmeldingen:" ($studentenrollment.count - 1) # minus kopregel
 
 ################# VERZAMEL DOCENTEN
@@ -276,16 +292,31 @@ foreach ($user in $docenten ) {
         $tearec.'Last Name' = $achternaam
         $teacher += $tearec
     }
-    Write-Progress -Activity "Magister data verwerken" -status `
+    Write-Progress -Activity "Magister uitlezen" -status `
         "Docent $teller van $($docenten.count)" -PercentComplete ($docentprocent * $teller++)
 }
-Write-Progress -Activity "Magister data verwerken" -status "Docent" -Completed
+Write-Progress -Activity "Magister uitlezen" -status "Docent" -Completed
 
-Write-Host "Teams voor sorteren:" $team.count 
+Write-Host "Teams voor sorteren :" $team.count
 $team = $team | Sort-Object -Unique
-Write-Host "Teams na sorteren:" $team.count 
+Write-Host "Teams na sorteren   :" $team.count 
 
 ################# TEAMS
+# We willen alleen teams waarin zowel leerlingen als docent lid van zijn.
+# Controleer op geldige leden voor elk team.
+Write-Host "Verzamelen actieve teams ..."
+$actiefteam = $team | where {$_ -in $teacherroster.'Section SIS ID'} | where {$_ -in $studentenrollment.'Section SIS ID'}
+
+Write-Host "  Deze teams zijn niet actief en worden overgeslagen:"
+$verschilteams = @()
+$compare = compare-object -referenceobject $team -differenceobject $actiefteam
+$compare | foreach-object {
+    if ($_.sideindicator -eq "=>") {
+        $verschilteams += $_.inputobject
+    }
+}
+$verschilteams
+
 $vakprocent = 100 / $team.count
 $teller = 0
 foreach ($tm in $team) {
@@ -296,22 +327,17 @@ foreach ($tm in $team) {
     $secrec.'Section Name' = $tm
     $section += $secrec
 
-    # voeg beheerder aan mentorklassen toe
-    if ($klas -like "mm*") {
-        # doe iets
-    }
-
-    Write-Progress -Activity "Magister data verwerken" -status `
+    Write-Progress -Activity "Magister uitlezen" -status `
         "Team $teller van $($team.count)" -PercentComplete ($vakprocent * $teller++)
 }
-Write-Progress -Activity "Magister data verwerken" -status "Vak" -Completed
+Write-Progress -Activity "Magister uitlezen" -status "Vak" -Completed
 
 ################# AFWERKING
-# Wat ik zou willen , 
-# gegeven de selectie van studies, klassen en docenten, 
-# is elk team waarvoor er minimaal een docent is en minimaal 
-# een of meer leerlingen zijn
 
+Write-Host "Vakken totaal:" $vaktotaal.count
+$vaktotaal = $vaktotaal | Sort-Object -Unique
+Write-Host "Vakken uniek:" $vaktotaal.count
+$vaktotaal | Out-File -FilePath $filename_t_vak -Encoding UTF8
 
 # Maak een school
 $schoolrec = 1 | Select-Object 'SIS ID',Name
@@ -328,6 +354,7 @@ Write-Host "Section           :" $section.count
 
 # Sorteer de teams een beetje
 $studentenrollment  = $studentenrollment | Sort-Object 'Section SIS ID' 
+$teacher = $teacher | Sort-Object 'SIS ID'
 $teacherroster = $teacherroster | Sort-Object 'Section SIS ID' 
 
 # Alles opslaan
