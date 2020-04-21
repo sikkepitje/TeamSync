@@ -1,0 +1,140 @@
+# Teamsync Handleiding
+:idprefix:
+:idseparator: -
+:sectanchors:
+:sectlinks:
+:sectnumlevels: 4
+:sectnums:
+:toc:
+:toclevels: 4
+:toc-title:
+21 april 2020 Paul Wiegmans <p.wiegmans@svok.nl>
+
+TeamSync is een PowerShell-script dat gegevens over leerlingen, klassen, lesgroepen, docenten en vakken ophaalt uit Magister en bestanden aanmaakt om te uploaden naar School Data Sync ten behoeve van een geautomatiseerde aanmaak van Teams in een Microsoft Office 365 omgeving. 
+
+toc::[]
+
+## Werking 
+
+Voor het ophalen van gegevens wordt gebruik gemaakt van een SOAP/XML webservice. Uitvoer bestaat uit 6 CSV-bestanden die nodig zijn voor het synchroniseren met een synchronisatieprofiel in School Data Sync.
+
+De werking is als volgt:
+
+* leest `teamsync.ini`
+* maakt verbinding met Magister SOAP/XML interface
+* haalt alle leerlingen op
+* filtert leerlingen
+* haalt van elke leerling de lesgroepen op
+* haalt alle docenten op
+* filtert docenten
+* haalt van alle docenten de vakuren op
+* maakt een team voor elke leerling-lesgroep en docent-vak-lesgroep
+* filtert teams; houdt alleen teams met docenten en leerlingen
+* filtert leerlingen; houdt alleen leerlingen in teams
+* filtert docenten; hoddut alleen docenten in teams
+* haalt schoolinformatie op
+* schrijft CSV-bestanden met leerlingen, docenten, school, teams, team-leerlingen en team-docenten. 
+
+## Bestanden en mappen
+
+Bestanden en mappen worden verwacht in dezelfde map als het script. 
+
+[square]
+* `teamsync.ini` : dit bestand bevat instellingen voor het TeamSync-script, zoals de gebruikersnaam, wachtwoord en URL voor het aanspreken van de webservice, de schoolnaam, het BRINnummer en een teamnaam-prefix.
+* `data_in` : de submap bevat een aantal CSV-bestanden met filters die worden gebruikt om een selectie te maken op klassen, vakken en studies voor het verkleine van de gegevens uit Magister.
+* `data_temp` : deze submap bevat tussenbestanden en kan worden gebruikt om de goede werking te controleren van de Magister webservice.
+* `data_out` : deze submap bevat de 6 CSV-bestanden die nodig zijn om het sync profile van School Data Sync te voeden.
+
+### teamsync.ini - scriptparameters
+
+Het bestand 'Teamsync.ini' bevat een aantal naam-waarde-paren, die parameters definieert die nodig zijn voor Teamsync. Deze parameters worden gespeficeerd als een naam-waarde-paar. Deze heeft de volgende vorm:
+
+```
+<naam>=<waarde>
+```
+
+Aanhalingstekens zijn toegestaan maar niet nodig. Spaties in de waarde-deel zijn toegestaan. 
+
+De volgende parameters zijn vereist en moeten een waarde hebben:
+
+[square]
+* `brin=waarde` : BRIN-nummer van de school
+* `schoolnaam=waarde` : naam van de school in SDS
+* `magisterUser=waarde` : webservice-gebruikersnaam
+* `magisterPassword=waarde` : webservice-wachtwoord
+* `magisterUrl=waarde` : webservice-URL
+* `teamnaam-prefix=waarde` : unieke prefix voor teams in SDS
+
+### Data_in - invoerselectie
+
+Er zijn een aantal bestanden in de map `data_in` die gebruikt kunnen worden om de hoeveelheid uit Magister ingelezen gegevens te reduceren.
+
+* `incl_docent.csv` : dit bevat filters voor het insluiten van docenten op docentcode.
+* `incl_klas.csv` : dit bevat filters voor het insluiten van leerlingen op klasnaam.
+* `incl_studie.csv` : dit bevat filters voor het insluiten van leerlingen op studie.
+* `excl_studie.csv` : dit bevat filters voor het uitsluiten van leerlingen op studie.
+
+In de map `Data_in` kunnen één of meer van bovenstaande filterbestanden worden aangemaakt. Deze bestanden bevatten filters, die selectief records uit de invoer filteren. Ze kunnen **exclusief** filteren, dat wil zeggen dat overeenkomende records worden weggegooid en uitgesloten van verwerking, of ze kunnen **inclusief** filteren, dat wil zeggen dat alleen de overeenkomende records worden verwerkt.
+
+Het gebruik van deze filterbestanden is optioneel. Als ze bestaan, worden ze ingelezen en gebruikt. Als ze niet bestaan, wordt er niet gefilterd. Indien gebruikt, dan kan elk van deze bestand een of meer filters bevatten, elk op een eigen regel, die worden toegepast met behulp van de match-operator voor het filteren van de leerlingen of docenten. Elke filter match een deel van de invoer. Wildcards zijn niet nodig. Alle tekens met een speciale betekenis voor de match-operator zijn hierbij toegelaten. Plaats geen lege regels in het filterbestand.
+
+Speciale betekenis hebben:
+
+* `^` matcht het begin van een zoekterm 
+* `$` matcht het eind van een zoekterm
+
+#### Praktische voorbeelden
+
+Voorbeeld : We willen de VAVO-leerlingen niet verwerken; alle studies die beginnen met VAVO moeten worden uitgesloten.
+
+Het bestand data_in\excl_studie.csv wordt aangemaakt en bevat: 
+```
+^VAVO
+```
+
+Voorbeeld : We willen de leerlingen van Mavo, Havo, Vwo en de brugklassen verwerken; alle leerlingen in een studie die begint met B,M,H of V moeten worden verwerkt. 
+
+Het bestand data_in\incl_studie.csv wordt aangemaakt en bevat:
+```
+^M
+^H
+^V
+^B
+```
+
+Voorbeeld : we willen alleen 4 en 5 Havo en verwerken; alle leerlingen in de klas die begint met '4H' of '5H' moeten worden verwerkt. 
+
+Het bestand data_in\incl_klas.csv wordt aangemaakt en bevat:
+```
+^5H
+^4H
+```
+
+### Data_uit - uitvoer 
+
+De uitvoer worden aangemaakt in 6 bestanden in de map `Data_out `. Het script maakt volgens de specificaties van SDS de volgende bestanden aan. 
+
+* `School.csv`
+* `Section.csv`
+* `Student.csv`
+* `StudentEnrollment.csv`
+* `Teacher.csv`
+* `TeacherRoster.csv`
+
+### data_temp - Tussenresultaten
+
+In de map `Data_temp` worden de ongefilterde verzameling van ingelezen leerlingen en docenten opgeslagen in een bestand, elk met een deelverzameling van de attributen zoals die uit Magister worden gelezen.
+
+* `docent.csv`
+* `leerling.csv`
+* `vak.csv`
+
+## To do
+
+* vervang speciale tekens in SIS ID
+
+## Handige links
+
+* https://cirosantilli.com/markdown-style-guide[Markdown Style Guide]
+* https://github.com/asciidoctor/asciidoctor
+* https://asciidoctor.org/docs/asciidoc-syntax-quick-reference/[AsciiDoc Syntax Quick Reference]
