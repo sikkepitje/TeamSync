@@ -135,6 +135,6 @@ In de map `Data_temp` worden de ongefilterde verzameling van ingelezen leerlinge
 
 ## Handige links
 
-* https://cirosantilli.com/markdown-style-guide[Markdown Style Guide]
-* https://github.com/asciidoctor/asciidoctor
-* https://asciidoctor.org/docs/asciidoc-syntax-quick-reference/[AsciiDoc Syntax Quick Reference]
+* https://sds.microsoft.com/[Microsoft School Data Sync]
+* https://sikkepitje.nl/Tech/MagisterSOAP2020[Magister SOAP/XML uitvragen in PowerShell]
+
