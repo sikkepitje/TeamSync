@@ -1,13 +1,12 @@
 <#
-    Get-JPT-AD.ps1
+    TeamSync-JPT.ps1
 
-    poging ophalen van gegeven via magister Webservices ADFuncties
-    naar voorbeeld van Fons Vitae
+	2020-05-17 Paul Wiegmans SVOK
+	
+    Script dat leerling,docent,lesgroep,klas en roostergegevens ophaalt uit Magister
+	en CSV-bestanden produceert voor upload naar School Data Sync.
+    Naar een voorbeeld van Fons Vitae
 
-    Opmerkingen:
-
-    Toon studentengegevens:
-    get-content ".\data\studenten.csv" | convertfrom-csv -delimiter ";" | out-gridview
 #>
 $stopwatch = [Diagnostics.Stopwatch]::StartNew()
 
