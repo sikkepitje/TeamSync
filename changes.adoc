@@ -1,0 +1,15 @@
+
+# Changes
+
+## 14-4-2020 
+
+* werkt al goed
+
+## 7-5-2020 
+
+- nieuwe parameters in teamsync.ini : maakklassenteams, maaklesgroepenteams, maakvakkenteams
+- rare voorwaarde docenten klas > "4" verwijderd
+- nieuwe filters voor excl_klas, excl_docent
+- betere detectie voor actieve teams, actieve docenten
+- schermuitvoer verfraaid
+- variabele 'vaktotaal' hernoemd naar 'ruwegroepen'

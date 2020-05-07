@@ -65,16 +65,26 @@ De volgende parameters zijn vereist en moeten een waarde hebben:
 * `magisterUrl=waarde` : webservice-URL
 * `teamnaam-prefix=waarde` : unieke prefix voor teams in SDS
 
+De volgende parameters zijn optioneel:
+[square]
+* `maakklassenteams=waarde` : maak een team voor elke klas
+* `maaklesgroepenteams=waarde` : maak een team voor elke lesgroep
+* `maakvakkenteams=waarde` : maak een team voor elk vak
+
+De waarde voor de bovenstaande parameters is `0` of `1`. Indien deze parameters worden weggelaten, dan wordt aangenomen dat de waarde `1` is.
+
 ### Data_in - invoerselectie
 
 Er zijn een aantal bestanden in de map `data_in` die gebruikt kunnen worden om de hoeveelheid uit Magister ingelezen gegevens te reduceren.
 
+* `excl_docent.csv` : dit bevat filters voor het uitsluiten van docenten op docentcode.
 * `incl_docent.csv` : dit bevat filters voor het insluiten van docenten op docentcode.
+* `excl_klas.csv` : dit bevat filters voor het uitsluiten van leerlingen op klasnaam.
 * `incl_klas.csv` : dit bevat filters voor het insluiten van leerlingen op klasnaam.
-* `incl_studie.csv` : dit bevat filters voor het insluiten van leerlingen op studie.
 * `excl_studie.csv` : dit bevat filters voor het uitsluiten van leerlingen op studie.
+* `incl_studie.csv` : dit bevat filters voor het insluiten van leerlingen op studie.
 
-In de map `Data_in` kunnen één of meer van bovenstaande filterbestanden worden aangemaakt. Deze bestanden bevatten filters, die selectief records uit de invoer filteren. Ze kunnen **exclusief** filteren, dat wil zeggen dat overeenkomende records worden weggegooid en uitgesloten van verwerking, of ze kunnen **inclusief** filteren, dat wil zeggen dat alleen de overeenkomende records worden verwerkt.
+In de map `Data_in` kunnen één of meer van bovenstaande filterbestanden worden aangemaakt. Deze bestanden bevatten filters, die selectief records uit de invoer filteren. Ze kunnen **exclusief** of uitsluitend filteren, dat wil zeggen dat overeenkomende records worden weggegooid en uitgesloten van verwerking, of ze kunnen **inclusief** of insluitend filteren, dat wil zeggen dat alleen de overeenkomende records verder worden verwerkt.
 
 Het gebruik van deze filterbestanden is optioneel. Als ze bestaan, worden ze ingelezen en gebruikt. Als ze niet bestaan, wordt er niet gefilterd. Indien gebruikt, dan kan elk van deze bestand een of meer filters bevatten, elk op een eigen regel, die worden toegepast met behulp van de match-operator voor het filteren van de leerlingen of docenten. Elke filter match een deel van de invoer. Wildcards zijn niet nodig. Alle tekens met een speciale betekenis voor de match-operator zijn hierbij toegelaten. Plaats geen lege regels in het filterbestand.
 
@@ -127,14 +137,16 @@ In de map `Data_temp` worden de ongefilterde verzameling van ingelezen leerlinge
 
 * `docent.csv`
 * `leerling.csv`
-* `vak.csv`
+* `groep.csv`
 
 ## To do
 
 * vervang speciale tekens in SIS ID
+* configureerbaar uitvoerpad
+* configureerbaar ini-pad
 
 ## Handige links
 
-* https://sds.microsoft.com/[Microsoft School Data Sync]
-* https://sikkepitje.nl/Tech/MagisterSOAP2020[Magister SOAP/XML uitvragen in PowerShell]
-
+* https://cirosantilli.com/markdown-style-guide[Markdown Style Guide]
+* https://github.com/asciidoctor/asciidoctor
+* https://asciidoctor.org/docs/asciidoc-syntax-quick-reference/[AsciiDoc Syntax Quick Reference]

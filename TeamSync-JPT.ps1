@@ -17,6 +17,11 @@ $magisterUser = $null
 $magisterPass = $null
 $magisterUrl = $null
 $teamnaam_prefix = ""
+$maakklassenteams = "1"
+$maaklesgroepenteams = "1"
+$maakvakkenteams = "1"
+
+$jaarlaag_heeft_lesgroepen = "3", "4", "5", "6"  # er wordt alleen voor deze jaarlagen gezocht naar lesgroepen
 
 Write-Host " "
 Write-Host "Start..."
@@ -29,7 +34,9 @@ New-Item -path $tempPath -ItemType Directory -ea:Silentlycontinue
 New-Item -path $outputPath -ItemType Directory -ea:Silentlycontinue
 
 # Files IN
+$filename_excl_docent = $inputPath + "\excl_docent.csv"
 $filename_incl_docent = $inputPath + "\incl_docent.csv"
+$filename_excl_klas  = $inputPath + "\excl_klas.csv"
 $filename_incl_klas  = $inputPath + "\incl_klas.csv"
 $filename_excl_studie   = $inputPath + "\excl_studie.csv"
 $filename_incl_studie   = $inputPath + "\incl_studie.csv"
@@ -39,7 +46,7 @@ $filename_excl_lesgroep = $inputPath + "\excl_lesgroep.csv"
 # Files TEMP
 $filename_t_leerling = $tempPath + "\leerling.csv"
 $filename_t_docent = $tempPath + "\docent.csv"
-$filename_t_vak = $tempPath + "\vak.csv"
+$filename_t_groep = $tempPath + "\groep.csv"
 
 # Files OUT
 $filename_School = $outputPath + "\School.csv"
@@ -96,7 +103,7 @@ $teacher =  @() # "SIS ID,School SIS ID,Username,First Name,Last Name"
 $teacherroster =  @() # "Section SIS ID,SIS ID"
 
 $team = @()
-$vaktotaal = @()
+$ruwegroepen = @()
 
 $filter_excl_vak = @()
 if (Test-Path $filename_excl_vak) {
@@ -121,23 +128,28 @@ $data = ADFunction -U $magisterUrl -Ses $MyToken -F "GetActiveStudents"
 $leerlingen = $data.Leerlingen.Leerling | Select-Object `
     stamnr_str,achternaam,tussenv,roepnaam,'loginaccount.naam',klas,studie,profiel.code
 $leerlingen | Export-Csv -Path $filename_t_leerling -Delimiter ";" -NoTypeInformation -Encoding UTF8
-Write-Host "Leerlingen:" $leerlingen.count
+Write-Host "Leerlingen           :" $leerlingen.count
 
 # voorfilteren
 if (Test-Path $filename_excl_studie) {
     $filter_excl_studie = $(Get-Content -Path $filename_excl_studie) -join '|'
     $leerlingen = $leerlingen | Where-Object {$_.Studie -notmatch $filter_excl_studie}
-    Write-Host "Leerlingen na uitsluitend filteren studie:" $leerlingen.count
+    Write-Host "Leerlingen na uitsluitend filteren studie :" $leerlingen.count
 }
 if (Test-Path $filename_incl_studie) {
     $filter_incl_studie = $(Get-Content -Path $filename_incl_studie) -join '|'
     $leerlingen = $leerlingen | Where-Object {$_.Studie -match $filter_incl_studie}
-    Write-Host "Leerlingen na insluitend filteren studie:" $leerlingen.count
+    Write-Host "Leerlingen na insluitend filteren studie :" $leerlingen.count
+}
+if (Test-Path $filename_excl_klas) {
+    $filter_excl_klas = $(Get-Content -Path $filename_excl_klas) -join '|'
+    $leerlingen = $leerlingen | Where-Object {$_.Klas -notmatch $filter_excl_klas}
+    Write-Host "Leerlingen na uitsluitend filteren klas  :" $leerlingen.count
 }
 if (Test-Path $filename_incl_klas) {
     $filter_incl_klas = $(Get-Content -Path $filename_incl_klas) -join '|'
     $leerlingen = $leerlingen | Where-Object {$_.Klas -match $filter_incl_klas}
-    Write-Host "Leerlingen na filteren klas:" $leerlingen.count
+    Write-Host "Leerlingen na insluitend filteren klas   :" $leerlingen.count
 }
 
 $teller = 0
@@ -148,7 +160,8 @@ foreach ($leerling in $leerlingen) {
 
     # verzamel de stamklassen
     # een team voor elke klas
-    if ($leerling.Klas -notmatch 'Vavo*') {
+    if ($maakklassenteams -ne "0") {
+        $ruwegroepen += $leerling.Klas
         $klas = $teamnaam_prefix + $leerling.Klas
         $nieuwteam += $klas
 
@@ -156,18 +169,15 @@ foreach ($leerling in $leerlingen) {
         $stenrec.'Section SIS ID' = $klas.replace(' ', '')
         $stenrec.'SIS ID' = $stamnr
         $studentenrollment += $stenrec
-    } else {
-        write-host "Skip klas" $leerling.Klas
     }
 
     # verzamel de lesgroepen
     # een team voor elke lesgroep
-    $leerjaar = $leerling.Klas[0]
-    $jaarlaag_heeft_lesgroepen = "3", "4", "5", "6"
-    if ($leerjaar -in $jaarlaag_heeft_lesgroepen) {
-        # lesgroepen alleen bovenbouwll
+    if ($maaklesgroepenteams -ne "0") {
+        $leerjaar = $leerling.Klas[0]
         $data = ADFunction -U $magisterUrl -Ses $MyToken -F "GetLeerlingGroepen"-st $stamnr
         foreach ($node in $data.vakken.vak) {
+            $ruwegroepen += $node.groep
             if ($filter_excl_lesgroep -notcontains $node.groep) {
                 # filtervoorbeeld
                 # if ($node.groep -ne "6ventlC") { # filtervoorbeeld 2
@@ -184,17 +194,19 @@ foreach ($leerling in $leerlingen) {
 
     # verzamel de vakken
     # een team voor elk vak 
-    $data = ADFunction -U $magisterUrl -Ses $MyToken -F "GetLeerlingVakken" -st $stamnr
-    foreach ($node in $data.vakken.vak) {
-        $vaktotaal += $node.vak
-        if ($filter_excl_vak -notcontains $node.vak) {
-            $vak = $teamnaam_prefix + $node.vak
-            $nieuwteam += $vak
+    if ($maakvakkenteams -ne "0") {
+        $data = ADFunction -U $magisterUrl -Ses $MyToken -F "GetLeerlingVakken" -st $stamnr
+        foreach ($node in $data.vakken.vak) {
+            $ruwegroepen += $node.vak
+            if ($filter_excl_vak -notcontains $node.vak) {
+                $vak = $teamnaam_prefix + $node.vak
+                $nieuwteam += $vak
 
-            $stenrec = 1 | Select-Object 'Section SIS ID','SIS ID'
-            $stenrec.'Section SIS ID' = $vak.replace(' ', '')
-            $stenrec.'SIS ID' = $stamnr
-            $studentenrollment += $stenrec
+                $stenrec = 1 | Select-Object 'Section SIS ID','SIS ID'
+                $stenrec.'Section SIS ID' = $vak.replace(' ', '')
+                $stenrec.'SIS ID' = $stamnr
+                $studentenrollment += $stenrec
+            }
         }
     }
 
@@ -219,7 +231,7 @@ foreach ($leerling in $leerlingen) {
 Write-Progress -Activity "Magister data verwerken" -status "Leerling" -Completed
 
 $team = $team | Sort-Object -Unique
-Write-Host "Aanmeldingen:" ($studentenrollment.count - 1) # minus kopregel
+Write-Host "Aanmeldingen         :" ($studentenrollment.count - 1) # minus kopregel
 
 ################# VERZAMEL DOCENTEN
 Write-Host "Ophalen docenten..."
@@ -227,16 +239,22 @@ $data = ADFunction -U $magisterUrl -Ses $MyToken -F "GetActiveEmpoyees"
 $docenten = $data.Personeelsleden.Personeelslid | Select-Object `
     stamnr_str,achternaam,tussenv,roepnaam,loginaccount.naam,code,Functie.Omschr
 
-# Om onbekende redenen staan sommige personeelsleden dubbel erin. 
+# JPT: Om onbekende redenen staan sommige personeelsleden dubbel erin. 
 # Met hun voornaam in 'loginaccount.naam' . Filter ze eruit.
 $docenten = $docenten | Where-Object {$_.code -eq $_.'loginaccount.naam'}
 $docenten | Export-Csv -Path $filename_t_docent -Delimiter ";" -NoTypeInformation -Encoding UTF8
-Write-Host "Docenten ongefilterd:" $docenten.count
+Write-Host "Docenten ongefilterd :" $docenten.count
+
+if (Test-Path $filename_excl_docent) {
+    $filter_excl_docent = $(Get-Content -Path $filename_excl_docent) -join '|'
+    $docenten = $docenten | Where-Object {$_.Code -notmatch $filter_excl_docent}
+    Write-Host "Docenten na uitsluitend filteren docent :" $docenten.count
+}
 
 if (Test-Path $filename_incl_docent) {
     $filter_incl_docent = $(Get-Content -Path $filename_incl_docent) -join '|'
     $docenten = $docenten | Where-Object {$_.Code -match $filter_incl_docent}
-    Write-Host "Docenten na filteren:" $docenten.count
+    Write-Host "Docenten na insluitend filteren docent :" $docenten.count
 }
 
 $teller = 0
@@ -254,20 +272,11 @@ foreach ($user in $docenten ) {
     }
 
     # verzamel groepen per docent
-    $docent_klas = ""
     $data = ADFunction -U $magisterUrl -Ses $MyToken -F "GetPersoneelgroepVakken" -St $docentnr
     foreach ($dkv in $data.Lessen.Les) {
-        $docent_klas = $dkv.'klas'
-        $docent_Vak_vakcode = $dkv.'Vak.Vakcode'
+        $klasvak = $teamnaam_prefix + $dkv.'klas'
+        $nieuwteam += $klasvak
 
-        if ($docent_klas[0] -ge "4") {
-            $klasvak = $teamnaam_prefix + $docent_klas
-            $nieuwteam += $klasvak
-        }
-        else {
-            $klasvak = $teamnaam_prefix + $docent_klas
-            $nieuwteam += $klasvak
-        }
         $terorec = 1 | Select-Object 'Section SIS ID','SIS ID'
         $terorec.'Section SIS ID' = $klasvak.replace(' ', '')
         $terorec.'SIS ID' = $stamnr
@@ -282,8 +291,8 @@ foreach ($user in $docenten ) {
         }
     }
 
-    # skip dubbele docenten en docenten zonder klas.
-    if (($teacher.'SIS ID' -notcontains $stamnr) -and ($docent_klas -ne '')) {
+    # Voeg docent toe aan lijst, indien nog niet toegevoegd
+    if ($teacher.'SIS ID' -notcontains $stamnr) {
         $tearec = 1 | Select-Object 'SIS ID','School SIS ID',Username,'First Name','Last Name'
         $tearec.'SIS ID' = $stamnr
         $tearec.'School SIS ID' = $brin
@@ -297,47 +306,42 @@ foreach ($user in $docenten ) {
 }
 Write-Progress -Activity "Magister uitlezen" -status "Docent" -Completed
 
-Write-Host "Teams voor sorteren :" $team.count
-$team = $team | Sort-Object -Unique
-Write-Host "Teams na sorteren   :" $team.count 
-
 ################# TEAMS
 # We willen alleen teams waarin zowel leerlingen als docent lid van zijn.
 # Controleer op geldige leden voor elk team.
 Write-Host "Verzamelen actieve teams ..."
-$actiefteam = $team | where {$_ -in $teacherroster.'Section SIS ID'} | where {$_ -in $studentenrollment.'Section SIS ID'}
-
-Write-Host "  Deze teams zijn niet actief en worden overgeslagen:"
-$verschilteams = @()
-$compare = compare-object -referenceobject $team -differenceobject $actiefteam
-$compare | foreach-object {
-    if ($_.sideindicator -eq "=>") {
-        $verschilteams += $_.inputobject
-    }
-}
-$verschilteams
+Write-Host "Teams                :" $team.count
+$team = $team | Sort-Object -Unique
+$team = $team | Where-Object {$_ -in $teacherroster.'Section SIS ID'} | Where-Object {$_ -in $studentenrollment.'Section SIS ID'}
+Write-Host "Teams actief         :" $team.count
 
 $vakprocent = 100 / $team.count
 $teller = 0
 foreach ($tm in $team) {
-
     $secrec = 1 | Select-Object 'SIS ID','School SIS ID','Section Name'
     $secrec.'SIS ID' = $tm.replace(' ', '')
     $secrec.'School SIS ID' =  $brin
     $secrec.'Section Name' = $tm
     $section += $secrec
 
-    Write-Progress -Activity "Magister uitlezen" -status `
+    Write-Progress -Activity "Verzamelen teams" -status `
         "Team $teller van $($team.count)" -PercentComplete ($vakprocent * $teller++)
 }
-Write-Progress -Activity "Magister uitlezen" -status "Vak" -Completed
+Write-Progress -Activity "Verzamelen teams" -status "Vak" -Completed
+
+# we willen alleen de docenten die in een actief team zitten
+Write-Host "Docentgroepen        :" $teacherroster.count
+$teacherroster = $teacherroster | Where-Object {$_.'Section SIS ID' -in $team}
+Write-Host "Docentgroepen actief :" $teacherroster.count
+Write-Host "Docenten             :" $teacher.count
+$teacher = $teacher | Where-Object {$_.'SIS ID' -in $teacherroster.'SIS ID'}
+Write-Host "Docenten actief      :" $teacher.count
 
 ################# AFWERKING
 
-Write-Host "Vakken totaal:" $vaktotaal.count
-$vaktotaal = $vaktotaal | Sort-Object -Unique
-Write-Host "Vakken uniek:" $vaktotaal.count
-$vaktotaal | Out-File -FilePath $filename_t_vak -Encoding UTF8
+$ruwegroepen = $ruwegroepen | Sort-Object -Unique
+Write-Host "Groepen uniek        :" $ruwegroepen.count
+$ruwegroepen | Out-File -FilePath $filename_t_groep -Encoding UTF8
 
 # Maak een school
 $schoolrec = 1 | Select-Object 'SIS ID',Name
@@ -345,14 +349,15 @@ $schoolrec.'SIS ID' = $brin
 $schoolrec.Name = $schoolnaam
 $school += $schoolrec
 
-Write-Host "School            :" $school.count
-Write-Host "Student           :" $student.count
-Write-Host "Studentenrollment :" $Studentenrollment.count
-Write-Host "Teacher           :" $teacher.count
-Write-Host "Teacherroster     :" $teacherroster.count
-Write-Host "Section           :" $section.count
+Write-Host "Oprollen en aftaaien ..."
+Write-Host "School               :" $school.count
+Write-Host "Student              :" $student.count
+Write-Host "Studentenrollment    :" $Studentenrollment.count
+Write-Host "Teacher              :" $teacher.count
+Write-Host "Teacherroster        :" $teacherroster.count
+Write-Host "Section              :" $section.count
 
-# Sorteer de teams een beetje
+# Sorteer de teams voor de mooi
 $studentenrollment  = $studentenrollment | Sort-Object 'Section SIS ID' 
 $teacher = $teacher | Sort-Object 'SIS ID'
 $teacherroster = $teacherroster | Sort-Object 'Section SIS ID' 
