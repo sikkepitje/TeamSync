@@ -10,30 +10,42 @@
 :toc-title:
 21 april 2020 Paul Wiegmans <p.wiegmans@svok.nl>
 
-TeamSync is een PowerShell-script dat gegevens over leerlingen, klassen, lesgroepen, docenten en vakken ophaalt uit Magister en bestanden aanmaakt om te uploaden naar School Data Sync ten behoeve van een geautomatiseerde aanmaak van Teams in een Microsoft Office 365 omgeving. 
+TeamSync is een PowerShell-script dat gegevens ophaalt uit Magister en bestanden aanmaakt om te uploaden naar School Data Sync ten behoeve van een geautomatiseerde aanmaak van Teams in een Microsoft Office 365 omgeving. 
+
+Inspiratie hiervoor komt uit eerder werk genaamd 'v06-sds-files_FONSVITAE.ps1' door Wim den Ronde, Eric Redegeld, Joppe van Daalen.
 
 toc::[]
 
 ## Werking 
 
-Voor het ophalen van gegevens wordt gebruik gemaakt van een SOAP/XML webservice. Uitvoer bestaat uit 6 CSV-bestanden die nodig zijn voor het synchroniseren met een synchronisatieprofiel in School Data Sync.
+TeamSync is gesplitst in twee scripts: 
+
+* `Ophalen-MagisterData.ps1`
+* `Transformeren-Naar-SchoolDataSync.ps1`
+
+Deze twee scripts kunnen achter elkaar worden uitgevoerd. 
+Voor het ophalen van gegevens wordt gebruik gemaakt van een SOAP/XML webservice die toegang biedt tot de Magisteromgeving van een school. Uitvoer bestaat uit 6 CSV-bestanden die nodig zijn voor het synchroniseren met een synchronisatieprofiel in School Data Sync.
 
 De werking is als volgt:
 
+Script 1 `Ophalen-MagisterData.ps1` verzorgt ophalen van gegevens: 
+
 * leest `teamsync.ini`
-* maakt verbinding met Magister SOAP/XML interface
-* haalt alle leerlingen op
-* filtert leerlingen
-* haalt van elke leerling de lesgroepen op
-* haalt alle docenten op
-* filtert docenten
-* haalt van alle docenten de vakuren op
-* maakt een team voor elke leerling-lesgroep en docent-vak-lesgroep
-* filtert teams; houdt alleen teams met docenten en leerlingen
-* filtert leerlingen; houdt alleen leerlingen in teams
-* filtert docenten; hoddut alleen docenten in teams
-* haalt schoolinformatie op
-* schrijft CSV-bestanden met leerlingen, docenten, school, teams, team-leerlingen en team-docenten. 
+* leest filters
+* haalt session token op
+* haalt gegevens van leerling op
+* haalt gegevens van docenten op
+* genereert lijst met vakken
+* bewaart tussenresultaten in bestand
+
+Script 2 `Transformeren-Naar-SchoolDataSync.ps1` verzorgt het transformeren en uitvoeren:
+
+* leest `teamsync.ini`
+* leest filters
+* leest tussenresultaten uit bestand
+* past filters toe
+* genereert een lijst met actieve teams
+* schrijft SDS-bestanden met leerlingen, docenten, school, teams, team-leerlingen en team-docenten. 
 
 ## Bestanden en mappen
 
@@ -47,15 +59,15 @@ Bestanden en mappen worden verwacht in dezelfde map als het script.
 
 ### teamsync.ini - scriptparameters
 
-Het bestand 'Teamsync.ini' bevat een aantal naam-waarde-paren, die parameters definieert die nodig zijn voor Teamsync. Deze parameters worden gespeficeerd als een naam-waarde-paar. Deze heeft de volgende vorm:
+Het bestand 'Teamsync.ini' definieert een aantal parameters, die nodig zijn voor o.a. het authenticeren van de toegang tot de Magister SOAP webserver. Deze parameters worden gespeficeerd als een naam-waarde-paar en hebben de volgende vorm:
 
 ```
 <naam>=<waarde>
 ```
 
-Aanhalingstekens zijn toegestaan maar niet nodig. Spaties in de waarde-deel zijn toegestaan. 
+Aanhalingstekens zijn toegestaan maar niet nodig. Spaties in het waarde-deel zijn toegestaan. 
 
-De volgende parameters zijn vereist en moeten een waarde hebben:
+De volgende parameters moeten een waarde hebben:
 
 [square]
 * `brin=waarde` : BRIN-nummer van de school
@@ -65,17 +77,10 @@ De volgende parameters zijn vereist en moeten een waarde hebben:
 * `magisterUrl=waarde` : webservice-URL
 * `teamnaam-prefix=waarde` : unieke prefix voor teams in SDS
 
-De volgende parameters zijn optioneel:
-[square]
-* `maakklassenteams=waarde` : maak een team voor elke klas
-* `maaklesgroepenteams=waarde` : maak een team voor elke lesgroep
-* `maakvakkenteams=waarde` : maak een team voor elk vak
-
-De waarde voor de bovenstaande parameters is `0` of `1`. Indien deze parameters worden weggelaten, dan wordt aangenomen dat de waarde `1` is.
 
 ### Data_in - invoerselectie
 
-Er zijn een aantal bestanden in de map `data_in` die gebruikt kunnen worden om de hoeveelheid uit Magister ingelezen gegevens te reduceren.
+Er zijn een aantal filters te definieren , die zowel in `Ophalen-MagisterData.ps1` als `Transformeren-Naar-SchoolDataSync.ps1` wordt gebruikt om de hoeveelheid te verwerken gegeven te reduceren. Deze filters worden gedefinieerd door het overeenkomstige bestand in de map `data_in` te definieren. 
 
 * `excl_docent.csv` : dit bevat filters voor het uitsluiten van docenten op docentcode.
 * `incl_docent.csv` : dit bevat filters voor het insluiten van docenten op docentcode.
@@ -84,7 +89,7 @@ Er zijn een aantal bestanden in de map `data_in` die gebruikt kunnen worden om d
 * `excl_studie.csv` : dit bevat filters voor het uitsluiten van leerlingen op studie.
 * `incl_studie.csv` : dit bevat filters voor het insluiten van leerlingen op studie.
 
-In de map `Data_in` kunnen één of meer van bovenstaande filterbestanden worden aangemaakt. Deze bestanden bevatten filters, die selectief records uit de invoer filteren. Ze kunnen **exclusief** of uitsluitend filteren, dat wil zeggen dat overeenkomende records worden weggegooid en uitgesloten van verwerking, of ze kunnen **inclusief** of insluitend filteren, dat wil zeggen dat alleen de overeenkomende records verder worden verwerkt.
+Deze bestanden bevatten filters, die selectief records uit de invoer filteren. Ze kunnen **exclusief** of uitsluitend filteren, dat wil zeggen dat overeenkomende records worden weggegooid en uitgesloten van verwerking, of ze kunnen **inclusief** of insluitend filteren, dat wil zeggen dat alleen de overeenkomende records verder worden verwerkt.
 
 Het gebruik van deze filterbestanden is optioneel. Als ze bestaan, worden ze ingelezen en gebruikt. Als ze niet bestaan, wordt er niet gefilterd. Indien gebruikt, dan kan elk van deze bestand een of meer filters bevatten, elk op een eigen regel, die worden toegepast met behulp van de match-operator voor het filteren van de leerlingen of docenten. Elke filter match een deel van de invoer. Wildcards zijn niet nodig. Alle tekens met een speciale betekenis voor de match-operator zijn hierbij toegelaten. Plaats geen lege regels in het filterbestand.
 
@@ -133,11 +138,12 @@ De uitvoer worden aangemaakt in 6 bestanden in de map `Data_out `. Het script ma
 
 ### data_temp - Tussenresultaten
 
-In de map `Data_temp` worden de ongefilterde verzameling van ingelezen leerlingen en docenten opgeslagen in een bestand, elk met een deelverzameling van de attributen zoals die uit Magister worden gelezen.
+In de map `Data_temp` worden tussenresultaten opgeslagen. Het script `Ophalen-Magisterdata.ps1` bewaart hier de lijsten met leerling- en docentgegevens. Het script `Transformeren-Naar-SchoolDataSync.ps1` leest deze bestanden in voor verdere verwerking. 
 
-* `docent.csv`
-* `leerling.csv`
-* `groep.csv`
+* `mag_leer.clixml`
+* `mag_docent.clixml`
+* `mag_vak.clixml`
+* `teamlid.csv`
 
 ## To do
 

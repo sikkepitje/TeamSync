@@ -1,15 +1,30 @@
 <#
     TeamSync-JPT.ps1
 
-	2020-05-17 Paul Wiegmans SVOK
-	
-    Script dat leerling,docent,lesgroep,klas en roostergegevens ophaalt uit Magister
-	en CSV-bestanden produceert voor upload naar School Data Sync.
-    Naar een voorbeeld van Fons Vitae
+    20 mei 2020 Paul Wiegmans
+    naar een voorbeeld van Eric Redegeld,
+    naar een voorbeeld van Wim den Ronde
 
+    Poging ophalen van gegeven via magister Webservices ADFuncties
+    naar voorbeeld van Fons Vitae
+
+    Opmerkingen:
+
+    Toon studentengegevens:
+    get-content ".\data\studenten.csv" | convertfrom-csv -delimiter ";" | out-gridview
+
+    wijzigingen:
+    * aanmaken vakklassen voor klassikale vakken: vakken in brugklas, (netl,entl,me, enz) in bovenbouw
+    * bewaart ruwe magistergegevens in tijdelijke bestanden t.b.v. debuggen: llgroep, llvak, teamlid, docvak.
+
+    Dit is een verouderde versie van TeamSync. Gebruik dit niet!
+    Zie Ophalen-MagisterData.ps1 voor de verder ontwikkelde versie van dit script. 
+    
 #>
 $stopwatch = [Diagnostics.Stopwatch]::StartNew()
 
+$herePath = Split-Path -parent $MyInvocation.MyCommand.Definition
+. ($herePath + "\ObjectFast.ps1")
 $brin = $null
 $schoolnaam = $null
 $magisterUser = $null
@@ -21,10 +36,13 @@ $maaklesgroepenteams = "1"
 $maakvakkenteams = "1"
 
 $jaarlaag_heeft_lesgroepen = "3", "4", "5", "6"  # er wordt alleen voor deze jaarlagen gezocht naar lesgroepen
+$vakken_bovenbouw_klassikaal = "netl", "entl", "lo", "ckv", "maat", "WVStage", "LV"
+$vakken_brugklas_klassikaal = "ne*","ak","aktvt","bi","en","eng","fa","gs","lo","me","mu","ne","ntc","pe","te","tot","up","mat","wi"
+$vakken_onderbouw_klassikaal = "me","ne","eng","mus","art","bio","du","fa","geo","his","mat"
+# Welke groepen zijn klassikaal voor welk jaar/studie/klas?
 
 Write-Host " "
 Write-Host "Start..."
-$herePath = Split-Path -parent $MyInvocation.MyCommand.Definition
 $inputPath = $herePath + "\data_in"
 $tempPath = $herePath + "\data_temp"
 $outputPath = $herePath + "\data_out"
@@ -46,6 +64,12 @@ $filename_excl_lesgroep = $inputPath + "\excl_lesgroep.csv"
 $filename_t_leerling = $tempPath + "\leerling.csv"
 $filename_t_docent = $tempPath + "\docent.csv"
 $filename_t_groep = $tempPath + "\groep.csv"
+$filename_t_teamlid = $tempPath + "\teamlid.csv"
+$filename_t_llgroep = $tempPath + "\llgroep.csv"
+$filename_t_llvak = $tempPath + "\llvak.csv"
+$filename_t_docvak = $tempPath + "\docvak.csv"
+$filename_t_docklasvak = $tempPath + "\docklasvak.csv"
+$filename_t_docgroepvak = $tempPath + "\docgroepvak.csv"
 
 # Files OUT
 $filename_School = $outputPath + "\School.csv"
@@ -75,22 +99,28 @@ if (!$magisterUser)  { Throw "magisterUser is vereist"}
 if (!$magisterPass)  { Throw "magisterPass is vereist"}
 if (!$magisterUrl)  { Throw "magisterUrl is vereist"}
 if (!$teamnaam_prefix)  { Throw "teamnaam_prefix is vereist"}
-
+$teamnaam_prefix += " "  # teamnaam prefix wordt altijd gevolgd door een spatie
 function Invoke-Webclient($url) {
     $wc = New-Object System.Net.WebClient
     $wc.Encoding = [System.Text.Encoding]::UTF8
-    $feed = [xml]$wc.downloadstring($url)
+    try {
+        $feed = [xml]$wc.downloadstring($url)
+    } catch {
+        Throw "Invoke-Webclient: er ging iets mis"
+    }
     return $feed.Response.Data    
 }
-
-function ADFunction ($Url = $magisterUrl, $Function, $SessionToken, $stamnr = $null) {
+function ADFunction ($Url = $magisterUrl, $Function, $SessionToken, $Stamnr = $null) {
     if ($stamnr) {
         return Invoke-Webclient -Url ($Url + "?library=ADFuncties&function=" + 
-            $Function + "&SessionToken=" + $SessionToken + "&LesPeriode=&StamNr=" + $stamnr + "&Type=XML")
+            $Function + "&SessionToken=" + $SessionToken + "&LesPeriode=&StamNr=" + $Stamnr + "&Type=XML")
     } else {
         return Invoke-Webclient -Url ($Url + "?library=ADFuncties&function=" + 
             $Function + "&SessionToken=" + $SessionToken + "&LesPeriode=&Type=XML")
     }
+}
+function ConvertTo-SISID([string]$Naam) {
+    return $Naam.replace(' ','_')
 }
 
 # voorbereiden SDS formaat CSV bestanden
@@ -123,7 +153,7 @@ $MyToken = $feed.response.SessionToken
 ################# VERZAMEL LEERLINGEN
 # Ophalen leerlingdata, selecteer attributen, en bewaar hele tabel
 Write-Host "Ophalen leerlingen..."
-$data = ADFunction -U $magisterUrl -Ses $MyToken -F "GetActiveStudents"
+$data = ADFunction -Url $magisterUrl -Sessiontoken $MyToken -Function "GetActiveStudents"
 $leerlingen = $data.Leerlingen.Leerling | Select-Object `
     stamnr_str,achternaam,tussenv,roepnaam,'loginaccount.naam',klas,studie,profiel.code
 $leerlingen | Export-Csv -Path $filename_t_leerling -Delimiter ";" -NoTypeInformation -Encoding UTF8
@@ -151,58 +181,81 @@ if (Test-Path $filename_incl_klas) {
     Write-Host "Leerlingen na insluitend filteren klas   :" $leerlingen.count
 }
 
+$llgroep = @()
+$llvak = @()
+$llklas = @()   
 $teller = 0
 $leerlingprocent = 100 / $leerlingen.count
 foreach ($leerling in $leerlingen) {
     $stamnr = $leerling.Stamnr_str
+    $klas = $leerling.Klas
+    $leerjaar = $klas[0]
     $nieuwteam = @()
 
     # verzamel de stamklassen
-    # een team voor elke klas
     if ($maakklassenteams -ne "0") {
         $ruwegroepen += $leerling.Klas
-        $klas = $teamnaam_prefix + $leerling.Klas
-        $nieuwteam += $klas
+        $teamnaam = ConvertTo-SISID -Naam ($teamnaam_prefix + $leerling.Klas)
+        $nieuwteam += $teamnaam
 
+        # Ik maak GEEN team voor elke klas
         $stenrec = 1 | Select-Object 'Section SIS ID','SIS ID'
-        $stenrec.'Section SIS ID' = $klas.replace(' ', '')
+        $stenrec.'Section SIS ID' = $teamnaam
         $stenrec.'SIS ID' = $stamnr
         $studentenrollment += $stenrec
     }
 
     # verzamel de lesgroepen
     # een team voor elke lesgroep
-    if ($maaklesgroepenteams -ne "0") {
-        $leerjaar = $leerling.Klas[0]
-        $data = ADFunction -U $magisterUrl -Ses $MyToken -F "GetLeerlingGroepen"-st $stamnr
+    if (($maaklesgroepenteams -ne "0") -and ($leerjaar -in $jaarlaag_heeft_lesgroepen)) {
+        $data = ADFunction -Url $magisterUrl -Sessiontoken $MyToken -Function "GetLeerlingGroepen" -Stamnr $stamnr
         foreach ($node in $data.vakken.vak) {
             $ruwegroepen += $node.groep
-            if ($filter_excl_lesgroep -notcontains $node.groep) {
-                # filtervoorbeeld
-                # if ($node.groep -ne "6ventlC") { # filtervoorbeeld 2
-                $lesgroep = $teamnaam_prefix + $node.groep
-                $nieuwteam += $lesgroep
 
-                $stenrec = 1 | Select-Object 'Section SIS ID','SIS ID'
-                $stenrec.'Section SIS ID' = $lesgroep.replace(' ', '')
-                $stenrec.'SIS ID' = $stamnr
-                $studentenrollment += $stenrec
+            $rec = 1 | Select-Object "Stamnr","groep"
+            $rec.Stamnr = $node.Stamnr
+            $rec.groep = $node.groep
+            $llgroep += $rec
+
+            if ($filter_excl_lesgroep -notcontains $node.groep) {
+                $teamnaam = ConvertTo-SISID -Naam ($teamnaam_prefix + $node.groep)
+                $nieuwteam += $teamnaam
+
+                $rec = 1 | Select-Object 'Section SIS ID','SIS ID'
+                $rec.'Section SIS ID' = $teamnaam
+                $rec.'SIS ID' = $stamnr
+                $studentenrollment += $rec
             }
         }
     }
 
     # verzamel de vakken
-    # een team voor elk vak 
-    if ($maakvakkenteams -ne "0") {
-        $data = ADFunction -U $magisterUrl -Ses $MyToken -F "GetLeerlingVakken" -st $stamnr
-        foreach ($node in $data.vakken.vak) {
-            $ruwegroepen += $node.vak
-            if ($filter_excl_vak -notcontains $node.vak) {
-                $vak = $teamnaam_prefix + $node.vak
-                $nieuwteam += $vak
+    # een team voor elke vakklas
 
+    $data = ADFunction -Url $magisterUrl -Sessiontoken $MyToken -Function "GetLeerlingVakken" -Stamnr $stamnr
+    foreach ($node in $data.vakken.vak) {
+        $ruwegroepen += $node.vak
+        $rec = 1 | Select-Object "Stamnr","Vak"
+        $rec.Stamnr = $node.Stamnr
+        $rec.Vak = $node.Vak
+        $llvak += $rec
+
+        if ($filter_excl_vak -notcontains $node.vak) {
+
+            #$is_vakklas = (($leerjaar -eq "1") -and ($vakken_brugklas_klassikaal -contains $node.vak)) `
+            #-or (($leerjaar -in "2","3") -and ($vakken_bovenbouw_klassikaal -contains $node.vak)) `
+            #-or (($leerjaar -ge "4") -and ($vakken_bovenbouw_klassikaal -contains $node.vak))
+
+            # Ik weet niet voor welk vak dit moet gebeuren. 
+            # Laten we dit simpel houden voor nu: Maak een vakklas voor ELKE klas!
+            $is_vakklas = $true
+            if ($is_vakklas) {
+                # als dit een klassikaal vak is, maak een "vakklas"
+                $teamnaam = ConvertTo-SISID -Naam ($teamnaam_prefix + $leerling.klas + " " + $node.vak + " vakklas")
+                $nieuwteam += $teamnaam
+    
                 $stenrec = 1 | Select-Object 'Section SIS ID','SIS ID'
-                $stenrec.'Section SIS ID' = $vak.replace(' ', '')
+                $stenrec.'Section SIS ID' = $teamnaam
                 $stenrec.'SIS ID' = $stamnr
                 $studentenrollment += $stenrec
             }
@@ -215,6 +268,10 @@ foreach ($leerling in $leerlingen) {
         if ($_.sideindicator -eq "=>") {
             $team += $_.inputobject
         }
+    }
+    # verzamel unieke klassen
+    if ($klas -notin $llklas) {
+        $llklas += $klas
     }
 
     # Verzamel studenten
@@ -229,12 +286,19 @@ foreach ($leerling in $leerlingen) {
 }
 Write-Progress -Activity "Magister data verwerken" -status "Leerling" -Completed
 
+Write-Host "Sorteren..."
 $team = $team | Sort-Object -Unique
 Write-Host "Aanmeldingen         :" ($studentenrollment.count - 1) # minus kopregel
 
+# tijdelijke gegevens opslaan
+$llgroep = $llgroep | Sort-Object "Stamnr","groep"
+$llgroep | Export-CSV -Path $filename_t_llgroep -Encoding UTF8 -NoTypeInformation
+$llvak = $llvak | Sort-Object "Stamnr","Vak"
+$llvak | Export-CSV -Path $filename_t_llvak -Encoding UTF8 -NoTypeInformation
+
 ################# VERZAMEL DOCENTEN
 Write-Host "Ophalen docenten..."
-$data = ADFunction -U $magisterUrl -Ses $MyToken -F "GetActiveEmpoyees"  
+$data = ADFunction -Url $magisterUrl -Sessiontoken $MyToken -Function "GetActiveEmpoyees"  
 $docenten = $data.Personeelsleden.Personeelslid | Select-Object `
     stamnr_str,achternaam,tussenv,roepnaam,loginaccount.naam,code,Functie.Omschr
 
@@ -243,7 +307,9 @@ $docenten = $data.Personeelsleden.Personeelslid | Select-Object `
 $docenten = $docenten | Where-Object {$_.code -eq $_.'loginaccount.naam'}
 $docenten | Export-Csv -Path $filename_t_docent -Delimiter ";" -NoTypeInformation -Encoding UTF8
 Write-Host "Docenten ongefilterd :" $docenten.count
-
+if ($docenten.count -eq 0) {
+    Throw "Geen docenten ?? Stopt!"
+}
 if (Test-Path $filename_excl_docent) {
     $filter_excl_docent = $(Get-Content -Path $filename_excl_docent) -join '|'
     $docenten = $docenten | Where-Object {$_.Code -notmatch $filter_excl_docent}
@@ -257,29 +323,87 @@ if (Test-Path $filename_incl_docent) {
 }
 
 $teller = 0
+$docvak = @()
+$docklasvak = @()
+$docgroepvak = @()
 $docentprocent = 100 / $docenten.count
-foreach ($user in $docenten ) {
+foreach ($docent in $docenten ) {
     $nieuwteam = @()
-    $stamnr = $user.'Code'  # worden codes herbruikt?
-    $docentnr = $user.'stamnr_str'
-    $voornaam = $user.'Roepnaam'
+    $docentnr = $docent.stamnr_str
+    $voornaam = $docent.Roepnaam
 
-    if ($user.'Tussenv' -ne '') {
-        $achternaam = $user.'Tussenv' + " " + $user.'Achternaam'
+    if ($docent.Tussenv -ne '') {
+        $achternaam = $docent.Tussenv + " " + $docent.Achternaam
     } else {
-        $achternaam = $user.'Achternaam'
+        $achternaam = $docent.Achternaam
     }
 
     # verzamel groepen per docent
-    $data = ADFunction -U $magisterUrl -Ses $MyToken -F "GetPersoneelgroepVakken" -St $docentnr
-    foreach ($dkv in $data.Lessen.Les) {
-        $klasvak = $teamnaam_prefix + $dkv.'klas'
-        $nieuwteam += $klasvak
+    $data = ADFunction -Url $magisterUrl -Sessiontoken $MyToken -Function "GetPersoneelGroepVakken" -Stamnr $docentnr
+    foreach ($elem in $data.Lessen.Les) {
+        # maak een klasteam voor deze docent
+        $teamnaam = ConvertTo-SISID -Naam ($teamnaam_prefix + $elem.Klas )
+        $nieuwteam += $teamnaam
 
-        $terorec = 1 | Select-Object 'Section SIS ID','SIS ID'
-        $terorec.'Section SIS ID' = $klasvak.replace(' ', '')
-        $terorec.'SIS ID' = $stamnr
-        $teacherroster += $terorec
+        $rec = 1 | Select-Object "Code","Personeelslid_Stamnr","Klas","Vak_Vakcode","Vak_Omschrijving"
+        $rec.Code = $docent.Code
+        $rec.Personeelslid_Stamnr = $elem.'Personeelslid.Stamnr'
+        $rec.Klas = $elem.Klas
+        $rec.Vak_Vakcode = $elem.'Vak.Vakcode'
+        $rec.Vak_Omschrijving = $elem.'Vak.Omschrijving'
+        $docgroepvak += $rec
+        
+        $rec = 1 | Select-Object 'Section SIS ID','SIS ID'
+        $rec.'Section SIS ID' = $teamnaam
+        $rec.'SIS ID' = $docent.Code
+        $teacherroster += $rec
+
+        if ($elem.Klas -in $llklas) {
+            # maak een vakklas voor deze docent
+            $teamnaam = ConvertTo-SISID -Naam ($teamnaam_prefix + $elem.Klas + " " + $elem.'Vak.Vakcode' + " vakklas")
+            $nieuwteam += $teamnaam
+
+            $rec = 1 | Select-Object 'Section SIS ID','SIS ID'
+            $rec.'Section SIS ID' = $teamnaam
+            $rec.'SIS ID' = $docent.Code
+            $teacherroster += $rec
+
+            # INFO : docvak
+            $rec = 1 | Select-Object "Personeelslid_Stamnr","Klas","Vak_Vakcode","Vak_Omschrijving"
+            $rec.Personeelslid_Stamnr = $elem.'Personeelslid.Stamnr'
+            $rec.Klas = $elem.Klas
+            $rec.Vak_Vakcode = $elem.'Vak.Vakcode'
+            $rec.Vak_Omschrijving = $elem.'Vak.Omschrijving'
+            $docvak += $rec           
+        }
+    }
+
+    # verzamelen klasvakken
+    $data = ADFunction -Url $magisterUrl -Sessiontoken $MyToken -Function "GetPersoneelKlasVakken" -Stamnr $docentnr
+    if ($data.Lessen.Les) {
+        foreach ($elem in $data.Lessen.Les) {
+            Write-Host "+PersKlasVak" 
+            # INFO : docklasvak
+            $rec = 1 | Select-Object "Code","Personeelslid_Stamnr","Klas_Lesgroep","Klas"
+            $rec.Code = $docent.Code
+            $rec.Personeelslid_Stamnr = $elem.'Personeelslid.Stamnr'
+            $rec.Klas = $elem.Klas
+            $rec.Klas_Lesgroep = $elem.Klas_Lesgroep
+            $docklasvak += $rec
+        }
+    }
+
+    # verzamel vakken per docent
+    $data = ADFunction -Url $magisterUrl -Sessiontoken $MyToken -Function "GetPersoneelVakken" -Stamnr $docentnr
+    if ($data.Lessen.Les) {
+        foreach ($elem in $data.Lessen.Les) {
+            $rec = 1 | Select-Object "Code","Personeelslid_Stamnr","Vak_Vakcode","Vak_Omschrijving"
+            $rec.Code = $docent.Code
+            $rec.Personeelslid_Stamnr = $elem.'Personeelslid.Stamnr'
+            $rec.Vak_Vakcode = $elem.'Vak.Vakcode'
+            $rec.Vak_Omschrijving = $elem.'Vak.Omschrijving'
+            $docvak += $rec
+        }
     }
 
     # verzamel unieke teams
@@ -291,11 +415,11 @@ foreach ($user in $docenten ) {
     }
 
     # Voeg docent toe aan lijst, indien nog niet toegevoegd
-    if ($teacher.'SIS ID' -notcontains $stamnr) {
+    if ($teacher.'SIS ID' -notcontains $docent.Code) {
         $tearec = 1 | Select-Object 'SIS ID','School SIS ID',Username,'First Name','Last Name'
-        $tearec.'SIS ID' = $stamnr
+        $tearec.'SIS ID' = $docent.Code
         $tearec.'School SIS ID' = $brin
-        $tearec.Username = $user.'Code'
+        $tearec.Username = $docent.Code
         $tearec.'First Name' = $voornaam
         $tearec.'Last Name' = $achternaam
         $teacher += $tearec
@@ -305,20 +429,34 @@ foreach ($user in $docenten ) {
 }
 Write-Progress -Activity "Magister uitlezen" -status "Docent" -Completed
 
+#$docenten | Out-GridView
+
+$docvak = $docvak | Sort-Object "Code","Personeelslid_Stamnr","Klas","Vak_Vakcode"
+#$docvak | Out-Gridview
+$docvak | Export-Csv -Path $filename_t_docvak -Encoding UTF8 -NoTypeInformation
+
+$docklasvak = $docklasvak | Sort-Object "Code","Personeelslid.Stamnr","Klas_Lesgroep","Klas"
+#$docklasvak | Out-Gridview
+$docklasvak | Export-Csv -Path $filename_t_docklasvak -Encoding UTF8 -NoTypeInformation
+
+$docgroepvak = $docgroepvak | Sort-Object Code,"Personeelslid_Stamnr",Klas
+#$docgroepvak | Out-Gridview
+$docgroepvak | Export-Csv -Path $filename_t_docgroepvak -Encoding UTF8 -NoTypeInformation
+
 ################# TEAMS
 # We willen alleen teams waarin zowel leerlingen als docent lid van zijn.
 # Controleer op geldige leden voor elk team.
 Write-Host "Verzamelen actieve teams ..."
 Write-Host "Teams                :" $team.count
 $team = $team | Sort-Object -Unique
-$team = $team | Where-Object {$_ -in $teacherroster.'Section SIS ID'} | Where-Object {$_ -in $studentenrollment.'Section SIS ID'}
+#$team = $team | Where-Object {$_ -in $teacherroster.'Section SIS ID'} | Where-Object {$_ -in $studentenrollment.'Section SIS ID'}
 Write-Host "Teams actief         :" $team.count
 
 $vakprocent = 100 / $team.count
 $teller = 0
 foreach ($tm in $team) {
     $secrec = 1 | Select-Object 'SIS ID','School SIS ID','Section Name'
-    $secrec.'SIS ID' = $tm.replace(' ', '')
+    $secrec.'SIS ID' = $tm
     $secrec.'School SIS ID' =  $brin
     $secrec.'Section Name' = $tm
     $section += $secrec
@@ -328,15 +466,15 @@ foreach ($tm in $team) {
 }
 Write-Progress -Activity "Verzamelen teams" -status "Vak" -Completed
 
-# we willen alleen de docenten die in een actief team zitten
+# we willen alleen de docenten die in een actief team zitten WERKT NIET?
 Write-Host "Docentgroepen        :" $teacherroster.count
-$teacherroster = $teacherroster | Where-Object {$_.'Section SIS ID' -in $team}
-Write-Host "Docentgroepen actief :" $teacherroster.count
+#$teacherroster = $teacherroster | Where-Object {$_.'Section SIS ID' -in $team.'SIS ID'}
+#Write-Host "Docentgroepen actief :" $teacherroster.count
 Write-Host "Docenten             :" $teacher.count
-$teacher = $teacher | Where-Object {$_.'SIS ID' -in $teacherroster.'SIS ID'}
-Write-Host "Docenten actief      :" $teacher.count
+#$teacher = $teacher | Where-Object {$_.'SIS ID' -in $teacherroster.'SIS ID'}
+#Write-Host "Docenten actief      :" $teacher.count
 
-################# AFWERKING
+################# AFWERKING EN UITVOER
 
 $ruwegroepen = $ruwegroepen | Sort-Object -Unique
 Write-Host "Groepen uniek        :" $ruwegroepen.count
@@ -348,7 +486,6 @@ $schoolrec.'SIS ID' = $brin
 $schoolrec.Name = $schoolnaam
 $school += $schoolrec
 
-Write-Host "Oprollen en aftaaien ..."
 Write-Host "School               :" $school.count
 Write-Host "Student              :" $student.count
 Write-Host "Studentenrollment    :" $Studentenrollment.count
@@ -369,5 +506,48 @@ $studentenrollment | Export-Csv -Path $filename_StudentEnrollment -Encoding UTF8
 $teacher | Export-Csv -Path $filename_Teacher -Encoding UTF8 -NoTypeInformation
 $teacherroster | Export-Csv -Path $filename_TeacherRoster -Encoding UTF8 -NoTypeInformation
 
+
+################# CONTROLEWEERGAVE
+# Ter controle: Verzamel een lijst van teams waar voor ieder team staat hoeveel leerlingen 
+# en hoeveel docenten er lid van zijn.
+# Voor eenvoud, gebruik 3 associatieve arrays, één voor bijhouden van leerlingen 
+# die lid zijn van een team, één voor docentenaantallen, één voor docentcodes. Gebruik teamnaam als index. 
+
+Write-Host "Weergave ter controle"
+$teamleer = @{}
+$teamdoc = @{}
+$teamdoccode = @{}
+
+Write-Host "  Teams tellen..."
+foreach ($tm in $team) {
+    $teamleer.Add($tm, 0)
+    $teamdoc.Add($tm, 0)
+    $teamdoccode.Add($tm, "")
+}
+Write-Host "  Leerlingen tellen..."
+foreach ($sten in $studentenrollment) {
+    $teamleer[$sten.'Section SIS ID'] += 1
+}
+Write-Host "  Docenten tellen..."
+foreach ($tero in $teacherroster) {
+    $teamdoc[$tero.'Section SIS ID'] += 1
+    $teamdoccode[$tero.'Section SIS ID'] += " " + $tero.'SIS ID'
+}
+
+Write-Host "  Tabel opbouwen..."
+$teamlid = @()
+foreach ($tm in $team) {
+    $tl = 1 | Select-Object Team,Leerlingen,Docenten,Code 
+    $tl.Team = $tm
+    $tl.Leerlingen = $teamleer[$tm]
+    $tl.Docenten = $teamdoc[$tm] 
+    $tl.Code = $teamdoccode[$tm]
+    $teamlid += $tl
+}
+
+Write-Host "  Weergeven..."
+$teamlid | Out-GridView
+$teamlid | Export-Csv -Path $filename_t_teamlid -Encoding UTF8 -NoTypeInformation
+
 $stopwatch.Stop()
-Write-Host "Klaar! (uu:mm.ss)" $stopwatch.Elapsed.ToString("hh\:mm\.ss")
+Write-Host "Uitvoer klaar (uu:mm.ss)" $stopwatch.Elapsed.ToString("hh\:mm\.ss")
