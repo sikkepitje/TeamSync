@@ -1,4 +1,4 @@
-# Teamsync Handleiding
+# Teamsync v20200621
 :idprefix:
 :idseparator: -
 :sectanchors:
@@ -10,7 +10,9 @@
 :toc-title:
 21 april 2020 Paul Wiegmans <p.wiegmans@svok.nl>
 
-TeamSync is een PowerShell-script dat gegevens ophaalt uit Magister en bestanden aanmaakt om te uploaden naar School Data Sync ten behoeve van een geautomatiseerde aanmaak van Teams in een Microsoft Office 365 omgeving. 
+TeamSync is een PowerShell-script dat gegevens ophaalt uit Magister en overbrengt naar School Data Sync ten behoeve van een geautomatiseerde aanmaak van Teams in een Microsoft Office 365 omgeving. 
+
+Deze oplossing maakt gebruik van https://sds.microsoft.com/[Microsoft School Data Sync]. 
 
 Inspiratie hiervoor komt uit eerder werk genaamd 'v06-sds-files_FONSVITAE.ps1' door Wim den Ronde, Eric Redegeld, Joppe van Daalen.
 
@@ -30,7 +32,7 @@ De werking is als volgt:
 
 Script 1 `Ophalen-MagisterData.ps1` verzorgt ophalen van gegevens: 
 
-* leest `teamsync.ini`
+* leest variabelen uit Ini-bestand
 * leest filters
 * haalt session token op
 * haalt gegevens van leerling op
@@ -40,47 +42,45 @@ Script 1 `Ophalen-MagisterData.ps1` verzorgt ophalen van gegevens:
 
 Script 2 `Transformeren-Naar-SchoolDataSync.ps1` verzorgt het transformeren en uitvoeren:
 
-* leest `teamsync.ini`
+* leest variabelen uit Ini-bestand
 * leest filters
 * leest tussenresultaten uit bestand
 * past filters toe
 * genereert een lijst met actieve teams
-* schrijft SDS-bestanden met leerlingen, docenten, school, teams, team-leerlingen en team-docenten. 
+* schrijft SDS-bestanden naar datauitvoermap. 
 
 ## Bestanden en mappen
-
 Bestanden en mappen worden verwacht in dezelfde map als het script. 
 
-[square]
-* `teamsync.ini` : dit bestand bevat instellingen voor het TeamSync-script, zoals de gebruikersnaam, wachtwoord en URL voor het aanspreken van de webservice, de schoolnaam, het BRINnummer en een teamnaam-prefix.
-* `data_in` : de submap bevat een aantal CSV-bestanden met filters die worden gebruikt om een selectie te maken op klassen, vakken en studies voor het verkleine van de gegevens uit Magister.
-* `data_temp` : deze submap bevat tussenbestanden en kan worden gebruikt om de goede werking te controleren van de Magister webservice.
-* `data_out` : deze submap bevat de 6 CSV-bestanden die nodig zijn om het sync profile van School Data Sync te voeden.
+### Ini-bestand
+bij verstek "teamsync.ini"; dit bestand bevat instellingen voor het TeamSync-script, zoals de gebruikersnaam, wachtwoord en URL voor het aanspreken van de webservice, de schoolnaam, het BRINnummer en een teamnaam-prefix. Een alternatief ini-bestandsnaam wordt opgegeven op de commandoregel via de parameter `-Inibestandsnaam`.
 
-### teamsync.ini - scriptparameters
+### Datainvoermap
+In deze map worden filters geplaatst. Zie Invoerfilter.
 
-Het bestand 'Teamsync.ini' definieert een aantal parameters, die nodig zijn voor o.a. het authenticeren van de toegang tot de Magister SOAP webserver. Deze parameters worden gespeficeerd als een naam-waarde-paar en hebben de volgende vorm:
+### Datakladmap
+In de datakladmap worden tussenbestanden opgeslagen. en kan worden gebruikt om de goede werking te controleren van de Magister webservice.
+ In de map `Data_temp` worden tussenresultaten opgeslagen. Het script `Ophalen-Magisterdata.ps1` bewaart hier de tussentijdse bestanden met leerling- en docent- en vakkengegevens in CliXML-formaat. Het script `Transformeren-Naar-SchoolDataSync.ps1` leest deze bestanden in voor verdere verwerking. 
 
-```
-<naam>=<waarde>
-```
+* `mag_leer.clixml`
+* `mag_docent.clixml`
+* `mag_vak.clixml`
+* `teamlid.csv`
 
-Aanhalingstekens zijn toegestaan maar niet nodig. Spaties in het waarde-deel zijn toegestaan. 
+### Datauitvoermap
 
-De volgende parameters moeten een waarde hebben:
+De uitvoer worden opgeslagen in de datauitvoermap. Het script maakt volgens de specificaties van SDS de volgende bestanden aan. 
 
-[square]
-* `brin=waarde` : BRIN-nummer van de school
-* `schoolnaam=waarde` : naam van de school in SDS
-* `magisterUser=waarde` : webservice-gebruikersnaam
-* `magisterPassword=waarde` : webservice-wachtwoord
-* `magisterUrl=waarde` : webservice-URL
-* `teamnaam-prefix=waarde` : unieke prefix voor teams in SDS
+* `School.csv`
+* `Section.csv`
+* `Student.csv`
+* `StudentEnrollment.csv`
+* `Teacher.csv`
+* `TeacherRoster.csv`
 
+### Filters
 
-### Data_in - invoerselectie
-
-Er zijn een aantal filters te definieren , die zowel in `Ophalen-MagisterData.ps1` als `Transformeren-Naar-SchoolDataSync.ps1` wordt gebruikt om de hoeveelheid te verwerken gegeven te reduceren. Deze filters worden gedefinieerd door het overeenkomstige bestand in de map `data_in` te definieren. 
+In de datainvoermap kunnen één of meer filters worden geplaatst, dis de hoeveelheid te verwerken gegevens reduceren. Er zijn een aantal filters te definieren , die zowel in `Ophalen-MagisterData.ps1` als `Transformeren-Naar-SchoolDataSync.ps1` wordt gebruikt. De volgende filters kunnen worden gedefinieerd door het overeenkomstige bestand in de datainvoermap te definieren. 
 
 * `excl_docent.csv` : dit bevat filters voor het uitsluiten van docenten op docentcode.
 * `incl_docent.csv` : dit bevat filters voor het insluiten van docenten op docentcode.
@@ -125,25 +125,76 @@ Het bestand data_in\incl_klas.csv wordt aangemaakt en bevat:
 ^4H
 ```
 
-### Data_uit - uitvoer 
+## Ini-parameters
 
-De uitvoer worden aangemaakt in 6 bestanden in de map `Data_out `. Het script maakt volgens de specificaties van SDS de volgende bestanden aan. 
+Het INI-bestand definieert een aantal parameters, die nodig zijn voor o.a. het authenticeren van de toegang tot de Magister SOAP webserver. Het Ini-bestand heet bij verstek 'teamsync.ini' in de map van het script, maar een ander INI-bestand kan worden gebruik indien op de commandoregel de parameter -Inifile <bestandsnaam> wordt gespecificeerd. 
 
-* `School.csv`
-* `Section.csv`
-* `Student.csv`
-* `StudentEnrollment.csv`
-* `Teacher.csv`
-* `TeacherRoster.csv`
+De parameters in het INI-bestand worden gespecificeerd als een naam-waarde-paar en hebben de volgende vorm:
 
-### data_temp - Tussenresultaten
+```
+<naam>=<waarde>
+```
 
-In de map `Data_temp` worden tussenresultaten opgeslagen. Het script `Ophalen-Magisterdata.ps1` bewaart hier de lijsten met leerling- en docentgegevens. Het script `Transformeren-Naar-SchoolDataSync.ps1` leest deze bestanden in voor verdere verwerking. 
+Aanhalingstekens zijn toegestaan maar niet nodig. Spaties in het waarde-deel zijn toegestaan. 
 
-* `mag_leer.clixml`
-* `mag_docent.clixml`
-* `mag_vak.clixml`
-* `teamlid.csv`
+De volgende parameters moeten een waarde hebben:
+
+[square]
+* `brin=waarde` : BRIN-nummer van de school
+* `schoolnaam=waarde` : naam van de school in SDS
+* `magisterUser=waarde` : webservice-gebruikersnaam
+* `magisterPassword=waarde` : webservice-wachtwoord
+* `magisterUrl=waarde` : webservice-URL
+* `teamnaam_prefix=waarde` : unieke prefix voor teams in SDS
+* `maakklassenteams=waarde` : schakelaar voor aanmaken van een team voor iedere (stam)klas
+* `datainvoermap=waarde` : pad naar invoermap relatief t.o.v. scriptpad
+* `datakladmap=waarde` : pad naar kladmap relatief t.o.v. scriptpad
+* `datauitvoermap=waarde` : pad naar uitvoermap relatief t.o.v. scriptpad
+
+#### Brin
+Dit is het BRIN-nummer van de school. Vraag je schooladminstratie of directie hiervoor.
+
+#### Schoolnaam 
+Dit is de schoolnaam zoals die in SDS moet zijn gedefinieerd. Verder niet heel belangrijk.
+
+#### MagisterUser, MagisterPassword, MagisterUrl 
+Deze gegevens zijn vereist om toegang te krijgen tot de Medius Webservices. De LAS-beheerder maakt een gebruiker aan in de Webservice gebruikerslijst in Magister. De gebruikersnaam en wachtwoord moeten worden gegeven in `MagisterUser` en `MagisterPassword`. Deze gebruiker heeft toegangsrechten nodig tot de *_ADfuncties_* in de Medius Webservices. De MagisterUrl is de URL waar de webservices worden aangeboden. Dit bestaat uit de schoolspecifieke URL voor  Schoolwerkplek met daarachter poort en padaanduiding _:8800/doc_ . De hele URL ziet er uit als `https://schooldomein.swp.nl:8800/doc`.
+
+#### Teamnaam_prefix
+
+Deze naam wordt als prefix voor de naam van elk aan te maken team geplakt. Je kunt dit gebruiken om aan te duiden voor welke teams exclusief door School Data Sync actief gesynchroniseerd worden en voor welke school of welk jaar deze teams actief zijn. Een nuttige prefix is bijvoorbeeld "JPT 1920". Spaties in de naam worden omgezet in underscores ten behoeve van het bepalen van de ObjectID.
+
+#### Datainvoermap
+
+Dit specifieert de naam van de datainvoermap. Bij verstek is de naam van de datainvoermap `data_in`.
+
+#### Datakladmap
+
+Dit specificeert de mapnaam van de datakladmap relatief ten opzichte van de locatie van het script. Hier slaat script 1 de leerling, docent en vakkengegevens op in CliXML-formaat. Hier leest script 2 de tussengegevens voor verdere verwerking. Bij verstek is de datakladmap `data_temp`.
+
+#### Datauitvoermap
+Dit specificeert de mapnaam van de datauitvoermap relatief ten opzichte van de locatie van het script. 
+
+## Commandoregel
+
+### Inibestandsnaam Parameter
+
+Met de commandoregelparameter -Inibestandsnaam wordt de bestandsnaam van een alternatief Ini-bestand opgegeven, relatief ten opzichte van de map waarin het script staat. Deze voorziening maakt het mogelijk om gegevens van verscheidene instanties van magister gescheiden te verwerken. Bij verstek is de Inibestandsnaam `teamsync.ini`. 
+
+Een voorbeeld : 
+
+ <scriptnaam> -Inibestandsnaam <inibestandsnaam> 
+
+waarbij `<inibestandsnaam>` de naam aanduidt van een alternatief ini-bestand. 
+
+#### Voorbeeld
+Met het volgende CMD commandoscript kan het ini-bestand 'Team-JPT.ini' worden gebruikt om script 1 en 2 uit te voeren, wanneer deze in dezelfde map als dit commandoscript staan. 
+
+```
+@echo off
+Powershell.exe -NoProfile -NoLogo -ExecutionPolicy Bypass -File "%~dp0Ophalen-MagisterData.ps1" -Inibestandsnaam "Team-JPT.ini"
+Powershell.exe -NoProfile -NoLogo -ExecutionPolicy Bypass -File "%~dp0Transformeren-Naar-SchoolDataSync.ps1" -Inibestandsnaam "Team-JPT.ini"
+```
 
 ## To do
 
@@ -153,6 +204,4 @@ In de map `Data_temp` worden tussenresultaten opgeslagen. Het script `Ophalen-Ma
 
 ## Handige links
 
-* https://cirosantilli.com/markdown-style-guide[Markdown Style Guide]
-* https://github.com/asciidoctor/asciidoctor
-* https://asciidoctor.org/docs/asciidoc-syntax-quick-reference/[AsciiDoc Syntax Quick Reference]
+* https://sds.microsoft.com/[Microsoft School Data Sync]

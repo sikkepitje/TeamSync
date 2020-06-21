@@ -1,11 +1,11 @@
 
 # Changes
 
-## 14-4-2020 
+## 20200414
 
 * werkt al goed
 
-## 7-5-2020 
+## 20200507
 
 - nieuwe parameters in teamsync.ini : maakklassenteams, maaklesgroepenteams, maakvakkenteams
 - rare voorwaarde docenten klas > "4" verwijderd
@@ -13,3 +13,19 @@
 - betere detectie voor actieve teams, actieve docenten
 - schermuitvoer verfraaid
 - variabele 'vaktotaal' hernoemd naar 'ruwegroepen'
+
+## 20200621
+
+* Herschreven en opgesplitst in drie modules (ophalen, transformeren, wegschrijven) in twee afzonderlijke scripts:
+** `Ophalen-MagisterData.ps1`: ophalen
+** `Transformeren-Naar-SchoolDataSync.ps1`: transformeren, wegschrijven
+* Progressiebalken lagere updatefrequentie,
+* Uitvoerlijsten worden gesorteerd.
+* Dubbele docenten in teams worden voorkomen.
+* Bestandsnaam van INI-file kan op commandoregel worden gespecifieerd met parameter -inifile <filename>, bij verstek 'teamsync.ini'. 
+* datamappen kunnen worden gespecificeerd in Ini-bestand
+
+## TO DO
+
+* Filter op locatie ('Administratieveeenheid.Omschrijving').
+* ondersteuning voor ID in situatie waarbij Magister zonder SSO wordt gebruikt, m.a.w. ID gebaseerd op UPN/Emailadres die wordt gesynchroniseerd van Azure AD naar Magister.
