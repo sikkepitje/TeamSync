@@ -1,4 +1,4 @@
-# Teamsync v20200621
+# Teamsync v20200629
 :idprefix:
 :idseparator: -
 :sectanchors:
@@ -8,7 +8,7 @@
 :toc:
 :toclevels: 4
 :toc-title:
-21 april 2020 Paul Wiegmans <p.wiegmans@svok.nl>
+29 april 2020 Paul Wiegmans <p.wiegmans@svok.nl>
 
 TeamSync is een PowerShell-script dat gegevens ophaalt uit Magister en overbrengt naar School Data Sync ten behoeve van een geautomatiseerde aanmaak van Teams in een Microsoft Office 365 omgeving. 
 
