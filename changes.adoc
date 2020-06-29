@@ -25,7 +25,18 @@
 * Bestandsnaam van INI-file kan op commandoregel worden gespecifieerd met parameter -inifile <filename>, bij verstek 'teamsync.ini'. 
 * datamappen kunnen worden gespecificeerd in Ini-bestand
 
+## 20200623
+* Pad naar leerling.csv ontbrak
+* Scriptnaam in venstertitel
+* Volledige vakomschrijving toegevoegd aan teamnaam
+* Alle schermuitvoer wordt gelogd.
+
+## 20200629 
+* Vakomschrijvingen worden gekapitaliseerd. 
+* Vakomschrijvingen toegevoegd aan teamnaam waar dit herkend wordt in lesgroep of klas-vak-groep.
+* Mogelijkheid voor insluitend filteren op locatie toegevoegd
+* Ondersteuning voor gevallen waar Magister zonder SSO wordt gebruikt. Als schakelaar UseEmail=1, dan leest het veld "Id" gevuld uit AD-userobject attribuut UserPrincipalName in Active Directory, door AD user-attribuut employeeId te matchen aan Magister stamnummer
+
 ## TO DO
 
 * Filter op locatie ('Administratieveeenheid.Omschrijving').
-* ondersteuning voor ID in situatie waarbij Magister zonder SSO wordt gebruikt, m.a.w. ID gebaseerd op UPN/Emailadres die wordt gesynchroniseerd van Azure AD naar Magister.

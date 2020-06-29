@@ -10,7 +10,7 @@
     bepaalt actieve teams en genereert CSV-bestanden ten behoeve van 
     School Data Sync.
 
-    Versie 20200621
+    Versie 20200629
     Auteur Paul Wiegmans (p.wiegmans@svok.nl)
 
     naar een voorbeeld door Wim den Ronde, Eric Redegeld, Joppe van Daalen
@@ -28,6 +28,7 @@
 
     TO DO 
     * situatie voor Magister zonder SSO : gebruik Emailaddress i.p.v. Login
+
 #>
 [CmdletBinding()]
 param (
@@ -35,19 +36,24 @@ param (
         HelpMessage="Geef de naam van de te gebruiken INI-file, bij verstek 'TeamSync.ini'"
     )]
     [Alias('Inibestandsnaam')]
-    [String]  $Inifilename = "TeamSync-JPT.ini"
+    [String]  $Inifilename = "TeamSync.ini"
 )
 $stopwatch = [Diagnostics.Stopwatch]::StartNew()
 $herePath = Split-Path -parent $MyInvocation.MyCommand.Definition
+# scriptnaam in venstertitel
+$host.ui.RawUI.WindowTitle = (Split-Path -Leaf $MyInvocation.MyCommand.Path).replace(".ps1","")
+Start-Transcript -path $MyInvocation.MyCommand.Path.replace(".ps1",".log")
 
 $teamnaam_prefix = ""
 $maakklassenteams = "1"
 $datainvoermap = "data_in"
 $datakladmap = "data_temp"
 $datauitvoermap = "data_uit"
+$useemail = "0"
 
 # Lees instellingen uit bestand met key=value
 $filename_settings = $herePath + "\" + $Inifilename
+Write-Host "INI-bestand: " $filename_settings
 $settings = Get-Content $filename_settings | ConvertFrom-StringData
 foreach ($key in $settings.Keys) {
     Set-Variable -Name $key -Value $settings.$key
@@ -60,6 +66,7 @@ if (!$magisterPass)  { Throw "magisterPass is vereist"}
 if (!$magisterUrl)  { Throw "magisterUrl is vereist"}
 if (!$teamnaam_prefix)  { Throw "teamnaam_prefix is vereist"}
 $teamnaam_prefix += " "  # teamnaam prefix wordt altijd gevolgd door een spatie
+$useemail = $useemail -ne "0"  # maak echte boolean
 Write-Host "Schoolnaam:" $schoolnaam
 
 # datamappen
@@ -81,6 +88,7 @@ $filename_excl_klas  = $inputPath + "\excl_klas.csv"
 $filename_incl_klas  = $inputPath + "\incl_klas.csv"
 $filename_excl_studie   = $inputPath + "\excl_studie.csv"
 $filename_incl_studie   = $inputPath + "\incl_studie.csv"
+$filename_incl_locatie  = $inputPath + "\incl_locatie.csv"
 
 # Files TEMP
 $filename_mag_leerling_xml = $tempPath + "\mag_leerling.clixml"
@@ -89,6 +97,7 @@ $filename_mag_vak_xml = $tempPath + "\mag_vak.clixml"
 $filename_t_teamactief = $tempPath + "\teamactief.csv"
 $filename_t_team0ll = $tempPath + "\team0ll.csv"
 $filename_t_team0doc = $tempPath + "\team0doc.csv"
+$filename_log = $tempPath + "\teamsync.log"
 
 # Files OUT
 $filename_School = $outputPath + "\School.csv"
@@ -97,6 +106,12 @@ $filename_Student = $outputPath + "\Student.csv"
 $filename_StudentEnrollment = $outputPath + "\StudentEnrollment.csv"
 $filename_Teacher = $outputPath + "\Teacher.csv"
 $filename_TeacherRoster = $outputPath + "\TeacherRoster.csv"
+
+# controleer vereiste bestanden
+if (!(Test-Path -Path $filename_mag_leerling_xml)) {  Throw "Vereist bestand ontbreekt:" + $filename_mag_leerling_xml }
+if (!(Test-Path -Path $filename_mag_docent_xml)) {  Throw "Vereist bestand ontbreekt:" + $filename_mag_docent_xml }
+if (!(Test-Path -Path $filename_mag_vak_xml)) {  Throw "Vereist bestand ontbreekt:" + $filename_mag_vak_xml }
+
 
 function ConvertTo-SISID([string]$Naam) {
     return $Naam.replace(' ','_')
@@ -126,14 +141,21 @@ function New-Team($naam, $id)
 
 ################# LEES TUSSENDATA
 $mag_leer = Import-Clixml -Path $filename_mag_leerling_xml
-# velden: Stamnr, Login, Roepnaam, Tussenv, Achternaam, Lesperiode, 
-# Leerjaar, Klas, Studie, Profiel, Groepen, Vakken, Email
+# velden: Stamnr, Id, Login, Roepnaam, Tussenv, Achternaam, Lesperiode, 
+# Leerjaar, Klas, Studie, Profiel, Groepen, Vakken, Email, Locatie
 $mag_doc = Import-Clixml -Path $filename_mag_docent_xml
-# velden: Stamnr, Login, Roepnaam, Tussenv, Achternaam, Naam, Code, 
-# Functie, Groepvakken, Klasvakken, Docentvakken
+# velden: Stamnr, Id, Login, Roepnaam, Tussenv, Achternaam, Naam, Code, 
+# Functie, Groepvakken, Klasvakken, Docentvakken, Locatie
 # velden van mag_doc[].Groepvakken:  Klas, Vakcode
 $mag_vak = Import-Clixml -Path $filename_mag_vak_xml
 # $mag_vak['Vakcode'] = 'VakOmschrijving'
+
+# Zet om in hashtabel, kapitaliseer alle woorden in vakomschrijving, behalve en en and
+$vakoms = @{}
+foreach ($kvp in $mag_vak.GetEnumerator()) {
+    $vakoms[$kvp.key] = (Get-Culture).TextInfo.ToTitleCase($kvp.value).replace(" En "," en ").replace(" And "," and ")
+}
+$mag_vak = $vakoms
 
 # sorteer voor de mooi
 foreach ($docent in $mag_doc) {
@@ -150,7 +172,7 @@ if ($mag_doc.count -eq 0) {
     Throw "Geen docenten!"
 }
 
-# filters toepassen
+# filters toepassen op leerlingen
 if (Test-Path $filename_excl_studie) {
     $filter_excl_studie = $(Get-Content -Path $filename_excl_studie) -join '|'
     $mag_leer = $mag_leer | Where-Object {$_.Studie -notmatch $filter_excl_studie}
@@ -171,6 +193,13 @@ if (Test-Path $filename_incl_klas) {
     $mag_leer = $mag_leer | Where-Object {$_.Klas -match $filter_incl_klas}
     Write-Host "L na insluiting klas    :" $mag_leer.count
 }
+if (Test-Path $filename_incl_locatie) {
+    $filter_incl_locatie = $(Get-Content -Path $filename_incl_locatie) -join '|'
+    $mag_leerling = $mag_leerling | Where-Object {$_.Locatie -match $filter_incl_locatie}
+    Write-Host "L na insluiting locatie:" $mag_leerling.count
+}
+
+# filter toepassen op docent
 if (Test-Path $filename_excl_docent) {
     $filter_excl_docent = $(Get-Content -Path $filename_excl_docent) -join '|'
     $mag_doc = $mag_doc | Where-Object {$_.Code -notmatch $filter_excl_docent}
@@ -195,7 +224,7 @@ foreach ($leerling in $mag_leer) {
             $team[$teamid] = New-Team -Naam $teamnaam -ID $teamid
         }
         $team[$teamid].lltal += 1
-        $team[$teamid].leerling += @($leerling.Login)
+        $team[$teamid].leerling += @($leerling.Id)
     }
 
     # corrigeer lege groepen artefact uit CliXML
@@ -212,7 +241,7 @@ foreach ($leerling in $mag_leer) {
                 $team[$teamid] = New-Team -Naam $teamnaam -ID $teamid
             }
             $team[$teamid].lltal += 1
-            $team[$teamid].leerling += @($leerling.Login)
+            $team[$teamid].leerling += @($leerling.Id)
         }
     }
 
@@ -226,7 +255,7 @@ foreach ($leerling in $mag_leer) {
             $team[$teamid] = New-Team -Naam $teamnaam -ID $teamid
         }        
         $team[$teamid].lltal += 1
-        $team[$teamid].leerling += @($leerling.Login)
+        $team[$teamid].leerling += @($leerling.Id)
     }
 
     if (!($teller++ % 20)) {
@@ -252,8 +281,8 @@ foreach ($docent in $mag_doc ) {
             $team[$teamid] = New-Team -Naam $teamnaam -ID $teamid
         }        
         $team[$teamid].doctal += 1
-        if ($team[$teamid].docent -notcontains $docent.Login) {
-            $team[$teamid].docent += @($docent.Login)
+        if ($team[$teamid].docent -notcontains $docent.Id) {
+            $team[$teamid].docent += @($docent.Id)
         }
     
         #maak team voor het vak
@@ -263,8 +292,8 @@ foreach ($docent in $mag_doc ) {
             $team[$teamid] = New-Team -Naam $teamnaam -ID $teamid
         }        
         $team[$teamid].doctal += 1
-        if ($team[$teamid].docent -notcontains $docent.Login) {
-            $team[$teamid].docent += @($docent.Login)
+        if ($team[$teamid].docent -notcontains $docent.Id) {
+            $team[$teamid].docent += @($docent.Id)
         }
     }
 
@@ -282,8 +311,8 @@ foreach ($docent in $mag_doc ) {
             $team[$teamid] = New-Team -Naam $teamnaam -ID $teamid
         }        
         $team[$teamid].doctal += 1  
-        if ($team[$teamid].docent -notcontains $docent.Login) {
-            $team[$teamid].docent += @($docent.Login)
+        if ($team[$teamid].docent -notcontains $docent.Id) {
+            $team[$teamid].docent += @($docent.Id)
         }      
     }
 
@@ -298,12 +327,35 @@ foreach ($docent in $mag_doc ) {
 }
 Write-Progress -Activity "Teams bepalen" -status "Docent" -Completed
 
+################# ACTIEVE TEAMS BEPALEN
 # associatieve array omzetten naar simpele lijst
 $team = $team.Values
 
-################# ACTIEVE TEAMS BEPALEN
-Write-Host "  Teams totaal          :" $team.count
+Write-Host "  Omschrijvingen toevoegen.."
 
+# Voeg vakomschrijving toe aan teamnaam
+foreach ($t in $team) {
+    # Bepaal vakcode met laatste deel van de naam (klas/vak of cluster)
+    # voorbeeld: "Naamprefix 4h.biol3"
+    # voorbeeld: "Naamprefix 1b ne"
+    $vak = $t.naam.split(". ")[-1]  # split lesgroep op spatie of punt, vak staat achter punt
+    # verwijder cijfers op het eind
+    While (($vak[-1] -match "^\d+$") -and ($vak.length -gt 2)) {
+        $vak = $vak.substring(0, $vak.length - 1)
+    }
+    $omschrijving = $mag_vak[$vak]
+    # indien geen omschrijving gevonden, knip letters van vak totdat omschrijving is gevonden of totdat 2 letters overblijven
+    while ((!$omschrijving.length) -and ($vak.length -gt 2)) { 
+        $vak = $vak.substring(0, $vak.length - 1)
+        $omschrijving = $mag_vak[$vak]
+    }
+    # indien omschrijving is gevonden, voeg toe aan naam
+    if ($omschrijving.length) {
+        $t.naam += " " + $omschrijving
+    }
+}
+
+Write-Host "  Teams totaal          :" $team.count
 # Actieve teams bevatten zowel leerlingen als docenten.
 # Splits de teams in 3 lijsten: actief, zonder leerlingen, zonder docenten.
 $teamactief = $team | Where-Object {($_.lltal -gt 0) -and ($_.doctal -gt 0)}
@@ -340,7 +392,7 @@ $hteam0doc | Export-Csv -Path $filename_t_team0doc -NoTypeInformation -Encoding 
 
 ################# UITVOER
 Write-Host "Uitvoer..."
-# Hier gaan we de uiteindelijke bestanden aanmaken die we aan SDS voeren. 
+# Ik maak de uiteindelijke bestanden aan, die naar School Data Sync worden geupload.
 
 # voorbereiden SDS formaat CSV bestanden
 $school = @()               # 'SIS ID','Name'    bijv "20MH","Jac P. Thijsse College"
@@ -355,7 +407,7 @@ $teamdoc = @()
 $teamleer = @()
 # maak docentopzoektabel
 $hashdoc = @{}
-$mag_doc | ForEach-Object { $hashdoc[$_.Login] = $_}
+$mag_doc | ForEach-Object { $hashdoc[$_.Id] = $_}
 
 $teller = 0
 $teamprocent = 100 / $teamactief.count
@@ -396,9 +448,9 @@ Write-Progress -Activity "Lijsten genereren" -Completed
 # actieve docenten opzoeken 
 foreach ($doc in $teamdoc) {
     $rec = 1 | Select-Object 'SIS ID','School SIS ID','Username','First Name','Last Name'
-    $rec.'SIS ID' = $hashdoc[$doc].Login
+    $rec.'SIS ID' = $hashdoc[$doc].Id
     $rec.'School SIS ID' = $brin
-    $rec.'Username' = $hashdoc[$doc].Login
+    $rec.'Username' = $hashdoc[$doc].Id
     $rec.'First Name' = $hashdoc[$doc].Roepnaam
     if ($hashdoc[$doc].Tussenv -ne '') {
         $rec.'Last Name' = $hashdoc[$doc].Tussenv + " " + $hashdoc[$doc].Achternaam
@@ -445,3 +497,4 @@ $teacherroster | Export-Csv -Path $filename_TeacherRoster -Encoding UTF8 -NoType
 
 $stopwatch.Stop()
 Write-Host "Klaar (uu:mm.ss)" $stopwatch.Elapsed.ToString("hh\:mm\.ss")
+Stop-Transcript

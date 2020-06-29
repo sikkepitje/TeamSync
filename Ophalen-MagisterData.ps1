@@ -9,7 +9,7 @@
     TeamSync script deel 1 (ophalen) haalt gegevens op uit Medius (Magister)
     Webservice.
 
-    Versie 20200621
+    Versie 20200629
     Auteur Paul Wiegmans (p.wiegmans@svok.nl)
 
     naar een voorbeeld door Wim den Ronde, Eric Redegeld, Joppe van Daalen
@@ -23,14 +23,6 @@
 
     https://github.com/sikkepitje/teamsync
 
-
-    Dit script haalt alle relevante informatie op met behulp van Magister
-    webservices, voor het aanmaken van gegevensbestanden t.b.v. School Data Sync.
-    en bewaart dit in drie bestanden. Deze kunnen worden ingelezen
-    door PowerShell script voor verdere bewerking.
-
-    Dit is stap 1 in een Teamsync v2 conversie van JPT Magister naar School Data Sync.
-    Hierna volgt Transform-MagToSDS.ps1
 #>
 [CmdletBinding()]
 param (
@@ -42,15 +34,22 @@ param (
 )
 $stopwatch = [Diagnostics.Stopwatch]::StartNew()
 $herePath = Split-Path -parent $MyInvocation.MyCommand.Definition
+# scriptnaam in venstertitel
+$host.ui.RawUI.WindowTitle = (Split-Path -Leaf $MyInvocation.MyCommand.Path).replace(".ps1","")
+Start-Transcript -path $MyInvocation.MyCommand.Path.replace(".ps1",".log")
 
 $teamnaam_prefix = ""
 $maakklassenteams = "1"
 $datainvoermap = "data_in"
 $datakladmap = "data_temp"
 $datauitvoermap = "data_uit"
+$useemail = "0"
+$ADSearchBase = ""
+$ADServer = "" 
 
 # Lees instellingen uit bestand met key=value
 $filename_settings = $herePath + "\" + $Inifilename
+Write-Host "INI-bestand: " $filename_settings
 $settings = Get-Content $filename_settings | ConvertFrom-StringData
 foreach ($key in $settings.Keys) {
     Set-Variable -Name $key -Value $settings.$key
@@ -63,6 +62,11 @@ if (!$magisterPass)  { Throw "magisterPass is vereist"}
 if (!$magisterUrl)  { Throw "magisterUrl is vereist"}
 if (!$teamnaam_prefix)  { Throw "teamnaam_prefix is vereist"}
 $teamnaam_prefix += " "  # teamnaam prefix wordt altijd gevolgd door een spatie
+$useemail = $useemail -ne "0"  # maak echte boolean
+if ($useemail) {
+    if (!$ADSearchBase)  { Throw "ADSearchBase is vereist"}
+    if (!$ADServer)  { Throw "ADServer is vereist"}    
+}
 Write-Host "Schoolnaam:" $schoolnaam
 
 # datamappen
@@ -84,22 +88,37 @@ $filename_excl_klas  = $inputPath + "\excl_klas.csv"
 $filename_incl_klas  = $inputPath + "\incl_klas.csv"
 $filename_excl_studie   = $inputPath + "\excl_studie.csv"
 $filename_incl_studie   = $inputPath + "\incl_studie.csv"
+$filename_incl_locatie  = $inputPath + "\incl_locatie.csv"
 
 # Files TEMP
+$filename_t_leerling = $tempPath + "\leerling.csv"
+$filename_t_docent = $tempPath + "\docent.csv"
 $filename_mag_leerling_xml = $tempPath + "\mag_leerling.clixml"
 $filename_mag_docent_xml = $tempPath + "\mag_docent.clixml"
 $filename_mag_vak_xml = $tempPath + "\mag_vak.clixml"
-$filename_t_teamactief = $tempPath + "\teamactief.csv"
-$filename_t_team0ll = $tempPath + "\team0ll.csv"
-$filename_t_team0doc = $tempPath + "\team0doc.csv"
+$filename_persemail_xml = $tempPath + "\personeelemail.clixml"
 
-# Files OUT
-$filename_School = $outputPath + "\School.csv"
-$filename_Section = $outputPath + "\Section.csv"
-$filename_Student = $outputPath + "\Student.csv"
-$filename_StudentEnrollment = $outputPath + "\StudentEnrollment.csv"
-$filename_Teacher = $outputPath + "\Teacher.csv"
-$filename_TeacherRoster = $outputPath + "\TeacherRoster.csv"
+if ($useemail) {
+    Write-Host "Ophalen personeel uit AD"
+    Import-Module activedirectory
+   
+    $users = Get-ADUser -Filter * -Server $ADserver -SearchBase $ADsearchbase -Properties employeeid
+    
+    # Extraheer uit employeeid (bijvoorbeeld "bc435") een stamnr
+    $medew = $users | Select-Object UserPrincipalName,employeeid,
+        @{Name = 'Stamnr'; Expression = {$_.employeeid.replace("bc","")}}
+    $medew = $medew | Where-Object {$_.Stamnr -ne $null} | Where-Object {$_.Stamnr -gt 0}
+    # Velden: UserPrincipalName, employeeid, stamnr
+    Write-Host "Aantal:" $medew.count 
+    # maak hashtable
+    $email = @{}
+    foreach ($user in $medew) {
+        $email[$user.stamnr] = $user.UserPrincipalName
+    }
+     # hashtable $email["$stamnr"] geeft $UserPrincipalName
+    # $email | Out-Gridview
+    $email | Export-Clixml -Path ".\data_temp\personeelemail.clixml"
+}
 
 function Invoke-Webclient($url) {
     $wc = New-Object System.Net.WebClient
@@ -108,6 +127,10 @@ function Invoke-Webclient($url) {
         $feed = [xml]$wc.downloadstring($url)
     } catch {
         Throw "Invoke-Webclient: er ging iets mis"
+    }
+    if ($feed.Response.Exception) {
+        Write-Warning ("Invoke-Webclient:" + $feed.Response.Exception + ":" + $feed.Response.ExceptionMsg)
+        return $feed.Response
     }
     return $feed.Response.Data    
 }
@@ -124,7 +147,7 @@ function ConvertTo-SISID([string]$Naam) {
     return $Naam.replace(' ','_')
 }
 
-# voor data minimalisatie houden we lijstje met vakken bij
+# voor dataminimalisatie houd ik een lijstje met vakken bij
 $mag_vak = @{}   # associatieve array van vakomschrijvingen geindexeerd op vakcodes
 
 # haal sessiontoken
@@ -179,8 +202,9 @@ Voorletters                             Property              string Voorletters
 #$data.Leerlingen.Leerling | ogv
 #exit 71
 
-$mag_leerling = $data.Leerlingen.Leerling | Select-Object `
+$mag_leer = $data.Leerlingen.Leerling | Select-Object `
     @{Name = 'Stamnr'; Expression = {$_.stamnr_str}},`
+    @{Name = 'Id'; Expression = { if ($useemail) {$_.Email} Else {$_.'loginaccount.naam'}}}, `
     @{Name = 'Login'; Expression = {$_.'loginaccount.naam'}},`
     Roepnaam,Tussenv,Achternaam,`
     @{Name = 'Lesperiode'; Expression = {$_.'Lesperiode.Korteomschrijving'}},`
@@ -190,40 +214,46 @@ $mag_leerling = $data.Leerlingen.Leerling | Select-Object `
     @{Name = 'Profiel'; Expression = {$_.'profiel.code'}},`
     @{Name = 'Groepen'; Expression = { @() }},`
     @{Name = 'Vakken'; Expression = { @() }},
-    Email
-# velden: Stamnr, Login, Roepnaam, Tussenv, Achternaam, Lesperiode, 
-# Leerjaar, Klas, Studie, Profiel, Groepen, Vakken, Email
+    Email, `
+    @{Name = 'Locatie'; Expression = { $_.'Administratieve_eenheid.Omschrijving' }}
+
+# velden: Stamnr, Id, Login, Roepnaam, Tussenv, Achternaam, Lesperiode, 
+# Leerjaar, Klas, Studie, Profiel, Groepen, Vakken, Email, Locatie
 
 # tussentijds opslaan
-$mag_leerling | Export-Csv -Path $filename_t_leerling -Delimiter ";" -NoTypeInformation -Encoding UTF8
-Write-Host "Leerlingen           :" $mag_leerling.count
-$data = $null 
+$mag_leer | Export-Csv -Path $filename_t_leerling -Delimiter ";" -NoTypeInformation -Encoding UTF8
+Write-Host "Leerlingen           :" $mag_leer.count
 
 # voorfilteren
 if (Test-Path $filename_excl_studie) {
     $filter_excl_studie = $(Get-Content -Path $filename_excl_studie) -join '|'
-    $mag_leerling = $mag_leerling | Where-Object {$_.Studie -notmatch $filter_excl_studie}
-    Write-Host "Leerlingen na uitsluitend filteren studie :" $mag_leerling.count
+    $mag_leer = $mag_leer | Where-Object {$_.Studie -notmatch $filter_excl_studie}
+    Write-Host "Leerlingen na uitsluitend filteren studie :" $mag_leer.count
 }
 if (Test-Path $filename_incl_studie) {
     $filter_incl_studie = $(Get-Content -Path $filename_incl_studie) -join '|'
-    $mag_leerling = $mag_leerling | Where-Object {$_.Studie -match $filter_incl_studie}
-    Write-Host "Leerlingen na insluitend filteren studie :" $mag_leerling.count
+    $mag_leer = $mag_leer | Where-Object {$_.Studie -match $filter_incl_studie}
+    Write-Host "Leerlingen na insluitend filteren studie :" $mag_leer.count
 }
 if (Test-Path $filename_excl_klas) {
     $filter_excl_klas = $(Get-Content -Path $filename_excl_klas) -join '|'
-    $mag_leerling = $mag_leerling | Where-Object {$_.Klas -notmatch $filter_excl_klas}
-    Write-Host "Leerlingen na uitsluitend filteren klas  :" $mag_leerling.count
+    $mag_leer = $mag_leer | Where-Object {$_.Klas -notmatch $filter_excl_klas}
+    Write-Host "Leerlingen na uitsluitend filteren klas  :" $mag_leer.count
 }
 if (Test-Path $filename_incl_klas) {
     $filter_incl_klas = $(Get-Content -Path $filename_incl_klas) -join '|'
-    $mag_leerling = $mag_leerling | Where-Object {$_.Klas -match $filter_incl_klas}
-    Write-Host "Leerlingen na insluitend filteren klas   :" $mag_leerling.count
+    $mag_leer = $mag_leer | Where-Object {$_.Klas -match $filter_incl_klas}
+    Write-Host "Leerlingen na insluitend filteren klas   :" $mag_leer.count
+}
+if (Test-Path $filename_incl_locatie) {
+    $filter_incl_locatie = $(Get-Content -Path $filename_incl_locatie) -join '|'
+    $mag_leer = $mag_leer | Where-Object {$_.Locatie -match $filter_incl_locatie}
+    Write-Host "Leerlingen na insluitend filteren locatie:" $mag_leer.count
 }
 
 $teller = 0
-$leerlingprocent = 100 / $mag_leerling.count
-foreach ($leerling in $mag_leerling) {
+$leerlingprocent = 100 / $mag_leer.count
+foreach ($leerling in $mag_leer) {
 
     # verzamel de lesgroepen
     # een team voor elke lesgroep
@@ -250,13 +280,13 @@ foreach ($leerling in $mag_leerling) {
     }
 
     Write-Progress -Activity "Magister data verwerken" -status `
-        "Leerling $teller van $($mag_leerling.count)" -PercentComplete ($leerlingprocent * $teller++)
+        "Leerling $teller van $($mag_leer.count)" -PercentComplete ($leerlingprocent * $teller++)
 }
 Write-Progress -Activity "Magister data verwerken" -status "Leerling" -Completed
 
-$mag_leerling | Export-Clixml -Path $filename_mag_leerling_xml -Encoding UTF8
+$mag_leer | Export-Clixml -Path $filename_mag_leerling_xml -Encoding UTF8
 
-#$mag_leerling | Out-GridView
+#$mag_leer | Out-GridView
 
 ################# VERZAMEL DOCENTEN
 Write-Host "Ophalen docenten..."
@@ -296,8 +326,9 @@ Voorletters                          Property              string Voorletters {g
 #$data.Personeelsleden.Personeelslid | ogv
 #exit 45
 
-$mag_docent = $data.Personeelsleden.Personeelslid | Select-Object `
+$mag_doc = $data.Personeelsleden.Personeelslid | Select-Object `
     @{Name = 'Stamnr'; Expression = {$_.stamnr_str}},`
+    @{Name = 'Id'; Expression = { if ($useemail) {$email[$_.stamnr_str]} Else {$_.'loginaccount.naam'}}}, `
     @{Name = 'Login'; Expression = {$_.'loginaccount.naam'}},`
     Roepnaam,Tussenv,Achternaam,`
     @{Name = 'Naam'; Expression = {$_.'Loginaccount.Volledige_naam'}},`
@@ -305,36 +336,39 @@ $mag_docent = $data.Personeelsleden.Personeelslid | Select-Object `
     @{Name = 'Functie'; Expression = { $_.'Functie.Omschr' }},`
     @{Name = 'Groepvakken'; Expression = { $null }},`
     @{Name = 'Klasvakken'; Expression = { @() }},`
-    @{Name = 'Docentvakken'; Expression = { @() }}
-# velden: Stamnr, Login, Roepnaam, Tussenv, Achternaam, Naam, Code, 
-# Functie, Groepvakken, Klasvakken, Docentvakken
+    @{Name = 'Docentvakken'; Expression = { @() }}, `
+    @{Name = 'Locatie'; Expression = { $_.'Administratieve_eenheid.Omschrijving' }}
+# velden: Stamnr, Id, Login, Roepnaam, Tussenv, Achternaam, Naam, Code, 
+# Functie, Groepvakken, Klasvakken, Docentvakken, Locatie
 
 # JPT: Om onbekende redenen staan sommige personeelsleden dubbel erin. 
-# De docenten met voornaam in login eruit filteren.
-$mag_docent = $mag_docent | Where-Object {$_.code -eq $_.login}
+# Filter de docenten met voornaam als login eruit.
+$mag_doc = $mag_doc | Where-Object {$_.code -eq $_.login}
 
 # tussentijds opslaan
-$mag_docent | Export-Csv -Path $filename_t_docent -Delimiter ";" -NoTypeInformation -Encoding UTF8
+$mag_doc | Export-Csv -Path $filename_t_docent -Delimiter ";" -NoTypeInformation -Encoding UTF8
+Write-Host "Docenten ongefilterd :" $mag_doc.count
 
-Write-Host "Docenten ongefilterd :" $mag_docent.count
-if ($mag_docent.count -eq 0) {
+# voorfilteren
+if ($mag_doc.count -eq 0) {
     Throw "Geen docenten ?? Stopt!"
 }
+
 if (Test-Path $filename_excl_docent) {
     $filter_excl_docent = $(Get-Content -Path $filename_excl_docent) -join '|'
-    $mag_docent = $mag_docent | Where-Object {$_.Code -notmatch $filter_excl_docent}
-    Write-Host "Docenten na uitsluitend filteren docent :" $mag_docent.count
+    $mag_doc = $mag_doc | Where-Object {$_.Code -notmatch $filter_excl_docent}
+    Write-Host "Docenten na uitsluitend filteren docent :" $mag_doc.count
 }
 
 if (Test-Path $filename_incl_docent) {
     $filter_incl_docent = $(Get-Content -Path $filename_incl_docent) -join '|'
-    $mag_docent = $mag_docent | Where-Object {$_.Code -match $filter_incl_docent}
-    Write-Host "Docenten na insluitend filteren docent :" $mag_docent.count
+    $mag_doc = $mag_doc | Where-Object {$_.Code -match $filter_incl_docent}
+    Write-Host "Docenten na insluitend filteren docent :" $mag_doc.count
 }
 
 $teller = 0
-$docentprocent = 100 / $mag_docent.count
-foreach ($docent in $mag_docent ) {
+$docentprocent = 100 / $mag_doc.count
+foreach ($docent in $mag_doc ) {
 
     # verzamel Groepvakken
     $data = ADFunction -Url $magisterUrl -Sessiontoken $MyToken -Function "GetPersoneelGroepVakken" -Stamnr $docent.stamnr
@@ -381,17 +415,15 @@ foreach ($docent in $mag_docent ) {
     }
 
     Write-Progress -Activity "Magister uitlezen" -status `
-        "Docent $teller van $($mag_docent.count)" -PercentComplete ($docentprocent * $teller++)
+        "Docent $teller van $($mag_doc.count)" -PercentComplete ($docentprocent * $teller++)
 }
 Write-Progress -Activity "Magister uitlezen" -status "Docent" -Completed
 
-$mag_docent | Export-Clixml -Path $filename_mag_docent_xml -Encoding UTF8
+$mag_doc | Export-Clixml -Path $filename_mag_docent_xml -Encoding UTF8
 $mag_vak | Export-Clixml -Path $filename_mag_vak_xml -Encoding UTF8
-
-#$mag_docent |  Out-GridView
-#$mag_vak | Out-GridView
 
 ################# EINDE
 
 $stopwatch.Stop()
 Write-Host "Uitvoer klaar (uu:mm.ss)" $stopwatch.Elapsed.ToString("hh\:mm\.ss")
+Stop-Transcript

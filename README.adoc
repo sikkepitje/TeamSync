@@ -60,11 +60,12 @@ In deze map worden filters geplaatst. Zie Invoerfilter.
 
 ### Datakladmap
 In de datakladmap worden tussenbestanden opgeslagen. en kan worden gebruikt om de goede werking te controleren van de Magister webservice.
- In de map `Data_temp` worden tussenresultaten opgeslagen. Het script `Ophalen-Magisterdata.ps1` bewaart hier de tussentijdse bestanden met leerling- en docent- en vakkengegevens in CliXML-formaat. Het script `Transformeren-Naar-SchoolDataSync.ps1` leest deze bestanden in voor verdere verwerking. 
+Het script `Ophalen-Magisterdata.ps1` bewaart hier de tussentijdse bestanden met leerling- en docent- en vakkengegevens in CliXML-formaat. Het script `Transformeren-Naar-SchoolDataSync.ps1` leest deze bestanden in voor verdere verwerking. U zult hier tegenkomen:
 
 * `mag_leer.clixml`
 * `mag_docent.clixml`
 * `mag_vak.clixml`
+* `personeelemail.clixml`
 * `teamlid.csv`
 
 ### Datauitvoermap
@@ -150,6 +151,9 @@ De volgende parameters moeten een waarde hebben:
 * `datainvoermap=waarde` : pad naar invoermap relatief t.o.v. scriptpad
 * `datakladmap=waarde` : pad naar kladmap relatief t.o.v. scriptpad
 * `datauitvoermap=waarde` : pad naar uitvoermap relatief t.o.v. scriptpad
+* `useemail=waarde` : schakelaar : indien '1' gebruik email als unieke id i.p.v. Login
+* `ADsearchbase=waarde` : OU waarin wordt gezocht om userPrincipalName van personeel te lezen
+* `ADserver=waarde` : servernaam om userPrincipalName van personeel te lezen
 
 #### Brin
 Dit is het BRIN-nummer van de school. Vraag je schooladminstratie of directie hiervoor.
@@ -174,6 +178,16 @@ Dit specificeert de mapnaam van de datakladmap relatief ten opzichte van de loca
 
 #### Datauitvoermap
 Dit specificeert de mapnaam van de datauitvoermap relatief ten opzichte van de locatie van het script. 
+
+#### useemail
+Wanneer deze waarde "0" is , worden medewerkers en leerling uniek aangeduid met attribuut "login" in Magister. 
+Wanneer deze waarde "1" is , worden medewerkers en leerling uniek aangeduid met het attribuut "userPrincipalName" van usersobjecten in Active Directory. De UserPrincipalName wordt achterhaald door te zoeken in AD naar een user wiens attribuut "EmployeeID" gelijk is aan het Magister veld "stamnr_str". Vervolgens wordt het userPrincipalName gebruikt als unieke identifier voor de medewerkers in de uitvoer voor School Data Sync. De leerlingen worden unieke geidentificeerd met het "email" veld in de Magister leerlingkaart. Gelieve ervoor te zorgen dat het email-veld van leerlingen is ingevuld met de overeenkomstige userPrincipalName van de leerling in Azure AD / Office 365. 
+
+#### ADsearchscope
+Deze parameter is verplicht wanneer "useemail=1". De waarde duidt de OU waarin medewerkers worden gelezen voor het bepalen van userPrincipalName.
+
+#### ADserver 
+Deze parameter is verplicht wanneer "useemail=1". De waarde bevat de servernaam waarin medewerkers worden gelezen voor het bepalen van userPrincipalName. 
 
 ## Commandoregel
 
