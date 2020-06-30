@@ -16,6 +16,8 @@ Deze oplossing maakt gebruik van https://sds.microsoft.com/[Microsoft School Dat
 
 Inspiratie hiervoor komt uit eerder werk genaamd 'v06-sds-files_FONSVITAE.ps1' door Wim den Ronde, Eric Redegeld, Joppe van Daalen.
 
+Gebruikt jouw school Somtoday en zoek je een koppeling tussen Somtoday en School Data Sync ? Bezoek dan https://github.com/DwayneSelsig/Somtoday2MicrosoftSchoolDataSync[DwayneSelsig/Somtoday2MicrosoftSchoolDataSync]
+
 toc::[]
 
 ## Werking 
@@ -212,6 +214,6 @@ Powershell.exe -NoProfile -NoLogo -ExecutionPolicy Bypass -File "%~dp0Transforme
 
 ## Handige links
 
-Gebruikt jouw school Somtoday en zoek je een koppeling tussen Somtoday en School Data Sync ? Bezoek dan https://github.com/DwayneSelsig/Somtoday2MicrosoftSchoolDataSync[DwayneSelsig/Somtoday2MicrosoftSchoolDataSync]
 
 * https://sds.microsoft.com/[Microsoft School Data Sync]
+* https://github.com/DwayneSelsig/Somtoday2MicrosoftSchoolDataSync[DwayneSelsig/Somtoday2MicrosoftSchoolDataSync]
