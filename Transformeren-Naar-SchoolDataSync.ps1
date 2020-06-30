@@ -114,7 +114,8 @@ if (!(Test-Path -Path $filename_mag_vak_xml)) {  Throw "Vereist bestand ontbreek
 
 
 function ConvertTo-SISID([string]$Naam) {
-    return $Naam.replace(' ','_')
+    return $Naam -replace "[^\S]|[\~\""\#\%\&\*\:\<\>\?\/\\{\|}\.]", "_";
+    # https://support.microsoft.com/en-us/office/invalid-file-names-and-file-types-in-onedrive-and-sharepoint-64883a5d-228e-48f5-b3d2-eb39e07630fa
 }
 
 $team = @{}
