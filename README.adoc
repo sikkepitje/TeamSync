@@ -210,12 +210,8 @@ Powershell.exe -NoProfile -NoLogo -ExecutionPolicy Bypass -File "%~dp0Ophalen-Ma
 Powershell.exe -NoProfile -NoLogo -ExecutionPolicy Bypass -File "%~dp0Transformeren-Naar-SchoolDataSync.ps1" -Inibestandsnaam "Team-JPT.ini"
 ```
 
-## To do
-
-* vervang speciale tekens in SIS ID
-* configureerbaar uitvoerpad
-* configureerbaar ini-pad
-
 ## Handige links
+
+Gebruikt jouw school Somtoday en zoek je een koppeling tussen Somtoday en School Data Sync ? Bezoek dan https://github.com/DwayneSelsig/Somtoday2MicrosoftSchoolDataSync[DwayneSelsig/Somtoday2MicrosoftSchoolDataSync]
 
 * https://sds.microsoft.com/[Microsoft School Data Sync]
