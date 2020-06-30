@@ -1,4 +1,4 @@
-# Teamsync v20200629
+# TeamSync v20200629
 :idprefix:
 :idseparator: -
 :sectanchors:
