@@ -10,7 +10,7 @@
     bepaalt actieve teams en genereert CSV-bestanden ten behoeve van 
     School Data Sync.
 
-    Versie 20200629
+    Versie 20200701
     Auteur Paul Wiegmans (p.wiegmans@svok.nl)
 
     naar een voorbeeld door Wim den Ronde, Eric Redegeld, Joppe van Daalen
@@ -196,8 +196,8 @@ if (Test-Path $filename_incl_klas) {
 }
 if (Test-Path $filename_incl_locatie) {
     $filter_incl_locatie = $(Get-Content -Path $filename_incl_locatie) -join '|'
-    $mag_leerling = $mag_leerling | Where-Object {$_.Locatie -match $filter_incl_locatie}
-    Write-Host "L na insluiting locatie:" $mag_leerling.count
+    $mag_leer = $mag_leer | Where-Object {$_.Locatie -match $filter_incl_locatie}
+    Write-Host "L na insluiting locatie:" $mag_leer.count
 }
 
 # filter toepassen op docent
@@ -498,4 +498,4 @@ $teacherroster | Export-Csv -Path $filename_TeacherRoster -Encoding UTF8 -NoType
 
 $stopwatch.Stop()
 Write-Host "Klaar (uu:mm.ss)" $stopwatch.Elapsed.ToString("hh\:mm\.ss")
-Stop-Transcript
+Stop-Transcript -ea SilentlyContinue

@@ -1,4 +1,4 @@
-# TeamSync v20200629
+# TeamSync v20200701
 :idprefix:
 :idseparator: -
 :sectanchors:
@@ -10,7 +10,7 @@
 :toc-title:
 29 april 2020 Paul Wiegmans <p.wiegmans@svok.nl>
 
-TeamSync is een PowerShell-script dat gegevens ophaalt uit Magister en overbrengt naar School Data Sync ten behoeve van een geautomatiseerde aanmaak van Teams in een Microsoft Office 365 omgeving. 
+TeamSync is een PowerShell-script dat gegevens ophaalt uit Magister en overbrengt naar School Data Sync ten behoeve van een geautomatiseerde aanmaak van Teams in een Microsoft 365 omgeving. 
 
 Deze oplossing maakt gebruik van https://sds.microsoft.com/[Microsoft School Data Sync]. 
 
@@ -91,6 +91,7 @@ In de datainvoermap kunnen één of meer filters worden geplaatst, dis de hoevee
 * `incl_klas.csv` : dit bevat filters voor het insluiten van leerlingen op klasnaam.
 * `excl_studie.csv` : dit bevat filters voor het uitsluiten van leerlingen op studie.
 * `incl_studie.csv` : dit bevat filters voor het insluiten van leerlingen op studie.
+* `incl_locatie.csv` : dit bevat filters voor het insluiten van leerlingen op locatie.
 
 Deze bestanden bevatten filters, die selectief records uit de invoer filteren. Ze kunnen **exclusief** of uitsluitend filteren, dat wil zeggen dat overeenkomende records worden weggegooid en uitgesloten van verwerking, of ze kunnen **inclusief** of insluitend filteren, dat wil zeggen dat alleen de overeenkomende records verder worden verwerkt.
 
@@ -103,11 +104,11 @@ Speciale betekenis hebben:
 
 #### Praktische voorbeelden
 
-Voorbeeld : We willen de VAVO-leerlingen niet verwerken; alle studies die beginnen met VAVO moeten worden uitgesloten.
+Voorbeeld : We willen de VAVO-leerlingen niet verwerken; alle studies die eindigen op VAVO moeten worden uitgesloten.
 
 Het bestand data_in\excl_studie.csv wordt aangemaakt en bevat: 
 ```
-^VAVO
+VAVO$
 ```
 
 Voorbeeld : We willen de leerlingen van Mavo, Havo, Vwo en de brugklassen verwerken; alle leerlingen in een studie die begint met B,M,H of V moeten worden verwerkt. 
@@ -183,7 +184,8 @@ Dit specificeert de mapnaam van de datauitvoermap relatief ten opzichte van de l
 
 #### useemail
 Wanneer deze waarde "0" is , worden medewerkers en leerling uniek aangeduid met attribuut "login" in Magister. 
-Wanneer deze waarde "1" is , worden medewerkers en leerling uniek aangeduid met het attribuut "userPrincipalName" van usersobjecten in Active Directory. De UserPrincipalName wordt achterhaald door te zoeken in AD naar een user wiens attribuut "EmployeeID" gelijk is aan het Magister veld "stamnr_str". Vervolgens wordt het userPrincipalName gebruikt als unieke identifier voor de medewerkers in de uitvoer voor School Data Sync. De leerlingen worden unieke geidentificeerd met het "email" veld in de Magister leerlingkaart. Gelieve ervoor te zorgen dat het email-veld van leerlingen is ingevuld met de overeenkomstige userPrincipalName van de leerling in Azure AD / Office 365. 
+Wanneer deze waarde "1" is , worden medewerkers en leerling uniek aangeduid met het attribuut "userPrincipalName" van usersobjecten in Active Directory. De UserPrincipalName wordt achterhaald door te zoeken in AD naar een user wiens attribuut "EmployeeID" gelijk is aan het Magister veld "stamnr_str". Vervolgens wordt het userPrincipalName gebruikt als unieke identifier voor de medewerkers in de uitvoer voor School Data Sync. Docenten waarvan het email niet kan worden opgezocht op deze manier in de Active Directory worden eruit gefilterd en verschijnen niet in de uitvoer
+De leerlingen worden uniek geidentificeerd met het "email" veld in de Magister leerlingkaart. Het is de verantwoordelijkheid van de school om ervoor te zorgen dat het email-veld van leerlingen is ingevuld met de overeenkomstige userPrincipalName van de leerling in Azure AD / Microsoft 365. 
 
 #### ADsearchscope
 Deze parameter is verplicht wanneer "useemail=1". De waarde duidt de OU waarin medewerkers worden gelezen voor het bepalen van userPrincipalName.
@@ -211,6 +213,26 @@ Met het volgende CMD commandoscript kan het ini-bestand 'Team-JPT.ini' worden ge
 Powershell.exe -NoProfile -NoLogo -ExecutionPolicy Bypass -File "%~dp0Ophalen-MagisterData.ps1" -Inibestandsnaam "Team-JPT.ini"
 Powershell.exe -NoProfile -NoLogo -ExecutionPolicy Bypass -File "%~dp0Transformeren-Naar-SchoolDataSync.ps1" -Inibestandsnaam "Team-JPT.ini"
 ```
+
+## Tips en trucs
+
+### Wat als het script op zijn bek gaat?
+
+De twee scripts loggen alle schermuitvoer in een zogenaamd "transcript" en bewaren dit in een bestand, met de naam van het scripts, en met extensie ".log". Kijk in deze logs voor informatie over foutmeldingen die het script geeft in onvoorziene omstandigheden, en op welke regel in het script dit gebeurde.
+
+### Controle van uitvoer
+
+In de datakladmap produceert `Transformeren-naar-SchoolDataSync` een aantal al dan niet makkelijk leesbare bestanden die inzicht geven in welke gegevens worden verwerkt door TeamSync en welke teams door School Data Sync aangemaakt zouden worden. 
+
+Script `Ophalen` genereert: 
+
+* `leerling.csv` : CSV-bestand (comma separated value formaat, in te lezen in Excel) met platte leerlinglijst uit Magister
+* `docent.csv` : CSV-bestand met platte medewerkerlijst uit Magister
+
+Script `Transformeren` genereert:
+* `teamactief.csv` : CSV-bestand met actieve teams die door SDS worden aangemaakt: teamid, teamnaam, docentaanta, docentnamen, leerlingaantal, leerlingnamen .
+* `team0doc.csv` : CSV-bestand met teams met uitsluitend leerlingen, en die het niet gehaald hebben naar SDS.
+* `team0ll.csv` : CSV-bestand met teams met uitsluitend docenten, en die het niet gehaald hebben naar SDS.
 
 ## Handige links
 

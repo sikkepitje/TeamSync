@@ -9,7 +9,7 @@
     TeamSync script deel 1 (ophalen) haalt gegevens op uit Medius (Magister)
     Webservice.
 
-    Versie 20200629
+    Versie 20200701
     Auteur Paul Wiegmans (p.wiegmans@svok.nl)
 
     naar een voorbeeld door Wim den Ronde, Eric Redegeld, Joppe van Daalen
@@ -251,6 +251,9 @@ if (Test-Path $filename_incl_locatie) {
     Write-Host "Leerlingen na insluitend filteren locatie:" $mag_leer.count
 }
 
+if ($mag_leer.count -lt 1) {
+    Throw "Geen leerlingen... Niets te doen"
+}
 $teller = 0
 $leerlingprocent = 100 / $mag_leer.count
 foreach ($leerling in $mag_leer) {
@@ -349,6 +352,13 @@ $mag_doc = $mag_doc | Where-Object {$_.code -eq $_.login}
 $mag_doc | Export-Csv -Path $filename_t_docent -Delimiter ";" -NoTypeInformation -Encoding UTF8
 Write-Host "Docenten ongefilterd :" $mag_doc.count
 
+# Wanneer id is gebaseerd op email, filter de medewerkers eruit
+# waarvan email niet kon worden opgezocht in AD
+if ($useemail) {
+    $mag_doc = $mag_doc | Where-Object {$_.Id -ne $null}
+    Write-Host "D na uitfilteren van lege Ids:" $mag_doc.count
+}
+
 # voorfilteren
 if ($mag_doc.count -eq 0) {
     Throw "Geen docenten ?? Stopt!"
@@ -426,4 +436,4 @@ $mag_vak | Export-Clixml -Path $filename_mag_vak_xml -Encoding UTF8
 
 $stopwatch.Stop()
 Write-Host "Uitvoer klaar (uu:mm.ss)" $stopwatch.Elapsed.ToString("hh\:mm\.ss")
-Stop-Transcript
+Stop-Transcript -ea SilentlyContinue

@@ -35,8 +35,12 @@
 * Vakomschrijvingen worden gekapitaliseerd. 
 * Vakomschrijvingen toegevoegd aan teamnaam waar dit herkend wordt in lesgroep of klas-vak-groep.
 * Mogelijkheid voor insluitend filteren op locatie toegevoegd
-* Ondersteuning voor gevallen waar Magister zonder SSO wordt gebruikt. Als schakelaar UseEmail=1, dan leest het veld "Id" gevuld uit AD-userobject attribuut UserPrincipalName in Active Directory, door AD user-attribuut employeeId te matchen aan Magister stamnummer
+* Ondersteuning voor gevallen waar Magister login afwijkend is van Microsoft 365 / Azure AD identiteit. Als schakelaar UseEmail=1, dan wordt voor docenten het veld "Id" gevuld uit het overeenkomstig AD-userobject attribuut UserPrincipalName in Active Directory, door AD user-attribuut employeeId te matchen aan Magister stamnummer. Als schakelaar UseEmail=1, dan wordt voor leerlingen het Magister email-veld gebruikt voor de Id. 
+
+## 20200701 
+* toegevoegd: insluitend filter voor leerlingen op basis van locatie (Magister veld 'Administratieveeenheid.Omschrijving')
+* useemail=1 : docenten zonder overeenkomstig emailadres worden eruit gefilterd. 
 
 ## TO DO
 
-* Filter op locatie ('Administratieveeenheid.Omschrijving').
+* mail de logs
