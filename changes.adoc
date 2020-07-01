@@ -41,6 +41,9 @@
 * toegevoegd: insluitend filter voor leerlingen op basis van locatie (Magister veld 'Administratieveeenheid.Omschrijving')
 * useemail=1 : docenten zonder overeenkomstig emailadres worden eruit gefilterd. 
 
+## 20200701a
+* fout hersteld: Section SIS ID werd gevuld met teamnaam, niet teamID
+
 ## TO DO
 
 * mail de logs

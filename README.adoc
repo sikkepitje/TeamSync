@@ -1,4 +1,4 @@
-# TeamSync v20200701
+# TeamSync v20200701a
 :idprefix:
 :idseparator: -
 :sectanchors:
@@ -102,7 +102,7 @@ Speciale betekenis hebben:
 * `^` matcht het begin van een zoekterm 
 * `$` matcht het eind van een zoekterm
 
-#### Praktische voorbeelden
+#### Voorbeelden van filters
 
 Voorbeeld : We willen de VAVO-leerlingen niet verwerken; alle studies die eindigen op VAVO moeten worden uitgesloten.
 
@@ -222,7 +222,7 @@ De twee scripts loggen alle schermuitvoer in een zogenaamd "transcript" en bewar
 
 ### Controle van uitvoer
 
-In de datakladmap produceert `Transformeren-naar-SchoolDataSync` een aantal al dan niet makkelijk leesbare bestanden die inzicht geven in welke gegevens worden verwerkt door TeamSync en welke teams door School Data Sync aangemaakt zouden worden. 
+In de datakladmap produceert `Transformeren-naar-SchoolDataSync` een aantal voor mensen leesbare bestanden, die inzicht geven in welke teams door School Data Sync aangemaakt zouden worden en welke gegevens worden verwerkt. 
 
 Script `Ophalen` genereert: 
 
@@ -230,9 +230,21 @@ Script `Ophalen` genereert:
 * `docent.csv` : CSV-bestand met platte medewerkerlijst uit Magister
 
 Script `Transformeren` genereert:
-* `teamactief.csv` : CSV-bestand met actieve teams die door SDS worden aangemaakt: teamid, teamnaam, docentaanta, docentnamen, leerlingaantal, leerlingnamen .
+* `teamactief.csv` : CSV-bestand met actieve teams die door SDS worden aangemaakt: teamid, teamnaam, docentaanta, docentnamen, leerlingaantal, leerlingnamen.
 * `team0doc.csv` : CSV-bestand met teams met uitsluitend leerlingen, en die het niet gehaald hebben naar SDS.
 * `team0ll.csv` : CSV-bestand met teams met uitsluitend docenten, en die het niet gehaald hebben naar SDS.
+
+### Typische gebruikscenarios
+
+#### Testen
+
+Gedurende het testen is het meest  handig als `Ophalen-MagisterData.ps1` gedurende een run zonder filters wordt uitgevoerd om alle gegevens op te halen uit Magister. Wanneer dit eenmaal is gebeurd, dan kan `Transformeren-naar-SchoolDataSync.ps1` herhaaldelijk met één of meer filters worden uitgevoerd om te kijken wat het resultaat zou worden. Dit laatste script wordt veel sneller uitgevoerd, omdat het niet steeds opnieuw de gegevens uit Magister hoeft op te halen. 
+
+#### Één Magister en meerdere scholen 
+
+Ook in het geval van 'Één Magister - verscheidene scholen' kan het handig zijn om éénmaal alle gegevens uit Magister op te halen, en vervolgende diverse runs met `Transformeren-naar-SchoolDataSync.ps1` en een aangepaste teamsync.ini uit te voeren afzonderlijke per school.
+
+Door de aangepaste teamsync.ini kan per school een aangepaste prefix worden gebruikt, een aangepaste datainvoermap en hierin kunnen aangepaste filters worden geplaatst. Hierin wordt een locatiefilter opgenomen om alle leerlingen te kunnen selecteren van één locatie in Magister. 
 
 ## Handige links
 

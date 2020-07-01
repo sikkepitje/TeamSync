@@ -10,7 +10,7 @@
     bepaalt actieve teams en genereert CSV-bestanden ten behoeve van 
     School Data Sync.
 
-    Versie 20200701
+    Versie 20200701a
     Auteur Paul Wiegmans (p.wiegmans@svok.nl)
 
     naar een voorbeeld door Wim den Ronde, Eric Redegeld, Joppe van Daalen
@@ -415,14 +415,14 @@ $teamprocent = 100 / $teamactief.count
 
 foreach ($t in $teamactief) {
     $rec = 1 | Select-Object 'SIS ID','School SIS ID','Section Name'
-    $rec.'SIS ID' = $t.naam 
+    $rec.'SIS ID' = $t.id 
     $rec.'School SIS ID' = $brin
     $rec.'Section Name' = $t.naam 
     $section += $rec
 
     foreach ($leerling in $t.leerling) {
         $rec = 1 | Select-Object 'Section SIS ID','SIS ID'
-        $rec.'Section SIS ID' = $t.naam
+        $rec.'Section SIS ID' = $t.id
         $rec.'SIS ID' = $leerling
         $studentenrollment += $rec
         if ($teamleer -notcontains $leerling) {
@@ -432,7 +432,7 @@ foreach ($t in $teamactief) {
 
     foreach ($docent in $t.docent) {
         $rec = 1 | Select-Object 'Section SIS ID','SIS ID'
-        $rec.'Section SIS ID' = $t.naam
+        $rec.'Section SIS ID' = $t.id
         $rec.'SIS ID' = $docent
         $teacherroster += $rec
         if ($teamdoc -notcontains $docent) {
