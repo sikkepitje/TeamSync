@@ -1,4 +1,4 @@
-# TeamSync v20200701a
+# TeamSync v20200702
 :idprefix:
 :idseparator: -
 :sectanchors:
@@ -141,6 +141,8 @@ De parameters in het INI-bestand worden gespecificeerd als een naam-waarde-paar 
 
 Aanhalingstekens zijn toegestaan maar niet nodig. Spaties in het waarde-deel zijn toegestaan. 
 
+Indien een bestandsnaam of mapnaam met meer dan één niveau wordt gespecificeerd, gebruik dan dubbele backslashes, bijvoorbeeld `datainvoermap=Submap1\\Submap2\\Submap3`
+
 De volgende parameters moeten een waarde hebben:
 
 [square]
@@ -168,19 +170,16 @@ Dit is de schoolnaam zoals die in SDS moet zijn gedefinieerd. Verder niet heel b
 Deze gegevens zijn vereist om toegang te krijgen tot de Medius Webservices. De LAS-beheerder maakt een gebruiker aan in de Webservice gebruikerslijst in Magister. De gebruikersnaam en wachtwoord moeten worden gegeven in `MagisterUser` en `MagisterPassword`. Deze gebruiker heeft toegangsrechten nodig tot de *_ADfuncties_* in de Medius Webservices. De MagisterUrl is de URL waar de webservices worden aangeboden. Dit bestaat uit de schoolspecifieke URL voor  Schoolwerkplek met daarachter poort en padaanduiding _:8800/doc_ . De hele URL ziet er uit als `https://schooldomein.swp.nl:8800/doc`.
 
 #### Teamnaam_prefix
-
 Deze naam wordt als prefix voor de naam van elk aan te maken team geplakt. Je kunt dit gebruiken om aan te duiden voor welke teams exclusief door School Data Sync actief gesynchroniseerd worden en voor welke school of welk jaar deze teams actief zijn. Een nuttige prefix is bijvoorbeeld "JPT 1920". Spaties in de naam worden omgezet in underscores ten behoeve van het bepalen van de ObjectID.
 
 #### Datainvoermap
-
-Dit specifieert de naam van de datainvoermap. Bij verstek is de naam van de datainvoermap `data_in`.
+Dit specifieert de naam van de datainvoermap, relatief ten opzichte van de locatie van het script. Bij verstek is de naam van de datainvoermap `data_in`. 
 
 #### Datakladmap
-
-Dit specificeert de mapnaam van de datakladmap relatief ten opzichte van de locatie van het script. Hier slaat script 1 de leerling, docent en vakkengegevens op in CliXML-formaat. Hier leest script 2 de tussengegevens voor verdere verwerking. Bij verstek is de datakladmap `data_temp`.
+Dit specificeert de mapnaam van de datakladmap relatief ten opzichte van de locatie van het script. Bij verstek is de datakladmap `data_temp`.
 
 #### Datauitvoermap
-Dit specificeert de mapnaam van de datauitvoermap relatief ten opzichte van de locatie van het script. 
+Dit specificeert de mapnaam van de datauitvoermap relatief ten opzichte van de locatie van het script. Bij verstek is de datauitvoermap `data_uit`.
 
 #### useemail
 Wanneer deze waarde "0" is , worden medewerkers en leerling uniek aangeduid met attribuut "login" in Magister. 
@@ -196,7 +195,6 @@ Deze parameter is verplicht wanneer "useemail=1". De waarde bevat de servernaam 
 ## Commandoregel
 
 ### Inibestandsnaam Parameter
-
 Met de commandoregelparameter -Inibestandsnaam wordt de bestandsnaam van een alternatief Ini-bestand opgegeven, relatief ten opzichte van de map waarin het script staat. Deze voorziening maakt het mogelijk om gegevens van verscheidene instanties van magister gescheiden te verwerken. Bij verstek is de Inibestandsnaam `teamsync.ini`. 
 
 Een voorbeeld : 
@@ -240,11 +238,21 @@ Script `Transformeren` genereert:
 
 Gedurende het testen is het meest  handig als `Ophalen-MagisterData.ps1` gedurende een run zonder filters wordt uitgevoerd om alle gegevens op te halen uit Magister. Wanneer dit eenmaal is gebeurd, dan kan `Transformeren-naar-SchoolDataSync.ps1` herhaaldelijk met één of meer filters worden uitgevoerd om te kijken wat het resultaat zou worden. Dit laatste script wordt veel sneller uitgevoerd, omdat het niet steeds opnieuw de gegevens uit Magister hoeft op te halen. 
 
-#### Één Magister en meerdere scholen 
+#### Een Magister, twee scholen 
 
-Ook in het geval van 'Één Magister - verscheidene scholen' kan het handig zijn om éénmaal alle gegevens uit Magister op te halen, en vervolgende diverse runs met `Transformeren-naar-SchoolDataSync.ps1` en een aangepaste teamsync.ini uit te voeren afzonderlijke per school.
+Een scenario van het soort 'Een Magister - twee scholen' kan er zo uitzien: 
 
-Door de aangepaste teamsync.ini kan per school een aangepaste prefix worden gebruikt, een aangepaste datainvoermap en hierin kunnen aangepaste filters worden geplaatst. Hierin wordt een locatiefilter opgenomen om alle leerlingen te kunnen selecteren van één locatie in Magister. 
+* Het script 'Ophalen-MagisterData.ps1' wordt uitgevoerd met een aangepast ini-bestand, zonder filters, dat alle gegevens worden opgehaald uit Magister. Dit levert snelheidswinst op. De tussenresultaten worden opgeslagen in een algemene datakladmap.
+
+* De tussenresultaten `mag_leer.clixml`, `mag_doc.clixml` `mag_vak.clixml` en eventueel `personeelemail.clixml` worden gekopieerd van de algemene datakladmap naar een school-specifieke datakladmap.
+* Het script `Transformeren-naar-SchoolDataSync.ps1` wordt één keer uitgevoerd voor elke school met een vschool-specifiek ini-bestand: 
+** datainvoermap, datakladmap en datauitvoermap verwijzen naar een school-specifieke map 
+** de schoolspecifieke datainvoermap bevat school-specifieke filters, bijvoorbeeld voor locatie. 
+** `teamprefix` verschilt per school.
+
+Door de schoolspecifieke filters worden alleen de leerlingen verwerkt die voor een school interessant zijn. Dit verhoogt de verwerkingssnelheid. 
+
+Dit scenario wordt compleet met een synchronisatieprofiel voor elke school in School Data Sync. De uitvoerbestanden worden geupload naar het respectievelijke synchronisatieprofiel.
 
 ## Handige links
 

@@ -44,6 +44,9 @@
 ## 20200701a
 * fout hersteld: Section SIS ID werd gevuld met teamnaam, niet teamID
 
+## 20200702
+* fout hersteld: `personeelemail.clixml` werd opgeslagen in '.\data_temp\' in plaats van datakladmap.
+
 ## TO DO
 
 * mail de logs

@@ -9,7 +9,7 @@
     TeamSync script deel 1 (ophalen) haalt gegevens op uit Medius (Magister)
     Webservice.
 
-    Versie 20200701a
+    Versie 20200702
     Auteur Paul Wiegmans (p.wiegmans@svok.nl)
 
     naar een voorbeeld door Wim den Ronde, Eric Redegeld, Joppe van Daalen
@@ -116,8 +116,7 @@ if ($useemail) {
         $email[$user.stamnr] = $user.UserPrincipalName
     }
      # hashtable $email["$stamnr"] geeft $UserPrincipalName
-    # $email | Out-Gridview
-    $email | Export-Clixml -Path ".\data_temp\personeelemail.clixml"
+    $email | Export-Clixml -Path $filename_persemail_xml
 }
 
 function Invoke-Webclient($url) {
