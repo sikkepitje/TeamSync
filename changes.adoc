@@ -50,6 +50,9 @@
 ## 20200704
 * ongebruikte variabelen en functies opgeruimd
 
+## 20200804
+* vermijd 'divide by zero' in progressiebalk als er 0 aftelbare items zijn. 
+
 ## TO DO
 
 * mail de logs

@@ -10,7 +10,7 @@
     bepaalt actieve teams en genereert CSV-bestanden ten behoeve van 
     School Data Sync.
 
-    Versie 20200704
+    Versie 20200804
     Auteur Paul Wiegmans (p.wiegmans@svok.nl)
 
     naar een voorbeeld door Wim den Ronde, Eric Redegeld, Joppe van Daalen
@@ -212,7 +212,7 @@ if (Test-Path $filename_incl_docent) {
 
 ################# LEERLINGEN -> TEAMS BEPALEN
 $teller = 0
-$leerlingprocent = 100 / $mag_leer.count
+$leerlingprocent = 100 / [Math]::Max($mag_leer.count, 1)
 foreach ($leerling in $mag_leer) {
 
     # verzamel de stamklassen
@@ -266,7 +266,7 @@ Write-Progress -Activity "Teams bepalen" -status "Leerling" -Completed
 
 ################# DOCENTEN TEAMs BEPALEN
 $teller = 0
-$docentprocent = 100 / $mag_doc.count
+$docentprocent = 100 / [Math]::Max($mag_doc.count, 1)
 foreach ($docent in $mag_doc ) {
 
     # verzamel groepen per docent
@@ -409,7 +409,7 @@ $hashdoc = @{}
 $mag_doc | ForEach-Object { $hashdoc[$_.Id] = $_}
 
 $teller = 0
-$teamprocent = 100 / $teamactief.count
+$teamprocent = 100 / [Math]::Max($teamactief.count, 1)
 
 foreach ($t in $teamactief) {
     $rec = 1 | Select-Object 'SIS ID','School SIS ID','Section Name'

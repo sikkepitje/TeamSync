@@ -9,7 +9,7 @@
     TeamSync script deel 1 (ophalen) haalt gegevens op uit Medius (Magister)
     Webservice.
 
-    Versie 20200704
+    Versie 20200804
     Auteur Paul Wiegmans (p.wiegmans@svok.nl)
 
     naar een voorbeeld door Wim den Ronde, Eric Redegeld, Joppe van Daalen
@@ -240,7 +240,7 @@ if ($mag_leer.count -lt 1) {
     Throw "Geen leerlingen... Niets te doen"
 }
 $teller = 0
-$leerlingprocent = 100 / $mag_leer.count
+$leerlingprocent = 100 / [Math]::Max($mag_leer.count, 1)
 foreach ($leerling in $mag_leer) {
 
     # verzamel de lesgroepen
@@ -362,7 +362,7 @@ if (Test-Path $filename_incl_docent) {
 }
 
 $teller = 0
-$docentprocent = 100 / $mag_doc.count
+$docentprocent = 100 / [Math]::Max($mag_doc.count, 1)
 foreach ($docent in $mag_doc ) {
 
     # verzamel Groepvakken
