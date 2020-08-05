@@ -1,4 +1,4 @@
-# TeamSync v20200702
+# TeamSync versie 20200704
 :idprefix:
 :idseparator: -
 :sectanchors:
@@ -22,6 +22,8 @@ toc::[]
 
 ## Werking 
 
+Elk samenwerkingsverbanden van lesgroepen of combinaties van klas en vak, waarvan zowel leerlingen als docenten lid zijn, resulteren in een actief team, die terechtkomt in de uitvoer. Er zijn geen uitzonderingen, behalve die je met behulp van één van de ondersteunde filters kunt maken.
+
 TeamSync is gesplitst in twee scripts: 
 
 * `Ophalen-MagisterData.ps1`
@@ -34,22 +36,21 @@ De werking is als volgt:
 
 Script 1 `Ophalen-MagisterData.ps1` verzorgt ophalen van gegevens: 
 
-* leest variabelen uit Ini-bestand
-* leest filters
-* haalt session token op
+* leest instellingen uit Ini-bestand
+* maakt verbinding met Magister
 * haalt gegevens van leerling op
 * haalt gegevens van docenten op
-* genereert lijst met vakken
+* past filters toe
+* haalt gegevens van klassen, lesgroepen en vakken op 
 * bewaart tussenresultaten in bestand
 
 Script 2 `Transformeren-Naar-SchoolDataSync.ps1` verzorgt het transformeren en uitvoeren:
 
-* leest variabelen uit Ini-bestand
-* leest filters
+* leest instellingen uit Ini-bestand
 * leest tussenresultaten uit bestand
 * past filters toe
 * genereert een lijst met actieve teams
-* schrijft SDS-bestanden naar datauitvoermap. 
+* maakt bestanden voor School Data Sync 
 
 ## Bestanden en mappen
 Bestanden en mappen worden verwacht in dezelfde map als het script. 
@@ -214,9 +215,28 @@ Powershell.exe -NoProfile -NoLogo -ExecutionPolicy Bypass -File "%~dp0Transforme
 
 ## Tips en trucs
 
+### Run de scripts
+
+Vanaf de PowerShell prompt gebruikmaken van verstekwaarden:
+```
+. .\Ophalen-MagisterData.ps1
+. .\Transformeren-naar-SchoolDataSync.ps1
+```
+Vanaf PowerShell prompt met parameters:
+```
+. .\Ophalen-MagisterData.ps1 -inibestandsnaam Magister.ini
+. .\Transformeren-naar-SchoolDataSync.ps1 -inibestandsnaam School1.ini
+```
+
+Vanaf de CMD prompt of door middel van een batchbestand:
+```
+@PowerShell.exe -NoProfile -NoLogo -ExecutionPolicy Bypass -File "%~dp0Ophalen-MagisterData.ps1" -inibestandsnaam Magister.ini
+@PowerShell.exe -NoProfile -NoLogo -ExecutionPolicy Bypass -File "%~dp0Transformeren-Naar-SchoolDataSync.ps1" -inibestandsnaam School1.ini
+```
+
 ### Wat als het script op zijn bek gaat?
 
-De twee scripts loggen alle schermuitvoer in een zogenaamd "transcript" en bewaren dit in een bestand, met de naam van het scripts, en met extensie ".log". Kijk in deze logs voor informatie over foutmeldingen die het script geeft in onvoorziene omstandigheden, en op welke regel in het script dit gebeurde.
+De twee scripts loggen alle schermuitvoer in een zogenaamd "transcript" en bewaren dit in een bestand, met de naam van het scripts, en met extensie ".log". Kijk in deze logs voor informatie over foutmeldingen die het script geeft in onvoorziene omstandigheden, en op welke regel in het script dat gebeurde.
 
 ### Controle van uitvoer
 

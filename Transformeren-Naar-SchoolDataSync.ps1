@@ -10,7 +10,7 @@
     bepaalt actieve teams en genereert CSV-bestanden ten behoeve van 
     School Data Sync.
 
-    Versie 20200702
+    Versie 20200704
     Auteur Paul Wiegmans (p.wiegmans@svok.nl)
 
     naar een voorbeeld door Wim den Ronde, Eric Redegeld, Joppe van Daalen
@@ -44,6 +44,8 @@ $herePath = Split-Path -parent $MyInvocation.MyCommand.Definition
 $host.ui.RawUI.WindowTitle = (Split-Path -Leaf $MyInvocation.MyCommand.Path).replace(".ps1","")
 Start-Transcript -path $MyInvocation.MyCommand.Path.replace(".ps1",".log")
 
+$brin = $null
+$schoolnaam = $null
 $teamnaam_prefix = ""
 $maakklassenteams = "1"
 $datainvoermap = "data_in"
@@ -61,9 +63,6 @@ foreach ($key in $settings.Keys) {
 <# $teamnaam_prefix = $settings.teamnaam_prefix #>
 if (!$brin)  { Throw "BRIN is vereist"}
 if (!$schoolnaam)  { Throw "schoolnaam is vereist"}
-if (!$magisterUser)  { Throw "magisterUser is vereist"}
-if (!$magisterPass)  { Throw "magisterPass is vereist"}
-if (!$magisterUrl)  { Throw "magisterUrl is vereist"}
 if (!$teamnaam_prefix)  { Throw "teamnaam_prefix is vereist"}
 $teamnaam_prefix += " "  # teamnaam prefix wordt altijd gevolgd door een spatie
 $useemail = $useemail -ne "0"  # maak echte boolean
@@ -97,7 +96,6 @@ $filename_mag_vak_xml = $tempPath + "\mag_vak.clixml"
 $filename_t_teamactief = $tempPath + "\teamactief.csv"
 $filename_t_team0ll = $tempPath + "\team0ll.csv"
 $filename_t_team0doc = $tempPath + "\team0doc.csv"
-$filename_log = $tempPath + "\teamsync.log"
 
 # Files OUT
 $filename_School = $outputPath + "\School.csv"

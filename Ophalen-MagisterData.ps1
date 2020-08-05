@@ -9,7 +9,7 @@
     TeamSync script deel 1 (ophalen) haalt gegevens op uit Medius (Magister)
     Webservice.
 
-    Versie 20200702
+    Versie 20200704
     Auteur Paul Wiegmans (p.wiegmans@svok.nl)
 
     naar een voorbeeld door Wim den Ronde, Eric Redegeld, Joppe van Daalen
@@ -38,11 +38,8 @@ $herePath = Split-Path -parent $MyInvocation.MyCommand.Definition
 $host.ui.RawUI.WindowTitle = (Split-Path -Leaf $MyInvocation.MyCommand.Path).replace(".ps1","")
 Start-Transcript -path $MyInvocation.MyCommand.Path.replace(".ps1",".log")
 
-$teamnaam_prefix = ""
-$maakklassenteams = "1"
 $datainvoermap = "data_in"
 $datakladmap = "data_temp"
-$datauitvoermap = "data_uit"
 $useemail = "0"
 $ADSearchBase = ""
 $ADServer = "" 
@@ -54,14 +51,9 @@ $settings = Get-Content $filename_settings | ConvertFrom-StringData
 foreach ($key in $settings.Keys) {
     Set-Variable -Name $key -Value $settings.$key
 }
-<# $teamnaam_prefix = $settings.teamnaam_prefix #>
-if (!$brin)  { Throw "BRIN is vereist"}
-if (!$schoolnaam)  { Throw "schoolnaam is vereist"}
 if (!$magisterUser)  { Throw "magisterUser is vereist"}
 if (!$magisterPass)  { Throw "magisterPass is vereist"}
 if (!$magisterUrl)  { Throw "magisterUrl is vereist"}
-if (!$teamnaam_prefix)  { Throw "teamnaam_prefix is vereist"}
-$teamnaam_prefix += " "  # teamnaam prefix wordt altijd gevolgd door een spatie
 $useemail = $useemail -ne "0"  # maak echte boolean
 if ($useemail) {
     if (!$ADSearchBase)  { Throw "ADSearchBase is vereist"}
@@ -72,14 +64,11 @@ Write-Host "Schoolnaam:" $schoolnaam
 # datamappen
 $inputPath = $herePath + "\$datainvoermap"
 $tempPath = $herePath + "\$datakladmap"
-$outputPath = $herePath + "\$datauitvoermap"
 Write-Host "datainvoermap :" $inputPath
 Write-Host "datakladmap   :" $tempPath
-Write-Host "datauitvoermap:" $outputPath
 
 New-Item -path $inputPath -ItemType Directory -ea:Silentlycontinue
 New-Item -path $tempPath -ItemType Directory -ea:Silentlycontinue
-New-Item -path $outputPath -ItemType Directory -ea:Silentlycontinue
 
 # Files IN
 $filename_excl_docent = $inputPath + "\excl_docent.csv"
@@ -141,9 +130,6 @@ function ADFunction ($Url = $magisterUrl, $Function, $SessionToken, $Stamnr = $n
         return Invoke-Webclient -Url ($Url + "?library=ADFuncties&function=" + 
             $Function + "&SessionToken=" + $SessionToken + "&LesPeriode=&Type=XML")
     }
-}
-function ConvertTo-SISID([string]$Naam) {
-    return $Naam.replace(' ','_')
 }
 
 # voor dataminimalisatie houd ik een lijstje met vakken bij

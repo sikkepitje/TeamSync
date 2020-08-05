@@ -47,6 +47,9 @@
 ## 20200702
 * fout hersteld: `personeelemail.clixml` werd opgeslagen in '.\data_temp\' in plaats van datakladmap.
 
+## 20200704
+* ongebruikte variabelen en functies opgeruimd
+
 ## TO DO
 
 * mail de logs
