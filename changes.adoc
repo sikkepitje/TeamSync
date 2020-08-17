@@ -53,6 +53,10 @@
 ## 20200804
 * vermijd 'divide by zero' in progressiebalk als er 0 aftelbare items zijn. 
 
+## 20200817
+* (Ophalen-Magisterdata.ps1) skip leerlingen met lege id
+
 ## TO DO
 
-* mail de logs
+* SDS V2 format 
+* parameter: viewonly ; Laat Ophalen.ps1 alleen gegevens uit Magister ophalen en en tonen. 

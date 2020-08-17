@@ -9,7 +9,7 @@
     TeamSync script deel 1 (ophalen) haalt gegevens op uit Medius (Magister)
     Webservice.
 
-    Versie 20200804
+    Versie 20200817
     Auteur Paul Wiegmans (p.wiegmans@svok.nl)
 
     naar een voorbeeld door Wim den Ronde, Eric Redegeld, Joppe van Daalen
@@ -88,12 +88,13 @@ $filename_mag_vak_xml = $tempPath + "\mag_vak.clixml"
 $filename_persemail_xml = $tempPath + "\personeelemail.clixml"
 
 if ($useemail) {
-    Write-Host "Ophalen personeel uit AD"
+    Write-Host "Ophalen UserPrincipalNames van personeel uit AD"
     Import-Module activedirectory
    
     $users = Get-ADUser -Filter * -Server $ADserver -SearchBase $ADsearchbase -Properties employeeid
     
-    # Extraheer uit employeeid (bijvoorbeeld "bc435") een stamnr
+    # Bereken uit employeeid (hier bijv "bc435") een stamnr
+    # DEZE BEWERKING IS SPECIAAL VOOR BONHOEFFERCOLLEGE. Aanpassen aan eigen behoefte
     $medew = $users | Select-Object UserPrincipalName,employeeid,
         @{Name = 'Stamnr'; Expression = {$_.employeeid.replace("bc","")}}
     $medew = $medew | Where-Object {$_.Stamnr -ne $null} | Where-Object {$_.Stamnr -gt 0}
@@ -208,6 +209,9 @@ $mag_leer = $data.Leerlingen.Leerling | Select-Object `
 # tussentijds opslaan
 $mag_leer | Export-Csv -Path $filename_t_leerling -Delimiter ";" -NoTypeInformation -Encoding UTF8
 Write-Host "Leerlingen           :" $mag_leer.count
+# ID moet gevuld zijn; (leerlingen zonder e-mail) 
+$mag_leer = $mag_leer | Where-Object {$_.id.length -gt 0}
+Write-Host "Leerlingen met geldige ID :" $mag_leer.count
 
 # voorfilteren
 if (Test-Path $filename_excl_studie) {
