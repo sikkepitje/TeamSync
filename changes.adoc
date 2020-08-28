@@ -56,7 +56,23 @@
 ## 20200817
 * (Ophalen-Magisterdata.ps1) skip leerlingen met lege id
 
+## 20200828
+* (Ophalen-Magisterdata.ps1) onderdelen geherstructureerd
+
+* (Ophalen-Magisterdata.ps1) configvariable "handhaafJPTMedewerkerCodeIsLogin"
+toegevoegd. Gebruik `handhaafJPTMedewerkerCodeIsLogin=1`. Bij verstek geldt
+`handhaafJPTMedewerkerCodeIsLogin=0` . Deze instelling dient om uitsluitend
+medewerkers te verwerken waarbij Magister->Code gelijk is aan
+Magister->loginaccount.naam. Dit wordt in een speciaal geval voor JPT gedaan om
+dubbele identiteiten weg te filteren. 
+
+* bugfix: In sommige gevallen werden teveel medewerkers afgekeurd voor verdere
+verwerking wanneer code of loginaccount.name niet gelijk of ingevuld waren.
+Config `handhaafJPTMedewerkerCodeIsLogin=0` verhelpt dat. 
+
+
 ## TO DO
 
 * SDS V2 format 
 * parameter: viewonly ; Laat Ophalen.ps1 alleen gegevens uit Magister ophalen en en tonen. 
+* configvariabele PaarIdAan={email,login}
