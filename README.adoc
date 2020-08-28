@@ -1,4 +1,4 @@
-# TeamSync versie 20200804
+# TeamSync versie 20200828
 :idprefix:
 :idseparator: -
 :sectanchors:
@@ -160,6 +160,7 @@ De volgende parameters moeten een waarde hebben:
 * `useemail=waarde` : schakelaar : indien '1' gebruik email als unieke id i.p.v. Login
 * `ADsearchbase=waarde` : OU waarin wordt gezocht om userPrincipalName van personeel te lezen
 * `ADserver=waarde` : servernaam om userPrincipalName van personeel te lezen
+* `handhaafJPTMedewerkerCodeIsLogin=waarde` : filtert dubbele identiteiten weg voor Code<>Login
 
 #### Brin
 Dit is het BRIN-nummer van de school. Vraag je schooladminstratie of directie hiervoor.
@@ -192,6 +193,13 @@ Deze parameter is verplicht wanneer "useemail=1". De waarde duidt de OU waarin m
 
 #### ADserver 
 Deze parameter is verplicht wanneer "useemail=1". De waarde bevat de servernaam waarin medewerkers worden gelezen voor het bepalen van userPrincipalName. 
+
+#### handhaafJPTMedewerkerCodeIsLogin
+Gebruik `handhaafJPTMedewerkerCodeIsLogin=1`. Bij verstek geldt
+`handhaafJPTMedewerkerCodeIsLogin=0` . Deze instelling dient om uitsluitend
+medewerkers te verwerken waarbij Magister->Code gelijk is aan
+Magister->loginaccount.naam. Dit filter wordt in een speciaal geval voor JPT toegepast om
+dubbele identiteiten weg te filteren. 
 
 ## Commandoregel
 
