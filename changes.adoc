@@ -70,9 +70,13 @@ dubbele identiteiten weg te filteren.
 verwerking wanneer code of loginaccount.name niet gelijk of ingevuld waren.
 Config `handhaafJPTMedewerkerCodeIsLogin=0` verhelpt dat. 
 
+## 20200109 
+* wijziging: excl_docent en incl_docent filters filteren niet op Code, maar op Id. 
+* wijziging: duidelijkere logging, maakt geen gebruik van PowerShell transcripts, maar dupliceert alleen consoleuitvoer naar log. 
+* documentatie over regex uitgebreid met escape karakter, link naar documentatie, voorbeeld.
 
 ## TO DO
 
 * SDS V2 format 
-* parameter: viewonly ; Laat Ophalen.ps1 alleen gegevens uit Magister ophalen en en tonen. 
+* parameter viewonly toont resultaat.
 * configvariabele PaarIdAan={email,login}

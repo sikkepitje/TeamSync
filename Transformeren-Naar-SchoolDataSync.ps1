@@ -10,7 +10,7 @@
     bepaalt actieve teams en genereert CSV-bestanden ten behoeve van 
     School Data Sync.
 
-    Versie 20200804
+    Versie 20200109
     Auteur Paul Wiegmans (p.wiegmans@svok.nl)
 
     naar een voorbeeld door Wim den Ronde, Eric Redegeld, Joppe van Daalen
@@ -42,8 +42,9 @@ $stopwatch = [Diagnostics.Stopwatch]::StartNew()
 $herePath = Split-Path -parent $MyInvocation.MyCommand.Definition
 # scriptnaam in venstertitel
 $host.ui.RawUI.WindowTitle = (Split-Path -Leaf $MyInvocation.MyCommand.Path).replace(".ps1","")
-Start-Transcript -path $MyInvocation.MyCommand.Path.replace(".ps1",".log")
+$filename_log = $MyInvocation.MyCommand.Path.replace(".ps1",".log")
 
+# variabelen initialisatie
 $brin = $null
 $schoolnaam = $null
 $teamnaam_prefix = ""
@@ -53,9 +54,21 @@ $datakladmap = "data_temp"
 $datauitvoermap = "data_uit"
 $useemail = "0"
 
+Function Write-Log {
+    Param ([Parameter(Position=0)][Alias('Message')][string]$Tekst="`n")
+
+    Write-Host $Tekst
+    $tag = $teamnaam_prefix.trim()
+    $log = "$(Get-Date -f "yyyy-MM-ddTHH:mm:ss:fff") [$tag] $tekst"
+    $log | Out-File -FilePath $filename_log -Append
+}
+
+Write-Log ""
+Write-Log ("START " + $MyInvocation.MyCommand.Name)
+
 # Lees instellingen uit bestand met key=value
 $filename_settings = $herePath + "\" + $Inifilename
-Write-Host "INI-bestand: " $filename_settings
+Write-Log ("INI-bestand: "+$filename_settings)
 $settings = Get-Content $filename_settings | ConvertFrom-StringData
 foreach ($key in $settings.Keys) {
     Set-Variable -Name $key -Value $settings.$key
@@ -66,15 +79,16 @@ if (!$schoolnaam)  { Throw "schoolnaam is vereist"}
 if (!$teamnaam_prefix)  { Throw "teamnaam_prefix is vereist"}
 $teamnaam_prefix += " "  # teamnaam prefix wordt altijd gevolgd door een spatie
 $useemail = $useemail -ne "0"  # maak echte boolean
-Write-Host "Schoolnaam:" $schoolnaam
+Write-Log ("Schoolnaam:"+$schoolnaam)
+Write-Log ("Teamnaam_prefix:"+$teamnaam_prefix)
 
 # datamappen
 $inputPath = $herePath + "\$datainvoermap"
 $tempPath = $herePath + "\$datakladmap"
 $outputPath = $herePath + "\$datauitvoermap"
-Write-Host "datainvoermap :" $inputPath
-Write-Host "datakladmap   :" $tempPath
-Write-Host "datauitvoermap:" $outputPath
+Write-Log ("datainvoermap :"+$inputPath)
+Write-Log ("datakladmap   :"+$tempPath)
+Write-Log ("datauitvoermap:"+$outputPath)
 
 New-Item -path $inputPath -ItemType Directory -ea:Silentlycontinue
 New-Item -path $tempPath -ItemType Directory -ea:Silentlycontinue
@@ -163,9 +177,9 @@ foreach ($docent in $mag_doc) {
     $docent.Docentvakken = $docent.Docentvakken | Sort-Object
 }
 
-Write-Host "Leerlingen           :" $mag_leer.count
-Write-Host "Docenten             :" $mag_doc.count
-Write-Host "Vakken               :" $mag_vak.count
+Write-Log ("Leerlingen           :"+$mag_leer.count)
+Write-Log ("Docenten             :"+$mag_doc.count)
+Write-Log ("Vakken               :"+$mag_vak.count)
 
 if ($mag_doc.count -eq 0) {
     Throw "Geen docenten!"
@@ -175,39 +189,39 @@ if ($mag_doc.count -eq 0) {
 if (Test-Path $filename_excl_studie) {
     $filter_excl_studie = $(Get-Content -Path $filename_excl_studie) -join '|'
     $mag_leer = $mag_leer | Where-Object {$_.Studie -notmatch $filter_excl_studie}
-    Write-Host "L na uitsluiting studie :" $mag_leer.count
+    Write-Log ("L na uitsluiting studie :"+$mag_leer.count)
 }
 if (Test-Path $filename_incl_studie) {
     $filter_incl_studie = $(Get-Content -Path $filename_incl_studie) -join '|'
     $mag_leer = $mag_leer | Where-Object {$_.Studie -match $filter_incl_studie}
-    Write-Host "L na insluiting studie  :" $mag_leer.count
+    Write-Log ("L na insluiting studie  :"+$mag_leer.count)
 }
 if (Test-Path $filename_excl_klas) {
     $filter_excl_klas = $(Get-Content -Path $filename_excl_klas) -join '|'
     $mag_leer = $mag_leer | Where-Object {$_.Klas -notmatch $filter_excl_klas}
-    Write-Host "L na uitsluiting klas   :" $mag_leer.count
+    Write-Log ("L na uitsluiting klas   :"+$mag_leer.count)
 }
 if (Test-Path $filename_incl_klas) {
     $filter_incl_klas = $(Get-Content -Path $filename_incl_klas) -join '|'
     $mag_leer = $mag_leer | Where-Object {$_.Klas -match $filter_incl_klas}
-    Write-Host "L na insluiting klas    :" $mag_leer.count
+    Write-Log ("L na insluiting klas    :"+$mag_leer.count)
 }
 if (Test-Path $filename_incl_locatie) {
     $filter_incl_locatie = $(Get-Content -Path $filename_incl_locatie) -join '|'
     $mag_leer = $mag_leer | Where-Object {$_.Locatie -match $filter_incl_locatie}
-    Write-Host "L na insluiting locatie:" $mag_leer.count
+    Write-Log ("L na insluiting locatie:"+$mag_leer.count)
 }
 
 # filter toepassen op docent
 if (Test-Path $filename_excl_docent) {
     $filter_excl_docent = $(Get-Content -Path $filename_excl_docent) -join '|'
-    $mag_doc = $mag_doc | Where-Object {$_.Code -notmatch $filter_excl_docent}
-    Write-Host "D na uitsluiting docent :" $mag_doc.count
+    $mag_doc = $mag_doc | Where-Object {$_.Id -notmatch $filter_excl_docent}
+    Write-Log ("D na uitsluiting docent :"+$mag_doc.count)
 }
 if (Test-Path $filename_incl_docent) {
     $filter_incl_docent = $(Get-Content -Path $filename_incl_docent) -join '|'
-    $mag_doc = $mag_doc | Where-Object {$_.Code -match $filter_incl_docent}
-    Write-Host "D na insluiting docent  :" $mag_doc.count
+    $mag_doc = $mag_doc | Where-Object {$_.Id -match $filter_incl_docent}
+    Write-Log ("D na insluiting docent  :"+$mag_doc.count)
 }
 
 ################# LEERLINGEN -> TEAMS BEPALEN
@@ -330,7 +344,7 @@ Write-Progress -Activity "Teams bepalen" -status "Docent" -Completed
 # associatieve array omzetten naar simpele lijst
 $team = $team.Values
 
-Write-Host "  Omschrijvingen toevoegen.."
+Write-Log ("  Omschrijvingen toevoegen..")
 
 # Voeg vakomschrijving toe aan teamnaam
 foreach ($t in $team) {
@@ -354,16 +368,16 @@ foreach ($t in $team) {
     }
 }
 
-Write-Host "  Teams totaal          :" $team.count
+Write-Log ("  Teams totaal          :"+$team.count)
 # Actieve teams bevatten zowel leerlingen als docenten.
 # Splits de teams in 3 lijsten: actief, zonder leerlingen, zonder docenten.
 $teamactief = $team | Where-Object {($_.lltal -gt 0) -and ($_.doctal -gt 0)}
 $team0doc = $team | Where-Object {$_.doctal -eq 0}
 $team0ll = $team | Where-Object {$_.lltal -eq 0}
 
-Write-Host "  Teams actief          :" $teamactief.count 
-Write-host "  Teams zonder leerling :" $team0ll.count 
-Write-Host "  Teams zonder docent   :" $team0doc.count
+Write-Log ("  Teams actief          :"+$teamactief.count )
+Write-Log ("  Teams zonder leerling :"+$team0ll.count )
+Write-Log ("  Teams zonder docent   :"+$team0doc.count)
 
 # door mensen leesbare CSVs uitvoeren ter controle
 $hteamactief = $teamactief | Sort-Object Id | Select-Object Id, Naam, Doctal,`
@@ -390,7 +404,7 @@ $hteam0doc | Export-Csv -Path $filename_t_team0doc -NoTypeInformation -Encoding 
 #$hteam0doc | Out-GridView
 
 ################# UITVOER
-Write-Host "Uitvoer..."
+Write-Log ("Uitvoer...")
 # Ik maak de uiteindelijke bestanden aan, die naar School Data Sync worden geupload.
 
 # voorbereiden SDS formaat CSV bestanden
@@ -472,12 +486,12 @@ $schoolrec.'SIS ID' = $brin
 $schoolrec.Name = $schoolnaam
 $school += $schoolrec
 
-Write-Host "School               :" $school.count
-Write-Host "Student              :" $student.count
-Write-Host "Studentenrollment    :" $Studentenrollment.count
-Write-Host "Teacher              :" $teacher.count
-Write-Host "Teacherroster        :" $teacherroster.count
-Write-Host "Section              :" $section.count
+Write-Log ("School               :"+$school.count)
+Write-Log ("Student              :"+$student.count)
+Write-Log ("Studentenrollment    :"+$Studentenrollment.count)
+Write-Log ("Teacher              :"+$teacher.count)
+Write-Log ("Teacherroster        :"+$teacherroster.count)
+Write-Log ("Section              :"+$section.count)
 
 # Sorteer de teams voor de mooi
 $section = $section | Sort-Object 'SIS ID'
@@ -495,5 +509,4 @@ $teacher | Export-Csv -Path $filename_Teacher -Encoding UTF8 -NoTypeInformation
 $teacherroster | Export-Csv -Path $filename_TeacherRoster -Encoding UTF8 -NoTypeInformation
 
 $stopwatch.Stop()
-Write-Host "Klaar (uu:mm.ss)" $stopwatch.Elapsed.ToString("hh\:mm\.ss")
-Stop-Transcript -ea SilentlyContinue
+Write-Log ("Klaar (uu:mm.ss)"+$stopwatch.Elapsed.ToString("hh\:mm\.ss"))

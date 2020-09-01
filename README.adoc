@@ -1,4 +1,4 @@
-# TeamSync versie 20200828
+# TeamSync versie 20200109
 :idprefix:
 :idseparator: -
 :sectanchors:
@@ -52,6 +52,11 @@ Script 2 `Transformeren-Naar-SchoolDataSync.ps1` verzorgt het transformeren en u
 * genereert een lijst met actieve teams
 * maakt bestanden voor School Data Sync 
 
+### Het paren van identiteit
+
+Voor een goede werking is het nodig dat de identiteiten van docenten en leerlingen in Magister worden gepaard (match) aan de overeenkomstige identiteiten van alle gebruikers in Microsoft 365 en Teams, dus eigenlijk in Azure Active Directory. 
+Omdat de identiteit niet een directe relatie met elkaar hebben , moet TeamSync deze relatie kunnen leggen. Dit kan TeamSync doen door een verband te leggen tussen userprincipalname in Azure AD en de Magister-code of met de Magister accountname. Hierbij wordt het deel van de UserPrincipalName verkregen vóór de suffix. School Data Sync kan deze suffix toevoegen. Ook kan TeamSync de juiste userobjecten in een Active Directory zoeken op basis van personeelsnummer of leerlingnummer en daarin het volledige e-mailadres van de gebruikers ophalen. Welke methode de juiste is, hangt af van de inrichting van Magister op jouw school. 
+
 ## Bestanden en mappen
 Bestanden en mappen worden verwacht in dezelfde map als het script. 
 
@@ -86,22 +91,25 @@ De uitvoer worden opgeslagen in de datauitvoermap. Het script maakt volgens de s
 
 In de datainvoermap kunnen één of meer filters worden geplaatst, dis de hoeveelheid te verwerken gegevens reduceren. Er zijn een aantal filters te definieren , die zowel in `Ophalen-MagisterData.ps1` als `Transformeren-Naar-SchoolDataSync.ps1` wordt gebruikt. De volgende filters kunnen worden gedefinieerd door het overeenkomstige bestand in de datainvoermap te definieren. 
 
-* `excl_docent.csv` : dit bevat filters voor het uitsluiten van docenten op docentcode.
-* `incl_docent.csv` : dit bevat filters voor het insluiten van docenten op docentcode.
+* `excl_docent.csv` : dit bevat filters voor het uitsluiten van docenten op Id.
+* `incl_docent.csv` : dit bevat filters voor het insluiten van docenten op Id.
 * `excl_klas.csv` : dit bevat filters voor het uitsluiten van leerlingen op klasnaam.
 * `incl_klas.csv` : dit bevat filters voor het insluiten van leerlingen op klasnaam.
 * `excl_studie.csv` : dit bevat filters voor het uitsluiten van leerlingen op studie.
 * `incl_studie.csv` : dit bevat filters voor het insluiten van leerlingen op studie.
 * `incl_locatie.csv` : dit bevat filters voor het insluiten van leerlingen op locatie.
 
-Deze bestanden bevatten filters, die selectief records uit de invoer filteren. Ze kunnen **exclusief** of uitsluitend filteren, dat wil zeggen dat overeenkomende records worden weggegooid en uitgesloten van verwerking, of ze kunnen **inclusief** of insluitend filteren, dat wil zeggen dat alleen de overeenkomende records verder worden verwerkt.
+Deze bestanden bevatten filters, die selectief records uit de invoer filteren. Hierbij wordt gebruik gemaakt van zogenaamde regular expressions. Ze kunnen **exclusief** of uitsluitend filteren, dat wil zeggen dat overeenkomende records worden weggegooid en uitgesloten van verwerking, of ze kunnen **inclusief** of insluitend filteren, dat wil zeggen dat alleen de overeenkomende records verder worden verwerkt.
 
-Het gebruik van deze filterbestanden is optioneel. Als ze bestaan, worden ze ingelezen en gebruikt. Als ze niet bestaan, wordt er niet gefilterd. Indien gebruikt, dan kan elk van deze bestand een of meer filters bevatten, elk op een eigen regel, die worden toegepast met behulp van de match-operator voor het filteren van de leerlingen of docenten. Elke filter match een deel van de invoer. Wildcards zijn niet nodig. Alle tekens met een speciale betekenis voor de match-operator zijn hierbij toegelaten. Plaats geen lege regels in het filterbestand.
+Het gebruik van deze filterbestanden is optioneel. Als ze bestaan, worden ze ingelezen en gebruikt. Als ze niet bestaan, wordt er niet gefilterd. Indien gebruikt, dan kan elk van deze bestand een of meer filters bevatten, elk op een eigen regel, die worden toegepast met behulp van de match-operator voor het filteren van de leerlingen of docenten. Elke filter matcht een deel van de invoer. Wildcards zijn niet nodig. Alle tekens met een speciale betekenis voor de match-operator zijn hierbij toegelaten. Plaats geen lege regels in het filterbestand.
 
 Speciale betekenis hebben:
 
 * `^` matcht het begin van een zoekterm 
 * `$` matcht het eind van een zoekterm
+* '\' is een escape-teken voor tekens die een speciale betekenis voor regex hebben.
+
+Zie voor meer uitleg over de "regex"-functie https://docs.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_regular_expressions?view=powershell-7[about_Regular_Expressions]
 
 #### Voorbeelden van filters
 
@@ -128,6 +136,13 @@ Het bestand data_in\incl_klas.csv wordt aangemaakt en bevat:
 ```
 ^5H
 ^4H
+```
+
+voorbeeld: we willen alleen docenten wiens id niet begint met '_' of eindigt op '*'. 
+Het bestand data_in\excl_docent.csv bevat:
+```
+^_
+\*$
 ```
 
 ## Ini-parameters
