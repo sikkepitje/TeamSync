@@ -10,7 +10,7 @@
     bepaalt actieve teams en genereert CSV-bestanden ten behoeve van 
     School Data Sync.
 
-    Versie 20200109
+    Versie 20200902
     Auteur Paul Wiegmans (p.wiegmans@svok.nl)
 
     naar een voorbeeld door Wim den Ronde, Eric Redegeld, Joppe van Daalen
@@ -271,7 +271,7 @@ foreach ($leerling in $mag_leer) {
         $team[$teamid].leerling += @($leerling.Id)
     }
 
-    if (!($teller++ % 20)) {
+    if (!(++$teller % 20)) {
         Write-Progress -PercentComplete ($leerlingprocent * $teller) `
             -Activity "Teams bepalen" -status "Leerling $teller van $($mag_leer.count)" 
     }
@@ -333,7 +333,7 @@ foreach ($docent in $mag_doc ) {
     # Normaliter wordt dit niet gedaan.
     #foreach ($vak in $docent.docentvakken) { }
 
-    if (!($teller++ % 10)) {
+    if (!(++$teller % 10)) {
         Write-Progress -PercentComplete ($docentprocent * $teller) `
             -Activity "Teams bepalen" -Status "Docent $teller van $($mag_doc.count)" 
     }
@@ -451,7 +451,7 @@ foreach ($t in $teamactief) {
             $teamdoc += $docent
         }
     }
-    if (!($teller++ % 10)) {
+    if (!(++$teller % 10)) {
         Write-Progress -PercentComplete ($teamprocent * $teller) `
             -Activity "Lijsten genereren" -Status "Team $teller van $($teamactief.count)" 
     }

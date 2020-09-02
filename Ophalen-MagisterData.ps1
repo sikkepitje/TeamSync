@@ -9,7 +9,7 @@
     TeamSync script deel 1 (ophalen) haalt gegevens op uit Medius (Magister)
     Webservice.
 
-    Versie 20200109
+    Versie 20200902
     Auteur Paul Wiegmans (p.wiegmans@svok.nl)
 
     naar een voorbeeld door Wim den Ronde, Eric Redegeld, Joppe van Daalen
@@ -348,10 +348,11 @@ function Verzamel_docenten()
     #exit 45
 
     # voor later ...
-    #$script:magdoc_ruw = $data.Personeelsleden.Personeelslid
-    #$magdoc_ruw | Export-Clixml -Path ($tempPath + "\magdoc_ruw.clixml")
-    #$magdoc_ruw | Export-Csv -Path ($tempPath + "\magdoc_ruw.csv")
+    $script:magdoc_ruw = $data.Personeelsleden.Personeelslid
+    $magdoc_ruw | Export-Clixml -Path ($tempPath + "\magdoc_ruw.clixml")
+    $magdoc_ruw | Export-Csv -Path ($tempPath + "\magdoc_ruw.csv")
 
+    # Selecteer de belangrijke attributen; paar Id aan AD->Email of Magister->accountnaam.
     $script:mag_doc = $data.Personeelsleden.Personeelslid | Select-Object `
         @{Name = 'Stamnr'; Expression = {$_.stamnr_str}},`
         @{Name = 'Id'; Expression = { if ($useemail) {$email[$_.stamnr_str]} Else {$_.'loginaccount.naam'}}}, `
@@ -379,11 +380,16 @@ function Verzamel_docenten()
         Write-Log ("handhaafJPTMedewerkerCodeIsLogin: D na uitfilteren van dubbele Ids :"+$mag_doc.count)
     }
 
-    # Wanneer id is gebaseerd op email, filter de medewerkers eruit
-    # waarvan email niet kon worden opgezocht in AD
-    if ($useemail) {
+    # Filter docenten met meer dan één rol 
+    if ($True) {
+        $script:mag_doc = $mag_doc | Sort-Object id -Unique
+        Write-Log ("MaakIdUniek: D na uniek maken Ids: "+$mag_doc.count )
+    }
+
+    # Algemeen: filter de medewerkers eruit zonder Id
+    if ($True) {
         $script:mag_doc = $mag_doc | Where-Object {$_.Id -ne $null}
-        Write-Log ("D na uitfilteren van lege Ids:"+$mag_doc.count)
+        Write-Log ("IdNotNull: D na uitfilteren van lege Ids:"+$mag_doc.count)
     }
 
     # voorfilteren

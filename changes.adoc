@@ -75,6 +75,9 @@ Config `handhaafJPTMedewerkerCodeIsLogin=0` verhelpt dat.
 * wijziging: duidelijkere logging, maakt geen gebruik van PowerShell transcripts, maar dupliceert alleen consoleuitvoer naar log. 
 * documentatie over regex uitgebreid met escape karakter, link naar documentatie, voorbeeld.
 
+## 20200902
+* wijziging: (Ophalen-Magisterdata.ps1) altijd docenten zonder id uitfilteren
+
 ## TO DO
 
 * SDS V2 format 

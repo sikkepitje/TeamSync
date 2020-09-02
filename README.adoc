@@ -1,4 +1,4 @@
-# TeamSync versie 20200109
+# TeamSync versie 20200902
 :idprefix:
 :idseparator: -
 :sectanchors:
@@ -291,14 +291,13 @@ Een scenario van het soort 'Een Magister - twee scholen' kan er zo uitzien:
 * Het script `Transformeren-naar-SchoolDataSync.ps1` wordt één keer uitgevoerd voor elke school met een vschool-specifiek ini-bestand: 
 ** datainvoermap, datakladmap en datauitvoermap verwijzen naar een school-specifieke map 
 ** de schoolspecifieke datainvoermap bevat school-specifieke filters, bijvoorbeeld voor locatie. 
-** `teamprefix` verschilt per school.
+** `teamnaam_prefix` verschilt per school.
 
 Door de schoolspecifieke filters worden alleen de leerlingen verwerkt die voor een school interessant zijn. Dit verhoogt de verwerkingssnelheid. 
 
 Dit scenario wordt compleet met een synchronisatieprofiel voor elke school in School Data Sync. De uitvoerbestanden worden geupload naar het respectievelijke synchronisatieprofiel.
 
 ## Handige links
-
 
 * https://sds.microsoft.com/[Microsoft School Data Sync]
 * https://github.com/DwayneSelsig/Somtoday2MicrosoftSchoolDataSync[DwayneSelsig/Somtoday2MicrosoftSchoolDataSync]
