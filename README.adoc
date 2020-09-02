@@ -1,4 +1,4 @@
-# TeamSync versie 20200902
+# TeamSync versie 20200902b
 :idprefix:
 :idseparator: -
 :sectanchors:
@@ -167,7 +167,9 @@ De volgende parameters moeten een waarde hebben:
 * `magisterUser=waarde` : webservice-gebruikersnaam
 * `magisterPassword=waarde` : webservice-wachtwoord
 * `magisterUrl=waarde` : webservice-URL
-* `teamnaam_prefix=waarde` : unieke prefix voor teams in SDS
+* `teamid_prefix=waarde` : prefix voor team-ids in SDS
+* `teamnaam_prefix=waarde` : prefix voor teamnamen in SDS
+* `teamnaam_suffix=waarde` : suffix voor teamnamen in SDS
 * `maakklassenteams=waarde` : schakelaar voor aanmaken van een team voor iedere (stam)klas
 * `datainvoermap=waarde` : pad naar invoermap relatief t.o.v. scriptpad
 * `datakladmap=waarde` : pad naar kladmap relatief t.o.v. scriptpad
@@ -186,8 +188,14 @@ Dit is de schoolnaam zoals die in SDS moet zijn gedefinieerd. Verder niet heel b
 #### MagisterUser, MagisterPassword, MagisterUrl 
 Deze gegevens zijn vereist om toegang te krijgen tot de Medius Webservices. De LAS-beheerder maakt een gebruiker aan in de Webservice gebruikerslijst in Magister. De gebruikersnaam en wachtwoord moeten worden gegeven in `MagisterUser` en `MagisterPassword`. Deze gebruiker heeft toegangsrechten nodig tot de *_ADfuncties_* in de Medius Webservices. De MagisterUrl is de URL waar de webservices worden aangeboden. Dit bestaat uit de schoolspecifieke URL voor  Schoolwerkplek met daarachter poort en padaanduiding _:8800/doc_ . De hele URL ziet er uit als `https://schooldomein.swp.nl:8800/doc`.
 
+#### Teamid_prefix
+Deze verplichte tekst wordt toegevoegd aan het begin van de ID van team. Dit wordt deel van de unieke ID die elk team uniek identificeert in Microsoft 365. Een nuttige prefix identificeert zowel de school als het schooljaar en is bijvoorbeeld "JPT 1920". Spaties in de naam worden omgezet in underscores ten behoeve van het bepalen van de ObjectID.
+
 #### Teamnaam_prefix
-Deze naam wordt als prefix voor de naam van elk aan te maken team geplakt. Je kunt dit gebruiken om aan te duiden voor welke teams exclusief door School Data Sync actief gesynchroniseerd worden en voor welke school of welk jaar deze teams actief zijn. Een nuttige prefix is bijvoorbeeld "JPT 1920". Spaties in de naam worden omgezet in underscores ten behoeve van het bepalen van de ObjectID.
+Deze tekst wordt toegevoegd aan het begin van de naam (weergavenaam) van elk team en wordt zichtbaar in de teamlijst van alle deelnemers.
+
+#### Teamnaam_suffix
+Deze tekst wordt toegevoegd aan het eind van de naam (weergavenaam) van elk team en wordt zichtbaar in de teamlijst van alle deelnemers.
 
 #### Datainvoermap
 Dit specifieert de naam van de datainvoermap, relatief ten opzichte van de locatie van het script. Bij verstek is de naam van de datainvoermap `data_in`. 

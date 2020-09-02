@@ -78,6 +78,11 @@ Config `handhaafJPTMedewerkerCodeIsLogin=0` verhelpt dat.
 ## 20200902
 * wijziging: (Ophalen-Magisterdata.ps1) altijd docenten zonder id uitfilteren
 
+## 20200902b
+* wijziging: configvariabelen 'teamid_prefix' en 'teamnaam_suffix' toegevoegd
+* (Transformeren-Naar-SchoolDataSync.ps1) geoptimaliseerd : ~~25% snelheidswinst
+* Exceptions worden ook gelogd naar het logbestand
+
 ## TO DO
 
 * SDS V2 format 
