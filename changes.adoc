@@ -90,13 +90,20 @@ Config `handhaafJPTMedewerkerCodeIsLogin=0` verhelpt dat.
 ** `medewerker_id = login`
 ** `medewerker_id = code`
 ** `medewerker_id = csv_upn`
-* Verouderde parameters : `useemail`, `ADsearchscope`, `ADserver` . Opzoeken van UserPrincipalName in Active Directory wordt *niet* meer ondersteund! Gebruik hiervoor in de plaats een CSV-opzoektabel. 
+* De configuratievariabelen  `useemail`, `ADsearchscope`, `ADserver` en het opzoeken van UserPrincipalName in Active Directory worden *niet* meer ondersteund! Gebruik in plaats hiervan een CSV-opzoektabel (zie `csv_upn`). 
 * resultaat 1 bij fout.
 * configvariabelen gecreeerd in globale scope.
 * schonere uitvoer en voortgang.
 * beknoptere foutmeldingen.
 * fout in documentatie hersteld omtrent configuratiebestand-parameter. Aliassen toegevoegd.
 * Herindeling Ophalen-MagisterData.ps1.
+
+## 2020129 commit#2
+* fouten in docs hersteld.
+* teamsync-voorbeeld.ini bijgewerkt.
+* voorbeeld Ophalen-ADMedewerkerUPN.ps1 toegevoegd.
+* voorbeeld teamsync.cmd toegevoegd.
+* README herschreven.
 
 ## TO DO
 
