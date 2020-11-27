@@ -183,7 +183,8 @@ Aanhalingstekens zijn toegestaan maar niet nodig. Spaties in het waarde-deel zij
 
 IMPORTANT:  Backslashes worden opgevat als escape-karakters. Om backslashes in paden op te geven, escape deze met een extra backslash. Bijvoorbeeld: `datainvoermap=Submap1\\Submap2\\Submap3`
 
-De volgende parameters moeten een waarde hebben:
+=== Configuratievariabelen
+De volgende parameters kunnen worden gedefinieerd.
 
 [square]
 * `brin=waarde` : BRIN-nummer van de school
@@ -198,9 +199,6 @@ De volgende parameters moeten een waarde hebben:
 * `datainvoermap=waarde` : pad naar invoermap relatief t.o.v. scriptpad
 * `datakladmap=waarde` : pad naar kladmap relatief t.o.v. scriptpad
 * `datauitvoermap=waarde` : pad naar uitvoermap relatief t.o.v. scriptpad
-* `useemail=waarde` : schakelaar : indien '1' gebruik email als unieke id i.p.v. Login
-* `ADsearchbase=waarde` : OU waarin wordt gezocht om userPrincipalName van personeel te lezen
-* `ADserver=waarde` : servernaam om userPrincipalName van personeel te lezen
 * `handhaafJPTMedewerkerCodeIsLogin=waarde` : filtert dubbele identiteiten weg voor Code<>Login
 * `medewerker_id=waarde` : koppelmethode voor medewerkers
 * `leerling_id=waarde` : koppelmethode voor leerlingen
