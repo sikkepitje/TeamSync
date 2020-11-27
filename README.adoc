@@ -1,4 +1,7 @@
-# TeamSync versie 20200902b
+= TeamSync versie 20201127
+Paul Wiegmans <p.wiegmans@svok.nl>
+19 nov 2020 
+
 :idprefix:
 :idseparator: -
 :sectanchors:
@@ -8,7 +11,6 @@
 :toc:
 :toclevels: 4
 :toc-title:
-29 april 2020 Paul Wiegmans <p.wiegmans@svok.nl>
 
 TeamSync is een PowerShell-script dat gegevens ophaalt uit Magister en overbrengt naar School Data Sync ten behoeve van een geautomatiseerde aanmaak van Teams in een Microsoft 365 omgeving. 
 
@@ -16,11 +18,18 @@ Deze oplossing maakt gebruik van https://sds.microsoft.com/[Microsoft School Dat
 
 Inspiratie hiervoor komt uit eerder werk genaamd 'v06-sds-files_FONSVITAE.ps1' door Wim den Ronde, Eric Redegeld, Joppe van Daalen.
 
-Gebruikt jouw school Somtoday en zoek je een koppeling tussen Somtoday en School Data Sync ? Bezoek dan https://github.com/DwayneSelsig/Somtoday2MicrosoftSchoolDataSync[DwayneSelsig/Somtoday2MicrosoftSchoolDataSync]
+Gebruikt jouw school Somtoday en zoek je een koppeling tussen Somtoday en School Data Sync ? Bezoek dan https://github.com/DwayneSelsig/Somtoday2MicrosoftSchoolDataSync[GitHub: DwayneSelsig/Somtoday2MicrosoftSchoolDataSync]
 
 toc::[]
 
-## Werking 
+== Installatie
+
+. Download link:Ophalen-MagisterData.ps1[Ophalen-MagisterData.ps1], link:Transformeren-Naar-SchoolDataSync.ps1[Transformeren-Naar-SchoolDataSync.ps1] 
+en link:Teamsync.cmd[Teamsync.cmd]  en plaats deze in een map naar keuze
+. Creeer een bestand `Teamsync.ini` in dezelfde map naar het voorbeeld   link:Teamsync-Voorbeeld.ini[Teamsync-Voorbeeld.ini] en pas de parameters aan je eigen behoefte aan.
+. Start Teamsync met het commando `teamsync.cmd`.
+
+== Werking 
 
 Elk samenwerkingsverbanden van lesgroepen of combinaties van klas en vak, waarvan zowel leerlingen als docenten lid zijn, resulteren in een actief team, die terechtkomt in de uitvoer. Er zijn geen uitzonderingen, behalve die je met behulp van één van de ondersteunde filters kunt maken.
 
@@ -36,7 +45,7 @@ De werking is als volgt:
 
 Script 1 `Ophalen-MagisterData.ps1` verzorgt ophalen van gegevens: 
 
-* leest instellingen uit Ini-bestand
+* leest instellingen uit configuratiebestand
 * maakt verbinding met Magister
 * haalt gegevens van leerling op
 * haalt gegevens van docenten op
@@ -46,27 +55,60 @@ Script 1 `Ophalen-MagisterData.ps1` verzorgt ophalen van gegevens:
 
 Script 2 `Transformeren-Naar-SchoolDataSync.ps1` verzorgt het transformeren en uitvoeren:
 
-* leest instellingen uit Ini-bestand
+* leest instellingen uit configuratiebestand
 * leest tussenresultaten uit bestand
 * past filters toe
 * genereert een lijst met actieve teams
 * maakt bestanden voor School Data Sync 
 
-### Het paren van identiteit
+=== Identiteiten koppelen
 
-Voor een goede werking is het nodig dat de identiteiten van docenten en leerlingen in Magister worden gepaard (match) aan de overeenkomstige identiteiten van alle gebruikers in Microsoft 365 en Teams, dus eigenlijk in Azure Active Directory. 
-Omdat de identiteit niet een directe relatie met elkaar hebben , moet TeamSync deze relatie kunnen leggen. Dit kan TeamSync doen door een verband te leggen tussen userprincipalname in Azure AD en de Magister-code of met de Magister accountname. Hierbij wordt het deel van de UserPrincipalName verkregen vóór de suffix. School Data Sync kan deze suffix toevoegen. Ook kan TeamSync de juiste userobjecten in een Active Directory zoeken op basis van personeelsnummer of leerlingnummer en daarin het volledige e-mailadres van de gebruikers ophalen. Welke methode de juiste is, hangt af van de inrichting van Magister op jouw school. 
+Voor het genereren van de juiste gegevens voor School Data Sync is het nodig dat de identiteiten van docenten en leerlingen in Magister worden gepaard (gekoppeld, "match") aan de overeenkomstige identiteiten van alle gebruikers in Microsoft 365 en Teams, dus in Azure Active Directory (AAD). In de uitvoer die TeamSync genereert, wijst ID naar de unieke identiteit van een medewerker of gebruiker in AAD. De ID kan een suffix bevatten, maar dat hoeft niet. Indien nodig wordt door School Data Sync aan dit veld de suffix toegevoegd om te refereren aan een unieke gebruiker in AAD. 
 
-## Bestanden en mappen
-Bestanden en mappen worden verwacht in dezelfde map als het script. 
+Voor leerlingen kan makkelijker het Magister email gebruikt om de unieke ID te bepalen. Voor medewerkers is dit lastiger omdat in Magister geen e-mailadres is opgeslagen op een manier die TeamSync kan uitlezen. 
 
-### Ini-bestand
-bij verstek "teamsync.ini"; dit bestand bevat instellingen voor het TeamSync-script, zoals de gebruikersnaam, wachtwoord en URL voor het aanspreken van de webservice, de schoolnaam, het BRINnummer en een teamnaam-prefix. Een alternatief ini-bestandsnaam wordt opgegeven op de commandoregel via de parameter `-Inibestandsnaam`.
+IMPORTANT: Hier wordt ervan uitgegaan dat alle gebruikersaccounts al in AAD aanwezig zijn en dat deze niet door School Data Sync actief worden gesynchroniseerd!
 
-### Datainvoermap
+De volgende methoden van koppeling worden ondersteund voor medewerkers:
+
+* ID <- Magister:code
+* ID <- Magister:loginaccount
+* ID <- CSV[Magister:stamnr]
+
+De volgende methoden van koppeling worden ondersteund voor leerlingen:
+
+* ID <- Magister:email
+* ID <- Magister:loginaccount
+
+In het configuratiebestand moet één koppelmethode voor leerlingen en één koppelmethode voor medewerkers worden gedefinieerd. 
+
+IMPORTANT: TeamSync vanaf versie 20201119wip ondersteunt niet meer het opzoeken van de UserPrincipalName in active Directory (via INI-parameters `useemail`, `ADsearchscope`, `ADserver`). Het alternatief hiervoor is om een CSV-opzoektabel te gebruiken. Je kunt deze CSV-tabel aanmaken met behulp van een script die de informatie leest uit Active Directory of uit een andere bron. Een voorbeeld van een script die de CSV-tabel vult met informatie uit Active Directory vind je in link:Ophalen.ADMedewerkerUPN.ps1[Ophalen.ADMedewerkerUPN.ps1].
+
+De gewenste koppelmethode wordt aangeduid met één van de volgende variabelen. 
+
+** `medewerker_id=loginaccount` : Koppel Id aan Magister loginaccount. Id bevat geen domeinsuffix. SDS vult Id aan met een domeinsuffix. 
+
+** `medewerker_id=code` : Koppel Id aan Magister code. Id bevat geen domeinsuffix. School Data Sync (SDS) vult Id aan met een domeinsuffix.
+
+** `medewerker_id=csv_upn` : Koppel Id aan UserPrincipalName van de gebruiker in een extern CSV-bestand waarvan employeeId overeenkomt met Magister stamnummer. Zie sectie Medewerker-UPN-CSV voor een beschrijving van dit bestand. Id bevat de domeinsuffix.
+
+** `leerling_id=loginaccount` : koppel Id aan Magister loginaccount. Id bevat geen domeinsuffix. SDS vult Id aan met een domeinsuffix.
+
+** `leerling_id=email` : Koppel ID aan Magister email. Id bevat een domeinsuffix. De leerlingen worden uniek geidentificeerd met het "email" veld in de Magister leerlingkaart. Het is de verantwoordelijkheid van de school om ervoor te zorgen dat het email-veld van leerlingen is ingevuld met de overeenkomstige userPrincipalName van de leerling in Azure AD / Microsoft 365. 
+
+== Bestanden en mappen
+
+=== Configuratiebestand
+Dit bestand heeft bij verstek de naam `teamsync.ini`. Het bevat instellingen voor het TeamSync-script, zoals de gebruikersnaam, wachtwoord en URL voor het aanspreken van de webservice, de schoolnaam, het BRINnummer en een teamnaam-prefix. 
+
+=== Datainvoermap
 In deze map worden filters geplaatst. Zie Invoerfilter.
 
-### Datakladmap
+==== Medewerker-UPN-CSV
+Indien de koppelmethode gebruik maakt van een CSV-bestand (configuratieparameter "medewerker_id=csv_upn_email"), dan moet in de Datainvoermap een CSV-bestand worden aangeleverd worden. 
+De naam van dit bestand is `Medewerker_UPN.csv`. De inhoud van dit bestand bestaat uit een kopregel en één of meer gegevensregels. De kopregel bevat "stamnummer,UserPrincipalName". Voor elke medewerker in Magister is er een gegevensregel. De gegevensregels bevatten elk twee gegevensvelden, gescheiden door een komma. Het eerste gegevensveld bevat het stamnummer van een medewerker. Het tweede gegevensveld bevat de overeenkomstige UserPrincipalName die de gebruiker in Microsoft 365 uniek identificeert. De velden mogen omsloten zijn door dubbele aanhalingstekens, maar dat is niet verplicht.
+
+=== Datakladmap
 In de datakladmap worden tussenbestanden opgeslagen. en kan worden gebruikt om de goede werking te controleren van de Magister webservice.
 Het script `Ophalen-Magisterdata.ps1` bewaart hier de tussentijdse bestanden met leerling- en docent- en vakkengegevens in CliXML-formaat. Het script `Transformeren-Naar-SchoolDataSync.ps1` leest deze bestanden in voor verdere verwerking. U zult hier tegenkomen:
 
@@ -76,7 +118,7 @@ Het script `Ophalen-Magisterdata.ps1` bewaart hier de tussentijdse bestanden met
 * `personeelemail.clixml`
 * `teamlid.csv`
 
-### Datauitvoermap
+=== Datauitvoermap
 
 De uitvoer worden opgeslagen in de datauitvoermap. Het script maakt volgens de specificaties van SDS de volgende bestanden aan. 
 
@@ -87,7 +129,7 @@ De uitvoer worden opgeslagen in de datauitvoermap. Het script maakt volgens de s
 * `Teacher.csv`
 * `TeacherRoster.csv`
 
-### Filters
+=== Filters
 
 In de datainvoermap kunnen één of meer filters worden geplaatst, dis de hoeveelheid te verwerken gegevens reduceren. Er zijn een aantal filters te definieren , die zowel in `Ophalen-MagisterData.ps1` als `Transformeren-Naar-SchoolDataSync.ps1` wordt gebruikt. De volgende filters kunnen worden gedefinieerd door het overeenkomstige bestand in de datainvoermap te definieren. 
 
@@ -111,7 +153,7 @@ Speciale betekenis hebben:
 
 Zie voor meer uitleg over de "regex"-functie https://docs.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_regular_expressions?view=powershell-7[about_Regular_Expressions]
 
-#### Voorbeelden van filters
+==== Voorbeelden van filters
 
 Voorbeeld : We willen de VAVO-leerlingen niet verwerken; alle studies die eindigen op VAVO moeten worden uitgesloten.
 
@@ -145,19 +187,19 @@ Het bestand data_in\excl_docent.csv bevat:
 \*$
 ```
 
-## Ini-parameters
+== Configuratie
 
-Het INI-bestand definieert een aantal parameters, die nodig zijn voor o.a. het authenticeren van de toegang tot de Magister SOAP webserver. Het Ini-bestand heet bij verstek 'teamsync.ini' in de map van het script, maar een ander INI-bestand kan worden gebruik indien op de commandoregel de parameter -Inifile <bestandsnaam> wordt gespecificeerd. 
+Het configuratiebestand definieert een aantal parameters (anders gezegd: configuratievariabelen), die nodig zijn voor de correct werking van TeamSync. Het configuratiebestand heet bij verstek 'teamsync.ini' in de map van het script. 
 
-De parameters in het INI-bestand worden gespecificeerd als een naam-waarde-paar en hebben de volgende vorm:
+De parameters in het configuratiebestand worden gespecificeerd als een naam-waarde-paar en hebben de volgende vorm:
 
 ```
 <naam>=<waarde>
 ```
 
-Aanhalingstekens zijn toegestaan maar niet nodig. Spaties in het waarde-deel zijn toegestaan. 
+Aanhalingstekens zijn toegestaan maar niet nodig. Spaties in het waarde-deel zijn toegestaan. Commentaarregels zijn toegestaan, door de regel te beginnen met '#'.
 
-Indien een bestandsnaam of mapnaam met meer dan één niveau wordt gespecificeerd, gebruik dan dubbele backslashes, bijvoorbeeld `datainvoermap=Submap1\\Submap2\\Submap3`
+IMPORTANT:  Backslashes worden opgevat als escape-karakters. Om backslashes in paden op te geven, escape deze met een extra backslash. Bijvoorbeeld: `datainvoermap=Submap1\\Submap2\\Submap3`
 
 De volgende parameters moeten een waarde hebben:
 
@@ -178,75 +220,75 @@ De volgende parameters moeten een waarde hebben:
 * `ADsearchbase=waarde` : OU waarin wordt gezocht om userPrincipalName van personeel te lezen
 * `ADserver=waarde` : servernaam om userPrincipalName van personeel te lezen
 * `handhaafJPTMedewerkerCodeIsLogin=waarde` : filtert dubbele identiteiten weg voor Code<>Login
+* `medewerker_id=waarde` : koppelmethode voor medewerkers
+* `leerling_id=waarde` : koppelmethode voor leerlingen
 
-#### Brin
-Dit is het BRIN-nummer van de school. Vraag je schooladminstratie of directie hiervoor.
 
-#### Schoolnaam 
-Dit is de schoolnaam zoals die in SDS moet zijn gedefinieerd. Verder niet heel belangrijk.
+==== Brin
+Dit is het BRIN-nummer van de school. Vraag je schooladminstratie of directie hiervoor. Deze parameter is verplicht. 
 
-#### MagisterUser, MagisterPassword, MagisterUrl 
-Deze gegevens zijn vereist om toegang te krijgen tot de Medius Webservices. De LAS-beheerder maakt een gebruiker aan in de Webservice gebruikerslijst in Magister. De gebruikersnaam en wachtwoord moeten worden gegeven in `MagisterUser` en `MagisterPassword`. Deze gebruiker heeft toegangsrechten nodig tot de *_ADfuncties_* in de Medius Webservices. De MagisterUrl is de URL waar de webservices worden aangeboden. Dit bestaat uit de schoolspecifieke URL voor  Schoolwerkplek met daarachter poort en padaanduiding _:8800/doc_ . De hele URL ziet er uit als `https://schooldomein.swp.nl:8800/doc`.
+==== Schoolnaam 
+Dit is de schoolnaam zoals die in SDS moet zijn gedefinieerd. Deze parameter is verplicht. 
 
-#### Teamid_prefix
-Deze verplichte tekst wordt toegevoegd aan het begin van de ID van team. Dit wordt deel van de unieke ID die elk team uniek identificeert in Microsoft 365. Een nuttige prefix identificeert zowel de school als het schooljaar en is bijvoorbeeld "JPT 1920". Spaties in de naam worden omgezet in underscores ten behoeve van het bepalen van de ObjectID.
+==== MagisterUser, MagisterPassword, MagisterUrl 
+Deze parameters zijn verplicht. Deze gegevens zijn vereist om toegang te krijgen tot de Medius Webservices. De LAS-beheerder maakt een gebruiker aan in de Webservice gebruikerslijst in Magister. De gebruikersnaam en wachtwoord moeten worden gegeven in `MagisterUser` en `MagisterPassword`. Deze gebruiker heeft toegangsrechten nodig tot de *_ADfuncties_* in de Medius Webservices. De MagisterUrl is de URL waar de webservices worden aangeboden. Dit bestaat uit de schoolspecifieke URL voor  Schoolwerkplek met daarachter poort en padaanduiding _:8800/doc_ . De hele URL ziet er uit als `https://schooldomein.swp.nl:8800/doc`.
 
-#### Teamnaam_prefix
-Deze tekst wordt toegevoegd aan het begin van de naam (weergavenaam) van elk team en wordt zichtbaar in de teamlijst van alle deelnemers.
+==== Teamid_prefix
+Deze tekst wordt toegevoegd aan het begin van de ID van team. Dit wordt deel van de unieke ID die elk team uniek identificeert in Microsoft 365. Een nuttige prefix identificeert zowel de school als het schooljaar en is bijvoorbeeld "JPT 1920". Spaties in de naam worden omgezet in underscores ten behoeve van het bepalen van de ObjectID. Deze parameter is verplicht. 
 
-#### Teamnaam_suffix
-Deze tekst wordt toegevoegd aan het eind van de naam (weergavenaam) van elk team en wordt zichtbaar in de teamlijst van alle deelnemers.
+==== Teamnaam_prefix
+Deze tekst wordt toegevoegd aan het begin van de weergavenaam van elk team en wordt zichtbaar in de teamlijst van alle deelnemers.
 
-#### Datainvoermap
+==== Teamnaam_suffix
+Deze tekst wordt toegevoegd aan het eind van de weergavenaam van elk team en wordt zichtbaar in de teamlijst van alle deelnemers.
+
+==== Datainvoermap
 Dit specifieert de naam van de datainvoermap, relatief ten opzichte van de locatie van het script. Bij verstek is de naam van de datainvoermap `data_in`. 
 
-#### Datakladmap
+==== Datakladmap
 Dit specificeert de mapnaam van de datakladmap relatief ten opzichte van de locatie van het script. Bij verstek is de datakladmap `data_temp`.
 
-#### Datauitvoermap
+==== Datauitvoermap
 Dit specificeert de mapnaam van de datauitvoermap relatief ten opzichte van de locatie van het script. Bij verstek is de datauitvoermap `data_uit`.
 
-#### useemail
-Wanneer deze waarde "0" is , worden medewerkers en leerling uniek aangeduid met attribuut "login" in Magister. 
-Wanneer deze waarde "1" is , worden medewerkers en leerling uniek aangeduid met het attribuut "userPrincipalName" van usersobjecten in Active Directory. De UserPrincipalName wordt achterhaald door te zoeken in AD naar een user wiens attribuut "EmployeeID" gelijk is aan het Magister veld "stamnr_str". Vervolgens wordt het userPrincipalName gebruikt als unieke identifier voor de medewerkers in de uitvoer voor School Data Sync. Docenten waarvan het email niet kan worden opgezocht op deze manier in de Active Directory worden eruit gefilterd en verschijnen niet in de uitvoer
-De leerlingen worden uniek geidentificeerd met het "email" veld in de Magister leerlingkaart. Het is de verantwoordelijkheid van de school om ervoor te zorgen dat het email-veld van leerlingen is ingevuld met de overeenkomstige userPrincipalName van de leerling in Azure AD / Microsoft 365. 
+==== handhaafJPTMedewerkerCodeIsLogin 
+Gebruik `handhaafJPTMedewerkerCodeIsLogin=1`. Bij verstek geldt `handhaafJPTMedewerkerCodeIsLogin=0` . Deze instelling dient om uitsluitend medewerkers te verwerken waarbij Magister->Code gelijk is aan Magister->loginaccount.naam. Dit filter wordt in een speciaal geval voor JPT toegepast om dubbele identiteiten weg te filteren. 
 
-#### ADsearchscope
-Deze parameter is verplicht wanneer "useemail=1". De waarde duidt de OU waarin medewerkers worden gelezen voor het bepalen van userPrincipalName.
+==== medewerker_id
+Deze parameter duidt aan hoe identiteiten van medewerkers in Azure AD worden gekoppeld aan Magister. Deze parameter is verplicht. Toegestane waarden zijn 
+`code`, `loginaccount`, `ad_upn`, `csv_upn`
+. Zie sectie "Identiteiten koppelen" voor een beschrijving van de koppelmethoden. 
 
-#### ADserver 
-Deze parameter is verplicht wanneer "useemail=1". De waarde bevat de servernaam waarin medewerkers worden gelezen voor het bepalen van userPrincipalName. 
+==== leerling_id
+Deze parameter duidt aan hoe identiteiten van leerlingen in Azure AD worden gekoppeld aan Magister. Deze parameter is verplicht. Toegestane waarden zijn 
+`loginaccount`, `email`
+. Zie sectie "Identiteiten koppelen" voor een beschrijving van de koppelmethoden. 
 
-#### handhaafJPTMedewerkerCodeIsLogin
-Gebruik `handhaafJPTMedewerkerCodeIsLogin=1`. Bij verstek geldt
-`handhaafJPTMedewerkerCodeIsLogin=0` . Deze instelling dient om uitsluitend
-medewerkers te verwerken waarbij Magister->Code gelijk is aan
-Magister->loginaccount.naam. Dit filter wordt in een speciaal geval voor JPT toegepast om
-dubbele identiteiten weg te filteren. 
+== Commandoregelparameters
 
-## Commandoregel
-
-### Inibestandsnaam Parameter
-Met de commandoregelparameter -Inibestandsnaam wordt de bestandsnaam van een alternatief Ini-bestand opgegeven, relatief ten opzichte van de map waarin het script staat. Deze voorziening maakt het mogelijk om gegevens van verscheidene instanties van magister gescheiden te verwerken. Bij verstek is de Inibestandsnaam `teamsync.ini`. 
+=== Parameter Inifile 
+Met de commandoregelparameter `-Inifile` wordt de bestandsnaam van een alternatief configuratiebestand opgegeven. De naam is geinterpreteerd als relatief ten opzichte van de map waarin het script staat. Deze voorziening maakt het mogelijk om gegevens van verscheidene instanties van Magister gescheiden te verwerken. 
 
 Een voorbeeld : 
 
- <scriptnaam> -Inibestandsnaam <inibestandsnaam> 
+ <scriptnaam> -Inifile <bestandsnaam> 
 
-waarbij `<inibestandsnaam>` de naam aanduidt van een alternatief ini-bestand. 
+waarbij `<bestandsnaam>` de naam aanduidt van een alternatief configuratiebestand. De commandoregelparameter heeft een aantal aliassen. Deze zijn `Inifilename`,`Inibestandsnaam`,`Config`,`Configfile`,`Configuratiebestand`. Een alternatief configuratiebestand kan dus ook worden opgegeven met bijvoorbeeld: 
 
-#### Voorbeeld
-Met het volgende CMD commandoscript kan het ini-bestand 'Team-JPT.ini' worden gebruikt om script 1 en 2 uit te voeren, wanneer deze in dezelfde map als dit commandoscript staan. 
+ <scriptnaam> -Config <bestandsnaam> 
+
+==== Voorbeeld
+Met het volgende CMD commandoscript kan het configuratiebestand 'Team-JPT.ini' worden gebruikt om script 1 en 2 uit te voeren, wanneer deze in dezelfde map als dit commandoscript staan. 
 
 ```
 @echo off
-Powershell.exe -NoProfile -NoLogo -ExecutionPolicy Bypass -File "%~dp0Ophalen-MagisterData.ps1" -Inibestandsnaam "Team-JPT.ini"
-Powershell.exe -NoProfile -NoLogo -ExecutionPolicy Bypass -File "%~dp0Transformeren-Naar-SchoolDataSync.ps1" -Inibestandsnaam "Team-JPT.ini"
+Powershell.exe -NoProfile -NoLogo -ExecutionPolicy Bypass -File "%~dp0Ophalen-MagisterData.ps1" -Inifile "Team-JPT.ini"
+Powershell.exe -NoProfile -NoLogo -ExecutionPolicy Bypass -File "%~dp0Transformeren-Naar-SchoolDataSync.ps1" -IniFile "Team-JPT.ini"
 ```
 
-## Tips en trucs
+== Tips en trucs
 
-### Run de scripts
+=== Run de scripts
 
 Vanaf de PowerShell prompt gebruikmaken van verstekwaarden:
 ```
@@ -255,21 +297,21 @@ Vanaf de PowerShell prompt gebruikmaken van verstekwaarden:
 ```
 Vanaf PowerShell prompt met parameters:
 ```
-. .\Ophalen-MagisterData.ps1 -inibestandsnaam Magister.ini
-. .\Transformeren-naar-SchoolDataSync.ps1 -inibestandsnaam School1.ini
+. .\Ophalen-MagisterData.ps1 -IniFile Magister.ini
+. .\Transformeren-naar-SchoolDataSync.ps1 -IniFile School1.ini
 ```
 
 Vanaf de CMD prompt of door middel van een batchbestand:
 ```
-@PowerShell.exe -NoProfile -NoLogo -ExecutionPolicy Bypass -File "%~dp0Ophalen-MagisterData.ps1" -inibestandsnaam Magister.ini
-@PowerShell.exe -NoProfile -NoLogo -ExecutionPolicy Bypass -File "%~dp0Transformeren-Naar-SchoolDataSync.ps1" -inibestandsnaam School1.ini
+@PowerShell.exe -NoProfile -NoLogo -ExecutionPolicy Bypass -File "%~dp0Ophalen-MagisterData.ps1" -IniFile Magister.ini
+@PowerShell.exe -NoProfile -NoLogo -ExecutionPolicy Bypass -File "%~dp0Transformeren-Naar-SchoolDataSync.ps1" -IniFile School1.ini
 ```
 
-### Wat als het script op zijn bek gaat?
+=== Wat als het script op zijn bek gaat?
 
 De twee scripts loggen alle schermuitvoer in een zogenaamd "transcript" en bewaren dit in een bestand, met de naam van het scripts, en met extensie ".log". Kijk in deze logs voor informatie over foutmeldingen die het script geeft in onvoorziene omstandigheden, en op welke regel in het script dat gebeurde.
 
-### Controle van uitvoer
+=== Controle van uitvoer
 
 In de datakladmap produceert `Transformeren-naar-SchoolDataSync` een aantal voor mensen leesbare bestanden, die inzicht geven in welke teams door School Data Sync aangemaakt zouden worden en welke gegevens worden verwerkt. 
 
@@ -283,20 +325,20 @@ Script `Transformeren` genereert:
 * `team0doc.csv` : CSV-bestand met teams met uitsluitend leerlingen, en die het niet gehaald hebben naar SDS.
 * `team0ll.csv` : CSV-bestand met teams met uitsluitend docenten, en die het niet gehaald hebben naar SDS.
 
-### Typische gebruikscenarios
+=== Typische gebruikscenarios
 
-#### Testen
+==== Testen
 
 Gedurende het testen is het meest  handig als `Ophalen-MagisterData.ps1` gedurende een run zonder filters wordt uitgevoerd om alle gegevens op te halen uit Magister. Wanneer dit eenmaal is gebeurd, dan kan `Transformeren-naar-SchoolDataSync.ps1` herhaaldelijk met één of meer filters worden uitgevoerd om te kijken wat het resultaat zou worden. Dit laatste script wordt veel sneller uitgevoerd, omdat het niet steeds opnieuw de gegevens uit Magister hoeft op te halen. 
 
-#### Een Magister, twee scholen 
+==== Een Magister, twee scholen 
 
 Een scenario van het soort 'Een Magister - twee scholen' kan er zo uitzien: 
 
-* Het script 'Ophalen-MagisterData.ps1' wordt uitgevoerd met een aangepast ini-bestand, zonder filters, dat alle gegevens worden opgehaald uit Magister. Dit levert snelheidswinst op. De tussenresultaten worden opgeslagen in een algemene datakladmap.
+* Het script 'Ophalen-MagisterData.ps1' wordt uitgevoerd met een aangepast configuratiebestand, zonder filters, dat alle gegevens worden opgehaald uit Magister. Dit levert snelheidswinst op. De tussenresultaten worden opgeslagen in een algemene datakladmap.
 
 * De tussenresultaten `mag_leer.clixml`, `mag_doc.clixml` `mag_vak.clixml` en eventueel `personeelemail.clixml` worden gekopieerd van de algemene datakladmap naar een school-specifieke datakladmap.
-* Het script `Transformeren-naar-SchoolDataSync.ps1` wordt één keer uitgevoerd voor elke school met een vschool-specifiek ini-bestand: 
+* Het script `Transformeren-naar-SchoolDataSync.ps1` wordt één keer uitgevoerd voor elke school met een vschool-specifiek configuratiebestand: 
 ** datainvoermap, datakladmap en datauitvoermap verwijzen naar een school-specifieke map 
 ** de schoolspecifieke datainvoermap bevat school-specifieke filters, bijvoorbeeld voor locatie. 
 ** `teamnaam_prefix` verschilt per school.
@@ -305,7 +347,7 @@ Door de schoolspecifieke filters worden alleen de leerlingen verwerkt die voor e
 
 Dit scenario wordt compleet met een synchronisatieprofiel voor elke school in School Data Sync. De uitvoerbestanden worden geupload naar het respectievelijke synchronisatieprofiel.
 
-## Handige links
+== Handige links
 
 * https://sds.microsoft.com/[Microsoft School Data Sync]
 * https://github.com/DwayneSelsig/Somtoday2MicrosoftSchoolDataSync[DwayneSelsig/Somtoday2MicrosoftSchoolDataSync]

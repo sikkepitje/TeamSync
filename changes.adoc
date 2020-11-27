@@ -83,8 +83,23 @@ Config `handhaafJPTMedewerkerCodeIsLogin=0` verhelpt dat.
 * (Transformeren-Naar-SchoolDataSync.ps1) geoptimaliseerd : ~~25% snelheidswinst
 * Exceptions worden ook gelogd naar het logbestand
 
+## 20201127
+* Preciezere definitie van methoden voor het koppelen van identiteiten. Configuratievariabelen:
+** `leerling_id = login`
+** `leerling_id = email`
+** `medewerker_id = login`
+** `medewerker_id = code`
+** `medewerker_id = csv_upn`
+* Verouderde parameters : `useemail`, `ADsearchscope`, `ADserver` . Opzoeken van UserPrincipalName in Active Directory wordt *niet* meer ondersteund! Gebruik hiervoor in de plaats een CSV-opzoektabel. 
+* resultaat 1 bij fout.
+* configvariabelen gecreeerd in globale scope.
+* schonere uitvoer en voortgang.
+* beknoptere foutmeldingen.
+* fout in documentatie hersteld omtrent configuratiebestand-parameter. Aliassen toegevoegd.
+* Herindeling Ophalen-MagisterData.ps1.
+
 ## TO DO
 
 * SDS V2 format 
 * parameter viewonly toont resultaat.
-* configvariabele PaarIdAan={email,login}
+
