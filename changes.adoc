@@ -98,15 +98,22 @@ Config `handhaafJPTMedewerkerCodeIsLogin=0` verhelpt dat.
 * fout in documentatie hersteld omtrent configuratiebestand-parameter. Aliassen toegevoegd.
 * Herindeling Ophalen-MagisterData.ps1.
 
-## 2020129 commit#2
+## 20201209 commit#2
 * fouten in docs hersteld.
 * teamsync-voorbeeld.ini bijgewerkt.
 * voorbeeld Ophalen-ADMedewerkerUPN.ps1 toegevoegd.
 * voorbeeld teamsync.cmd toegevoegd.
 * README herschreven.
 
+## 20210520 
+* fout hersteld in documentatie bij koppelmethode medewerker_id=csv_upn
+** in CSV invoerbestand: veldnaam "employeeId"
+** configuratieparameter "csv_upn"
+
 ## TO DO
 
 * SDS V2 format 
 * parameter viewonly toont resultaat.
 
+* controleer omgang met ongeldige tekens, https://support.microsoft.com/en-us/office/invalid-file-names-and-file-types-in-onedrive-and-sharepoint-64883a5d-228e-48f5-b3d2-eb39e07630fa?ui=en-us&rs=en-us&ad=us#invalidcharacters
+* optie toevoegen om SIS ID te kapitaliseren, want SIS ID blijkt hoofdlettergevoelig, maar bestaande synchronisatie moet onveranderd doorgaan.

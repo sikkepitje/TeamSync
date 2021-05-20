@@ -9,7 +9,7 @@
     TeamSync script deel 1 (ophalen) haalt gegevens op uit Medius (Magister)
     Webservice.
 
-    Versie 20201127
+    Versie 20210512
     Auteur Paul Wiegmans (p.wiegmans@svok.nl)
 
     naar een voorbeeld door Wim den Ronde, Eric Redegeld, Joppe van Daalen

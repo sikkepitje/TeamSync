@@ -1,4 +1,4 @@
-= TeamSync versie 20201127
+= TeamSync versie 20210512
 Paul Wiegmans <p.wiegmans@svok.nl>
 27 nov 2020 
 
@@ -87,8 +87,8 @@ Dit bestand bevat configuratievariabelen die de werking van TeamSync beinvloeden
 In deze map worden <<Filters>> geplaatst.
 
 ==== Medewerker-UPN-CSV
-Indien de koppelmethode gebruik maakt van een CSV-bestand (configuratieparameter "medewerker_id=csv_upn_email"), dan moet in de Datainvoermap een CSV-bestand worden aangeleverd worden. 
-De naam van dit bestand is `Medewerker_UPN.csv`. De inhoud van dit bestand bestaat uit een kopregel en één of meer gegevensregels. De kopregel bevat "stamnummer,UserPrincipalName". Voor elke medewerker in Magister is er een gegevensregel. De gegevensregels bevatten elk twee gegevensvelden, gescheiden door een komma. Het eerste gegevensveld bevat het stamnummer van een medewerker. Het tweede gegevensveld bevat de overeenkomstige UserPrincipalName die de gebruiker in Microsoft 365 uniek identificeert. De velden mogen omsloten zijn door dubbele aanhalingstekens, maar dat is niet verplicht.
+Indien de koppelmethode gebruik maakt van een CSV-bestand (configuratieparameter "medewerker_id=csv_upn"), dan moet in de Datainvoermap een CSV-bestand worden aangeleverd worden. 
+De naam van dit bestand is `Medewerker_UPN.csv`. De inhoud van dit bestand bestaat uit een kopregel en één of meer gegevensregels. De kopregel bevat "employeeId,UserPrincipalName". Voor elke medewerker in Magister is er een gegevensregel. De gegevensregels bevatten elk twee gegevensvelden, gescheiden door een komma. Het eerste gegevensveld bevat het stamnummer van een medewerker. Het tweede gegevensveld bevat de overeenkomstige UserPrincipalName die de gebruiker in Microsoft 365 uniek identificeert. De velden mogen omsloten zijn door dubbele aanhalingstekens, maar dat is niet verplicht.
 
 === Datakladmap
 In de datakladmap worden tussenbestanden opgeslagen. en kan worden gebruikt om de goede werking te controleren van de Magister webservice.
