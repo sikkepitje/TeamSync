@@ -110,6 +110,12 @@ Config `handhaafJPTMedewerkerCodeIsLogin=0` verhelpt dat.
 ** in CSV invoerbestand: veldnaam "employeeId"
 ** configuratieparameter "csv_upn"
 
+## 20210630
+* Naamswijziging van de scripts geeft de functie beter weer: 
+**  Ophalen-MagisterData.ps1 heet nu: `*Import-Magister.ps1*`
+**  Transformeren-naar-SchoolDataSync.ps1 heet nu: `*Export-SchoolDataSync.ps1*`
+* De logbestanden worden geroteerd ; de oudste wordt verwijderd, de nieuwste 9 blijven bewaard.
+
 ## TO DO
 
 * SDS V2 format 
