@@ -1,6 +1,6 @@
-= TeamSync versie 20210630
+= TeamSync versie 20210708
 Paul Wiegmans <p.wiegmans@svok.nl>
-30 juni 2021 
+8 juli 2021 
 
 :idprefix:
 :idseparator: -
@@ -34,22 +34,22 @@ en link:Teamsync.cmd[Teamsync.cmd]  en plaats deze in een map naar keuze
 TeamSync leest uit Magister lijsten met leerlingen, docenten, klassen, lesgroepen en vakken.,
 TeamSync genereert hieruit lijsten waarin voor elk samenwerkingsverband bestaande uit lesgroep of combinatie van klas en vak, waarvan zowel leerlingen als docent(en) lid zijn,  een actief team in de uitvoer terechtkomt. Deze lijsten vormen de basis voor een actieve synchronisatie van https://sds.microsoft.com/[Microsoft School Data Sync], die de juiste Microsoft 365 Teams aanmaakt, maakt de juiste docent teameigenaar en voegt de juiste leerlingen als leden toe.
 
-TeamSync is gesplitst in twee scripts: 
+TeamSync bestaat uit twee scripts: 
 
 * `Import-Magister.ps1`
 * `Export-SchoolDataSync.ps1`
 
-Gewoonlijk wordt eerst `Import-Magister.ps1` uitgevoerd om gegevens uit Magister op te halen, en daarna `Export-SchoolDataSync.ps1` om de bestanden te genereren ten behoeve van https://sds.microsoft.com/[Microsoft School Data Sync].
-Voor het ophalen van gegevens wordt gebruik gemaakt van de https://sikkepitje.nl/Tech/MagisterSOAP2020[Magister SOAP/XML webservice]. Hiervoor is een geldige gebruikersnaam en een wachtwoord vereist met permissies voor het uitvoeren van Webqueries. De uitvoer bestaat uit 6 CSV-bestanden die nodig zijn voor synchronisatie met een profiel in https://sds.microsoft.com/[Microsoft School Data Sync].
+Script `Import-Magister.ps1` wordt eerst uitgevoerd om gegevens uit Magister op te halen. Daarna wordt script `Export-SchoolDataSync.ps1` uitgevoerd om de bestanden te genereren ten behoeve van https://sds.microsoft.com/[Microsoft School Data Sync]. De uitvoer bestaat uit 6 CSV-bestanden die nodig zijn voor synchronisatie met een profiel in https://sds.microsoft.com/[Microsoft School Data Sync].
 
+Voor het ophalen van gegevens wordt gebruik gemaakt van de https://sikkepitje.nl/Tech/MagisterSOAP2020[Magister SOAP/XML webservice]. Hiervoor is een geldige gebruikersnaam en een wachtwoord vereist met permissies voor het uitvoeren van webqueries. Er wordt gebruik gemaakt van de standaard Web API van Magister. Er zijn geen zogenaamde aangepaste lijsten of 'custom queries' nodig. 
 
 === Identiteiten koppelen
 
-Voor het genereren van de juiste gegevens voor School Data Sync is het nodig dat de identiteiten van docenten en leerlingen in Magister worden gepaard (gekoppeld, "match") aan de overeenkomstige identiteiten van alle gebruikers in Microsoft 365 en Teams, dus in Azure Active Directory (AAD). In de uitvoer die TeamSync genereert, wijst ID naar de unieke identiteit van een medewerker of gebruiker in AAD. De ID kan een suffix bevatten, maar dat hoeft niet. Indien nodig wordt door School Data Sync aan dit veld de suffix toegevoegd om te refereren aan een unieke gebruiker in AAD. 
+Voor het genereren van de juiste gegevens voor School Data Sync moeten de identiteiten van docenten en leerlingen in Magister worden gepaard (gekoppeld, "match") aan de overeenkomstige identiteiten van alle gebruikers in Microsoft 365 en Teams, dus in Azure Active Directory (AAD). In de uitvoer die TeamSync genereert, wijst ID naar de unieke identiteit van een medewerker of gebruiker in AAD. De ID kan een suffix bevatten, maar dat hoeft niet. Indien nodig wordt door School Data Sync aan dit veld de suffix toegevoegd om te refereren aan een unieke gebruiker in AAD. 
 
 Voor leerlingen kan makkelijker het Magister email gebruikt om de unieke ID te bepalen. Voor medewerkers is dit lastiger omdat in Magister geen e-mailadres is opgeslagen op een manier die TeamSync kan uitlezen. 
 
-IMPORTANT: Hier wordt ervan uitgegaan dat alle gebruikersaccounts al in AAD aanwezig zijn en dat deze niet door School Data Sync actief worden gesynchroniseerd!
+IMPORTANT: Hier wordt ervan uitgegaan dat alle gebruikersaccounts al in AAD aanwezig zijn en dus niet door School Data Sync actief worden aangemaakt.
 
 De volgende methoden van koppeling worden ondersteund voor medewerkers:
 
@@ -81,28 +81,35 @@ De gewenste koppelmethode wordt aangeduid met één van de volgende variabelen.
 == Bestanden en mappen
 
 === Configuratiebestand
-Dit bestand bevat configuratievariabelen die de werking van TeamSync beinvloeden. De naam is bij verstek `teamsync.ini` maar een ander bestand kan worden aangegeven door middel van de  <<Parameter Inifile>>. Configuratievariabelen worden behandeld in hoofdstuk <<Configuratie>>.
+Dit bestand heet bij verstek `Import-Magister.ini` voor het importscript of `Export-SchoolDataSync.ps1` voor het exportscript en staat in dezelfde map als het script. Het bevat configuratievariabelen die de werking van TeamSync beinvloeden. Een andere bestandsnaam kan worden aangegeven door middel van de  <<Parameter Inifile>>. Configuratievariabelen worden behandeld in hoofdstuk <<Configuratie>>.
 
-=== Datainvoermap
-In deze map worden <<Filters>> geplaatst.
+=== Importfiltermap
+In deze map worden <<Filters>> geplaatst ten behoeve van het importscript.
 
-==== Medewerker-UPN-CSV
-Indien de koppelmethode gebruik maakt van een CSV-bestand (configuratieparameter "medewerker_id=csv_upn"), dan moet in de Datainvoermap een CSV-bestand worden aangeleverd worden. 
-De naam van dit bestand is `Medewerker_UPN.csv`. De inhoud van dit bestand bestaat uit een kopregel en één of meer gegevensregels. De kopregel bevat "employeeId,UserPrincipalName". Voor elke medewerker in Magister is er een gegevensregel. De gegevensregels bevatten elk twee gegevensvelden, gescheiden door een komma. Het eerste gegevensveld bevat het stamnummer van een medewerker. Het tweede gegevensveld bevat de overeenkomstige UserPrincipalName die de gebruiker in Microsoft 365 uniek identificeert. De velden mogen omsloten zijn door dubbele aanhalingstekens, maar dat is niet verplicht.
+=== Importkladmap
+Het importscript plaatst hier tijdelijke bestanden, die kunnen worden gebruikt om de goede werking te controleren van de Magister webservice.
 
-=== Datakladmap
-In de datakladmap worden tussenbestanden opgeslagen. en kan worden gebruikt om de goede werking te controleren van de Magister webservice.
-Het script `Import-Magister.ps1` bewaart hier de tussentijdse bestanden met leerling- en docent- en vakkengegevens in CliXML-formaat. Het script `Export-SchoolDataSync.ps1` leest deze bestanden in voor verdere verwerking. U zult hier tegenkomen:
+=== Importdatamap
+In deze map plaatst het importscript de uit Magister opgehaalde gegevens over leerlingen docenten. Het exportscript leest deze in en bewerkt ze verder. 
 
-* `mag_leer.clixml`
-* `mag_docent.clixml`
-* `mag_vak.clixml`
-* `personeelemail.clixml`
-* `teamlid.csv`
+* `magister_leer.clixml`
+* `magister_docent.clixml`
+* `magister_vak.clixml`
 
-=== Datauitvoermap
+Bestanden met de extensie ".clixml" zijn bestanden  in een XML-formaat die door PowerShell kunnen worden weergegeven met het volgende commando:
+[source,powershell]
+----
+Import-CliXML -Path $clixmlfile | Out-GridView -Wait
+----
 
-De uitvoer worden opgeslagen in de datauitvoermap. Het script maakt volgens de specificaties van SDS de volgende bestanden aan. 
+=== Exportfiltermap
+In deze map worden <<Filters>> geplaatst ten behoeve van het exportscript.
+
+=== Exportkladmap
+Het exportscript plaatst hier tijdelijke bestanden, die kunnen worden gebruikt om de goede werking te controleren.
+
+=== Exportdatamap
+Het exportscript maakt in deze map volgens de specificaties van SDS de volgende bestanden aan. 
 
 * `School.csv`
 * `Section.csv`
@@ -111,9 +118,12 @@ De uitvoer worden opgeslagen in de datauitvoermap. Het script maakt volgens de s
 * `Teacher.csv`
 * `TeacherRoster.csv`
 
-=== Filters
+=== Medewerker_UPN.CSV
+Dit wordt ingelezen door importscript uit de importfiltermap. Indien de koppelmethode gebruik maakt van een CSV-bestand (configuratieparameter "medewerker_id=csv_upn"), dan moet in de Importfiltermap een CSV-bestand worden aangeleverd worden. 
+De naam van dit bestand is `Medewerker_UPN.csv`. De inhoud van dit bestand bestaat uit een kopregel en één of meer gegevensregels. De kopregel bevat "employeeId,UserPrincipalName". Voor elke medewerker in Magister is er een gegevensregel. De gegevensregels bevatten elk twee gegevensvelden, gescheiden door een komma. Het eerste gegevensveld bevat het stamnummer van een medewerker. Het tweede gegevensveld bevat de overeenkomstige UserPrincipalName die de gebruiker in Microsoft 365 uniek identificeert. De velden mogen omsloten zijn door dubbele aanhalingstekens, maar dat is niet verplicht.
 
-In de datainvoermap kunnen één of meer filters worden geplaatst, dis de hoeveelheid te verwerken gegevens reduceren. Er zijn een aantal filters te definieren , die zowel in `Import-Magister.ps1` als `Export-SchoolDataSync.ps1` wordt gebruikt. De volgende filters kunnen worden gedefinieerd door het overeenkomstige bestand in de datainvoermap te definieren. 
+=== Filters
+In de Importfiltermap kunnen één of meer filters worden geplaatst, die de hoeveelheid te verwerken gegevens reduceren. Er zijn een aantal filters te definieren , die zowel in `Import-Magister.ps1` als `Export-SchoolDataSync.ps1` wordt gebruikt. De volgende filters kunnen worden gedefinieerd door het overeenkomstige bestand in de Importfiltermap te definieren. 
 
 * `excl_docent.csv` : dit bevat filters voor het uitsluiten van docenten op Id.
 * `incl_docent.csv` : dit bevat filters voor het insluiten van docenten op Id.
@@ -136,7 +146,6 @@ Speciale betekenis hebben:
 Zie voor meer uitleg over de "regex"-functie https://docs.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_regular_expressions?view=powershell-7[about_Regular_Expressions]
 
 ==== Voorbeelden van filters
-
 Voorbeeld : We willen de VAVO-leerlingen niet verwerken; alle studies die eindigen op VAVO moeten worden uitgesloten.
 
 Het bestand data_in\excl_studie.csv wordt aangemaakt en bevat: 
@@ -171,7 +180,7 @@ Het bestand data_in\excl_docent.csv bevat:
 
 == Configuratie
 
-Het configuratiebestand definieert een aantal parameters (anders gezegd: configuratievariabelen), die nodig zijn voor de correct werking van TeamSync. Het configuratiebestand heet bij verstek 'teamsync.ini' in de map van het script. 
+Het configuratiebestand definieert een aantal parameters (anders gezegd: configuratievariabelen), die nodig zijn voor de correct werking van TeamSync.
 
 De parameters in het configuratiebestand worden gespecificeerd als een naam-waarde-paar en hebben de volgende vorm:
 
@@ -181,28 +190,33 @@ De parameters in het configuratiebestand worden gespecificeerd als een naam-waar
 
 Aanhalingstekens zijn toegestaan maar niet nodig. Spaties in het waarde-deel zijn toegestaan. Commentaarregels zijn toegestaan, door de regel te beginnen met '#'.
 
-IMPORTANT:  Backslashes worden opgevat als escape-karakters. Om backslashes in paden op te geven, escape deze met een extra backslash. Bijvoorbeeld: `datainvoermap=Submap1\\Submap2\\Submap3`
+IMPORTANT:  Backslashes worden opgevat als escape-karakters. Om backslashes in paden op te geven, escape deze met een extra backslash. Bijvoorbeeld: `Importfiltermap=Submap1\\Submap2\\Submap3`
 
-=== Configuratievariabelen
+=== Configuratievariabelen voor importscript
 De volgende parameters kunnen worden gedefinieerd.
 
 [square]
-* `brin=waarde` : BRIN-nummer van de school
-* `schoolnaam=waarde` : naam van de school in SDS
+* `Importfiltermap=waarde` : pad naar invoermap relatief t.o.v. scriptpad
+* `Importkladmap=waarde` : pad naar kladmap relatief t.o.v. scriptpad
+* `Importdatamap=waarde` : pad naar uitvoermap relatief t.o.v. scriptpad
 * `magisterUser=waarde` : webservice-gebruikersnaam
 * `magisterPassword=waarde` : webservice-wachtwoord
 * `magisterUrl=waarde` : webservice-URL
-* `teamid_prefix=waarde` : prefix voor team-ids in SDS
-* `teamnaam_prefix=waarde` : prefix voor teamnamen in SDS
-* `teamnaam_suffix=waarde` : suffix voor teamnamen in SDS
-* `maakklassenteams=waarde` : schakelaar voor aanmaken van een team voor iedere (stam)klas
-* `datainvoermap=waarde` : pad naar invoermap relatief t.o.v. scriptpad
-* `datakladmap=waarde` : pad naar kladmap relatief t.o.v. scriptpad
-* `datauitvoermap=waarde` : pad naar uitvoermap relatief t.o.v. scriptpad
 * `handhaafJPTMedewerkerCodeIsLogin=waarde` : filtert dubbele identiteiten weg voor Code<>Login
 * `medewerker_id=waarde` : koppelmethode voor medewerkers
 * `leerling_id=waarde` : koppelmethode voor leerlingen
 
+=== Configuratievariabelen voor exportscript
+* `Importdatamap=waarde` : pad naar importdatamap relatief t.o.v. scriptpad
+* `Exportfiltermap=waarde` : pad naar exportfiltermap relatief t.o.v. scriptpad
+* `Exportkladmap=waarde` : pad naar exportkladmap relatief t.o.v. scriptpad
+* `Exportdatamap=waarde` : pad naar exportdatamap relatief t.o.v. scriptpad
+* `brin=waarde` : BRIN-nummer van de school
+* `schoolnaam=waarde` : naam van de school in SDS
+* `teamid_prefix=waarde` : prefix voor team-ids in SDS
+* `teamnaam_prefix=waarde` : prefix voor teamnamen in SDS
+* `teamnaam_suffix=waarde` : suffix voor teamnamen in SDS
+* `maakklassenteams=waarde` : schakelaar voor aanmaken van een team voor iedere (stam)klas
 
 ==== Brin
 Dit is het BRIN-nummer van de school. Vraag je schooladminstratie of directie hiervoor. Deze parameter is verplicht. 
@@ -222,14 +236,23 @@ Deze tekst wordt toegevoegd aan het begin van de weergavenaam van elk team en wo
 ==== Teamnaam_suffix
 Deze tekst wordt toegevoegd aan het eind van de weergavenaam van elk team en wordt zichtbaar in de teamlijst van alle deelnemers.
 
-==== Datainvoermap
-Dit specifieert de naam van de datainvoermap, relatief ten opzichte van de locatie van het script. Bij verstek is de naam van de datainvoermap `data_in`. 
+==== Importfiltermap
+Dit specifieert de naam van de Importfiltermap, relatief ten opzichte van de locatie van het script. Bij verstek is de naam `ImportFilter`. 
 
-==== Datakladmap
-Dit specificeert de mapnaam van de datakladmap relatief ten opzichte van de locatie van het script. Bij verstek is de datakladmap `data_temp`.
+==== Importkladmap
+Dit specificeert de mapnaam van de Importkladmap relatief ten opzichte van de locatie van het script. Bij verstek is de naam `ImportKlad`.
 
-==== Datauitvoermap
-Dit specificeert de mapnaam van de datauitvoermap relatief ten opzichte van de locatie van het script. Bij verstek is de datauitvoermap `data_uit`.
+==== Importdatamap
+Dit specificeert de mapnaam van de Importdatamap relatief ten opzichte van de locatie van het script. Bij verstek is de naam `ImportData`.
+
+==== Exportfiltermap
+Dit specifieert de naam van de Importfiltermap, relatief ten opzichte van de locatie van het script. Bij verstek is de naam `ExportFilter`. 
+
+==== Exportkladmap
+Dit specificeert de mapnaam van de Importkladmap relatief ten opzichte van de locatie van het script. Bij verstek is de naam `ExportKlad`.
+
+==== Exportdatamap
+Dit specificeert de mapnaam van de Importdatamap relatief ten opzichte van de locatie van het script. Bij verstek is de naam `ExportData`.
 
 ==== handhaafJPTMedewerkerCodeIsLogin 
 Gebruik `handhaafJPTMedewerkerCodeIsLogin=1`. Bij verstek geldt `handhaafJPTMedewerkerCodeIsLogin=0` . Deze instelling dient om uitsluitend medewerkers te verwerken waarbij Magister->Code gelijk is aan Magister->loginaccount.naam. Dit filter wordt in een speciaal geval voor JPT toegepast om dubbele identiteiten weg te filteren. 
@@ -293,7 +316,7 @@ De twee scripts loggen alle schermuitvoer en foutmeldingen in een logbestand, me
 
 === Controle van uitvoer
 
-In de datakladmap produceert TeamSync een aantal bestanden, die inzicht geven in welke teams door School Data Sync aangemaakt zouden worden en welke gegevens worden verwerkt. Deze bestanden hebben een CSV-formaat (Comma Separated Values) en kunnen met Excel worden geopend.
+In de Importkladmap produceert TeamSync een aantal bestanden, die inzicht geven in welke teams door School Data Sync aangemaakt zouden worden en welke gegevens worden verwerkt. Deze bestanden hebben een CSV-formaat (Comma Separated Values) en kunnen met Excel worden geopend.
 
 Script `Ophalen` genereert onder andere: 
 
@@ -314,16 +337,16 @@ Ook worden enkele *.clixml bestanden aangemaakt, die met behulp van PowerShell k
 
 Gedurende het testen is het meest  handig als `Import-Magister.ps1` gedurende een run zonder filters wordt uitgevoerd om alle gegevens op te halen uit Magister. Wanneer dit eenmaal is gebeurd, dan kan `Export-SchoolDataSync.ps1` herhaaldelijk met één of meer filters worden uitgevoerd om te kijken wat het resultaat zou worden. Dit laatste script wordt veel sneller uitgevoerd, omdat het niet steeds opnieuw de gegevens uit Magister hoeft op te halen. 
 
-==== Een Magister, twee scholen 
+==== Een Magister, twee scholen  (UITWERKEN)
 
 Een scenario van het soort 'Één Magister - twee scholen' kan er zo uitzien: 
 
-* Het script `Import-Magister.ps1` wordt uitgevoerd met een aangepast configuratiebestand, zonder filters, dat alle gegevens worden opgehaald uit Magister. Dit levert snelheidswinst op. De tussenresultaten worden opgeslagen in een algemene datakladmap.
+* Het script `Import-Magister.ps1` wordt uitgevoerd met een aangepast configuratiebestand, zonder filters, dat alle gegevens worden opgehaald uit Magister. Dit levert snelheidswinst op. De tussenresultaten worden opgeslagen in een algemene Importkladmap.
 
-* De tussenresultaten `mag_leer.clixml`, `mag_doc.clixml` `mag_vak.clixml` en eventueel `personeelemail.clixml` worden gekopieerd van de algemene datakladmap naar een school-specifieke datakladmap.
+* De tussenresultaten `mag_leer.clixml`, `mag_doc.clixml` `mag_vak.clixml` en eventueel `personeelemail.clixml` worden gekopieerd van de algemene Importkladmap naar een school-specifieke Importkladmap.
 * Het script `Export-SchoolDataSync.ps1` wordt één keer uitgevoerd voor elke school met een voor één school specifiek configuratiebestand: 
-** datainvoermap, datakladmap en datauitvoermap verwijzen naar een school-specifieke map 
-** de schoolspecifieke datainvoermap bevat school-specifieke filters, bijvoorbeeld voor locatie. 
+** Importfiltermap, Importkladmap en Importdatamap verwijzen naar een school-specifieke map 
+** de schoolspecifieke Importfiltermap bevat school-specifieke filters, bijvoorbeeld voor locatie. 
 ** `teamid_prefix` verschilt per school.
 
 Door de schoolspecifieke filters worden alleen de leerlingen verwerkt die voor een school interessant zijn. Dit verhoogt de verwerkingssnelheid. 

@@ -116,6 +116,17 @@ Config `handhaafJPTMedewerkerCodeIsLogin=0` verhelpt dat.
 **  Transformeren-naar-SchoolDataSync.ps1 heet nu: `*Export-SchoolDataSync.ps1*`
 * De logbestanden worden geroteerd ; de oudste wordt verwijderd, de nieuwste 9 blijven bewaard.
 
+## 20210708
+* De import- en exportscript hebben nu eigen mappen voor filters, klad en data. Deze opzet maakt het makkelijker om te werken in een scenario waar één Magister wordt gebruikt voor verscheidene scholen. De configuratievariabelen hebben een naam die duidelijk maakt door welk script deze worden gebruikt. 
+** Importscript gebruikt: ImportFiltermap, ImportKladmap en ImportDatamap;
+** Exportscript gebruikt: ImportDatamap, ExportFiltermap, ExportKladmap en ExportDatamap.
+* Importscript heeft een eigen configuratiebestand, bij verstek `Import-Magister.ini`, wijzigbaar met een commandoregelparameter.
+* Exportscript heeft een eigen configuratiebestand, bij verstek `Export-SchoolDataSync.ini`, wijzigbaar met een commandoregelparameter.
+* LeerlingID's en docentID's worden geconverteerd naar onderkast. Omdat School
+Data Sync TeacherID en StudentID hoofdlettergevoelig verwerkt, hebben
+letterkastwijzigingen (is dat een woord?) in Magister geen verstoringen meer tot gevolg. 
+** Maximum aantal logbestanden is instelbaar in het script.
+
 ## TO DO
 
 * SDS V2 format 

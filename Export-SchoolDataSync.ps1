@@ -10,7 +10,7 @@
     bepaalt actieve teams en genereert CSV-bestanden ten behoeve van 
     School Data Sync.
 
-    Versie 20210630
+    Versie 20210708
     Auteur Paul Wiegmans (p.wiegmans@svok.nl)
 
     naar een voorbeeld door Wim den Ronde, Eric Redegeld, Joppe van Daalen
@@ -39,34 +39,42 @@ param (
         HelpMessage="Geef de naam van de te gebruiken INI-file, bij verstek 'TeamSync.ini'"
     )]
     [Alias('Inifile','Inibestandsnaam','Config','Configfile','Configuratiebestand')]
-    [String]  $Inifilename = "TeamSync.ini"
+    [String]  $Inifilename = "Export-SchoolDataSync.ini"
 )
 $stopwatch = [Diagnostics.Stopwatch]::StartNew()
 $herePath = Split-Path -parent $MyInvocation.MyCommand.Definition
 # scriptnaam in venstertitel
-$host.ui.RawUI.WindowTitle = (Split-Path -Leaf $MyInvocation.MyCommand.Path) -replace ".ps1"
-$filename_log = ($MyInvocation.MyCommand.Path -replace ".ps1") + ".log"
-$selfpath_base = $MyInvocation.MyCommand.Path.replace(".ps1","")
-$filename_log = $selfpath_base+".1.log"
+$selfpath_base = $MyInvocation.MyCommand.Path.replace(".ps1","")  # compleet pad zonder extensie
+$host.ui.RawUI.WindowTitle = Split-Path -Leaf $selfpath_base
+$logCountLimit  = 7
 
 # variabelen initialisatie
+$importdatamap = "ImportData"
+$exportfiltermap = "ExportFilter"
+$exportkladmap = "ExportKlad"
+$exportdatamap = "Exportdata"
 $brin = $null
 $schoolnaam = $null
 $teamid_prefix = ""
 $teamnaam_prefix = ""
 $teamnaam_suffix = ""
 $maakklassenteams = "1"
-$datainvoermap = "data_in"
-$datakladmap = "data_temp"
-$datauitvoermap = "data_uit"
 $logtag = "INIT" 
+
+#region Functies
+function LogFilename($Number) {
+    return ("$selfpath_base.{0:d2}.log" -f $Number)
+}
 
 function LogRotate() {
     # Keep 9 logs, delete oldest, rename the rest
-    Remove-Item -Path ("$selfpath_base.9.log") -Force -Confirm:$False -ea:SilentlyContinue 
-    8..1 | ForEach-Object {
-        #Write-Host ("Rename {0} to {1}" -f "$selfpath_base.$_.log","$selfpath_base.$($_ + 1).log")
-        Rename-Item -Path "$selfpath_base.$_.log" -NewName "$selfpath_base.$($_ + 1).log" -ea:SilentlyContinue
+    Write-Host "Logs roteren..." -ForegroundColor Cyan
+    Remove-Item -Path (LogFilename -Number $logCountLimit) -Force -Confirm:$False -ea:SilentlyContinue 
+    ($logCountLimit)..1 | ForEach-Object {
+        $oud = LogFilename -Number $_
+        $nieuw = LogFilename -Number ($_ + 1)
+        #Write-Host "  Renaming ($oud) to ($nieuw)" -ForegroundColor cyan
+        Rename-Item -Path $oud -NewName $nieuw -ea:SilentlyContinue
     }
 }
 
@@ -77,9 +85,10 @@ Function Write-Log {
 
     #Write-Host $Tekst
     $log = "$(Get-Date -f "yyyy-MM-ddTHH:mm:ss.fff") [$logtag] $tekst"
-    $log | Out-File -FilePath $filename_log -Append
+    $log | Out-File -FilePath (LogFilename -Number 1) -Append
     Write-Host $log
 }
+#endregion Functies
 
 # Start hoofdprogramma
 LogRotate
@@ -111,41 +120,44 @@ Try {
     Write-Log ("Schoolnaam     : " + $schoolnaam)
 
     # datamappen
-    $inputPath = $herePath + "\$datainvoermap"
-    $tempPath = $herePath + "\$datakladmap"
-    $outputPath = $herePath + "\$datauitvoermap"
-    Write-Log ("datainvoermap  : " + $inputPath)
-    Write-Log ("datakladmap    : " + $tempPath)
-    Write-Log ("datauitvoermap : " + $outputPath)
+    $importPath         = "$herePath\$importdatamap"
+    $filterPath         = "$herePath\$exportfiltermap"
+    $tempPath           = "$herePath\$exportkladmap"
+    $outputPath         = "$herePath\$exportdatamap"
+    Write-Log ("ImportDataMap    : " + $importPath)
+    Write-Log ("ExportFilterMap  : " + $filterPath)
+    Write-Log ("ExportKladMap    : " + $tempPath)
+    Write-Log ("ExportDataMap    : " + $outputPath)
 
-    New-Item -path $inputPath -ItemType Directory -ea:Silentlycontinue
     New-Item -path $tempPath -ItemType Directory -ea:Silentlycontinue
     New-Item -path $outputPath -ItemType Directory -ea:Silentlycontinue
 
-    # Files IN
-    $filename_excl_docent = $inputPath + "\excl_docent.csv"
-    $filename_incl_docent = $inputPath + "\incl_docent.csv"
-    $filename_excl_klas  = $inputPath + "\excl_klas.csv"
-    $filename_incl_klas  = $inputPath + "\incl_klas.csv"
-    $filename_excl_studie   = $inputPath + "\excl_studie.csv"
-    $filename_incl_studie   = $inputPath + "\incl_studie.csv"
-    $filename_incl_locatie  = $inputPath + "\incl_locatie.csv"
+    # Import
+    $filename_mag_leerling_xml  = $importPath + "\magister_leerling.clixml"
+    $filename_mag_docent_xml    = $importPath + "\magister_docent.clixml"
+    $filename_mag_vak_xml       = $importPath + "\magister_vak.clixml"
+    
+    # Filters
+    $filename_excl_docent       = $filterPath + "\excl_docent.csv"
+    $filename_incl_docent       = $filterPath + "\incl_docent.csv"
+    $filename_excl_klas         = $filterPath + "\excl_klas.csv"
+    $filename_incl_klas         = $filterPath + "\incl_klas.csv"
+    $filename_excl_studie       = $filterPath + "\excl_studie.csv"
+    $filename_incl_studie       = $filterPath + "\incl_studie.csv"
+    $filename_incl_locatie      = $filterPath + "\incl_locatie.csv"
 
-    # Files TEMP
-    $filename_mag_leerling_xml = $tempPath + "\mag_leerling.clixml"
-    $filename_mag_docent_xml = $tempPath + "\mag_docent.clixml"
-    $filename_mag_vak_xml = $tempPath + "\mag_vak.clixml"
-    $filename_t_teamactief = $tempPath + "\teamactief.csv"
-    $filename_t_team0ll = $tempPath + "\team0ll.csv"
-    $filename_t_team0doc = $tempPath + "\team0doc.csv"
+    # Kladbestanden
+    $filename_t_teamactief      = $tempPath + "\teamactief.csv"
+    $filename_t_team0ll         = $tempPath + "\team0ll.csv"
+    $filename_t_team0doc        = $tempPath + "\team0doc.csv"
 
     # Files OUT
-    $filename_School = $outputPath + "\School.csv"
-    $filename_Section = $outputPath + "\Section.csv"
-    $filename_Student = $outputPath + "\Student.csv"
+    $filename_School            = $outputPath + "\School.csv"
+    $filename_Section           = $outputPath + "\Section.csv"
+    $filename_Student           = $outputPath + "\Student.csv"
     $filename_StudentEnrollment = $outputPath + "\StudentEnrollment.csv"
-    $filename_Teacher = $outputPath + "\Teacher.csv"
-    $filename_TeacherRoster = $outputPath + "\TeacherRoster.csv"
+    $filename_Teacher           = $outputPath + "\Teacher.csv"
+    $filename_TeacherRoster     = $outputPath + "\TeacherRoster.csv"
 
     # controleer vereiste bestanden
     if (!(Test-Path -Path $filename_mag_leerling_xml)) {  Throw "Vereist bestand ontbreekt: " + $filename_mag_leerling_xml }
@@ -563,7 +575,7 @@ Catch {
     $line = $_.InvocationInfo.ScriptLineNumber
     $msg = $e.Message 
  
-    "$(Get-Date -f "yyyy-MM-ddTHH:mm:ss:fff") [$logtag] caught exception: $msg at line $line" | Out-File -FilePath $filename_log -Append
+    "$(Get-Date -f "yyyy-MM-ddTHH:mm:ss:fff") [$logtag] caught exception: $msg at line $line" | Out-File -FilePath (LogFilename -Number 1) -Append
     Write-Error "caught exception: $msg at line $line"    
     exit 1  
 }

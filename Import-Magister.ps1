@@ -9,7 +9,7 @@
     TeamSync script deel 1 (ophalen) haalt gegevens op uit Medius (Magister)
     Webservice.
 
-    Versie 20210630
+    Versie 20210708
     Auteur Paul Wiegmans (p.wiegmans@svok.nl)
 
     naar een voorbeeld door Wim den Ronde, Eric Redegeld, Joppe van Daalen
@@ -33,14 +33,14 @@ param (
         HelpMessage="Geef de naam van de te gebruiken configuratiebestand, bij verstek 'TeamSync.ini'"
     )]
     [Alias('Inifile','Inibestandsnaam','Config','Configfile','Configuratiebestand')]
-    [String]  $Inifilename = "TeamSync.ini"
+    [String]  $Inifilename = "Import-Magister.ini"
 )
 $stopwatch = [Diagnostics.Stopwatch]::StartNew()
 $herePath = Split-Path -parent $MyInvocation.MyCommand.Definition
 # scriptnaam in venstertitel
-$host.ui.RawUI.WindowTitle = (Split-Path -Leaf $MyInvocation.MyCommand.Path) -replace ".ps1"
-$selfpath_base = $MyInvocation.MyCommand.Path.replace(".ps1","")
-$filename_log = $selfpath_base+".1.log"
+$selfpath_base = $MyInvocation.MyCommand.Path.replace(".ps1","")  # compleet pad zonder extensie
+$host.ui.RawUI.WindowTitle = Split-Path -Leaf $selfpath_base
+$logCountLimit  = 7
 
 # initialisatie constanten 
 function Constante ($name, $value) { Set-Variable -Name $Name -Value $Value -Option Constant -Scope Global -Erroraction:SilentlyContinue }
@@ -52,23 +52,30 @@ Constante klLOGIN    'loginaccount'
 Constante klEMAIL    'email'
 
 # initialisatie variabelen 
-$schoolnaam = ""
-$teamid_prefix = ""
-$datainvoermap = "data_in"
-$datakladmap = "data_temp"
+$importfiltermap = "importfilter"
+$importkladmap = "importklad"
+$importdatamap = "importdata"
 $handhaafJPTMedewerkerCodeIsLogin = "0"
-$logtag = "INIT" 
+$logtag = "IMPORT" 
 $medewerker_id = "NIETBESCHIKBAAR"
 $leerling_id = "NIETBESCHIKBAAR"
-
+$toondata = "0"
 
 #region Functies
+
+function LogFilename($Number) {
+    return ("$selfpath_base.{0:d2}.log" -f $Number)
+}
+
 function LogRotate() {
     # Keep 9 logs, delete oldest, rename the rest
-    Remove-Item -Path ("$log_basename.9.log") -Force -Confirm:$False -ea:SilentlyContinue 
-    8..1 | ForEach-Object {
-        #Write-Host ("Rename {0} to {1}" -f "$log_basename.$_.log","$log_basename.$($_ + 1).log")
-        Rename-Item -Path "$log_basename.$_.log" -NewName "$log_basename.$($_ + 1).log" -ea:SilentlyContinue
+    Write-Host "Logs roteren..." -ForegroundColor Cyan
+    Remove-Item -Path (LogFilename -Number $logCountLimit) -Force -Confirm:$False -ea:SilentlyContinue 
+    ($logCountLimit)..1 | ForEach-Object {
+        $oud = LogFilename -Number $_
+        $nieuw = LogFilename -Number ($_ + 1)
+        #Write-Host "  Renaming ($oud) to ($nieuw)" -ForegroundColor cyan
+        Rename-Item -Path $oud -NewName $nieuw -ea:SilentlyContinue
     }
 }
 
@@ -76,7 +83,7 @@ Function Write-Log {
     Param ([Parameter(Position=0)][Alias('Message')][string]$Tekst="`n")
 
     $log = "$(Get-Date -f "yyyy-MM-ddTHH:mm:ss.fff") [$logtag] $tekst"
-    $log | Out-File -FilePath $filename_log -Append
+    $log | Out-File -FilePath (LogFilename -Number 1) -Append
     Write-Host $log
 }
 
@@ -170,12 +177,12 @@ function Verzamel_leerlingen()
 
     if ($klEMAIL -eq $leerling_id) {
         foreach ($l in $mag_leer) {
-            $l.Id = $l.Email
+            $l.Id = $l.Email.ToLower()
         }
     } 
     elseif ($klLOGIN -eq $leerling_id) {
         foreach ($l in $mag_leer) {
-            $l.Id = $l.Login
+            $l.Id = $l.Login.ToLower()
         }
     }
 
@@ -249,7 +256,9 @@ function Verzamel_leerlingen()
     }
     Write-Progress -Activity "Magister data verwerken" -status "Leerling" -Completed
     $mag_leer | Export-Clixml -Path $filename_mag_leerling_xml -Encoding UTF8
-    #$mag_leer | Out-GridView
+    if ($toondata) {
+        $mag_leer | Out-GridView
+    }
 }
 
 ################# VERZAMEL DOCENTEN
@@ -309,17 +318,17 @@ function Verzamel_docenten()
 
     if ($kmCODE -eq $medewerker_id) {
         foreach ($mw in $mag_doc) {
-            $mw.Id = $mw.Code
+            $mw.Id = $mw.Code.ToLower()
         }
     } 
     elseif ($kmLOGIN -eq $medewerker_id) {
         foreach ($mw in $mag_doc) {
-            $mw.Id = $mw.Login
+            $mw.Id = $mw.Login.ToLower()
         }
     }
     elseif ($kmCSVUPN -eq $medewerker_id) {
         foreach ($mw in $mag_doc) {
-            $mw.Id = $upntabel[$mw.stamnr]
+            $mw.Id = $upntabel[$mw.stamnr].ToLower()
         }
     }
 
@@ -419,6 +428,11 @@ function Verzamel_docenten()
     Write-Progress -Activity "Magister uitlezen" -status "Docent" -Completed
     $mag_doc | Export-Clixml -Path $filename_mag_docent_xml -Encoding UTF8
     $mag_vak | Export-Clixml -Path $filename_mag_vak_xml -Encoding UTF8
+
+    if ($toondata) {
+        $mag_vak | Out-GridView
+        $mag_doc | Out-GridView
+    }
 }
 #endregion Functies
 
@@ -432,8 +446,7 @@ Try {
     Write-Log ("Configuratiebestand: " + $filename_settings)
     $settings = Get-Content $filename_settings | ConvertFrom-StringData
     foreach ($key in $settings.Keys) {
-        Set-Variable -Name $key -Value $settings.$key -Scope global 
-        Write-Log ("Configuratieparameter: " + $key + "=" + $settings.$key)
+        Set-Variable -Name $key -Value $settings.$key -Scope global
     }
     # Configuratieparameter validatie
     if (!$magisterUser)  { Throw "Configuratieparameter 'magisterUser' is vereist"}
@@ -442,6 +455,7 @@ Try {
     if ($medewerker_id -eq "NIETBESCHIKBAAR") { Throw "Configuratieparameter 'medewerker_id' is vereist"}
     if ($leerling_id -eq "NIETBESCHIKBAAR") { Throw "Configuratieparameter 'leerling_id is' vereist"}
     $handhaafJPTMedewerkerCodeIsLogin = $handhaafJPTMedewerkerCodeIsLogin -ne "0"  # maak boolean
+    $toondata = $toondata -ne "0"  # maak boolean
     if ($medewerker_id -notin $kmCODE, $kmLOGIN, $kmCSVUPN) {
         Throw "Geen geldige koppelmethode voor medewerkers: $medewerker_id "
     }
@@ -449,36 +463,36 @@ Try {
         Throw "Geen geldige koppelmethode voor leerling: $leerling_id "
     }
 
-    $logtag = $teamid_prefix
-    $host.ui.RawUI.WindowTitle = ((Split-Path -Leaf $MyInvocation.MyCommand.Path) -replace ".ps1") + " " + $logtag
-    Write-Log ("Schoolnaam    : " + $schoolnaam)
-
     # datamappen
-    $inputPath = $herePath + "\$datainvoermap"
-    $tempPath = $herePath + "\$datakladmap"
-    Write-Log ("datainvoermap : " + $inputPath)
-    Write-Log ("datakladmap   : " + $tempPath)
+    $filterPath     = "$herePath\$importfiltermap"
+    $tempPath       = "$herePath\$importkladmap"
+    $dataPath       = "$herePath\$importdatamap"
+    Write-Log ("ImportFilterMap : " + $filterPath)
+    Write-Log ("ImportKladMap   : " + $tempPath)
+    Write-Log ("ImportDataMap   : " + $dataPath)
 
-    New-Item -path $inputPath -ItemType Directory -ea:Silentlycontinue
     New-Item -path $tempPath -ItemType Directory -ea:Silentlycontinue
+    New-Item -path $dataPath -ItemType Directory -ea:Silentlycontinue
 
-    # Files IN
-    $filename_excl_docent = $inputPath + "\excl_docent.csv"
-    $filename_incl_docent = $inputPath + "\incl_docent.csv"
-    $filename_excl_klas  = $inputPath + "\excl_klas.csv"
-    $filename_incl_klas  = $inputPath + "\incl_klas.csv"
-    $filename_excl_studie   = $inputPath + "\excl_studie.csv"
-    $filename_incl_studie   = $inputPath + "\incl_studie.csv"
-    $filename_incl_locatie  = $inputPath + "\incl_locatie.csv"
-    $filename_mwupncsv = $inputPath + "\Medewerker_UPN.csv"
+    # Filterbestanden (R)
+    $filename_excl_docent       = $filterPath + "\excl_docent.csv"
+    $filename_incl_docent       = $filterPath + "\incl_docent.csv"
+    $filename_excl_klas         = $filterPath + "\excl_klas.csv"
+    $filename_incl_klas         = $filterPath + "\incl_klas.csv"
+    $filename_excl_studie       = $filterPath + "\excl_studie.csv"
+    $filename_incl_studie       = $filterPath + "\incl_studie.csv"
+    $filename_incl_locatie      = $filterPath + "\incl_locatie.csv"
+    $filename_mwupncsv          = $filterPath + "\Medewerker_UPN.csv"
 
-    # Files TEMP
-    $filename_t_leerling = $tempPath + "\leerling.csv"
-    $filename_t_docent = $tempPath + "\docent.csv"
-    $filename_mag_leerling_xml = $tempPath + "\mag_leerling.clixml"
-    $filename_mag_docent_xml = $tempPath + "\mag_docent.clixml"
-    $filename_mag_vak_xml = $tempPath + "\mag_vak.clixml"
-    $filename_persemail_xml = $tempPath + "\personeelemail.clixml"
+    # Kladbestanden (W)
+    $filename_t_leerling        = $tempPath + "\leerling.csv"
+    $filename_t_docent          = $tempPath + "\docent.csv"
+    $filename_persemail_xml     = $tempPath + "\personeelemail.clixml"
+
+    # importdata geproduceerd (W)
+    $filename_mag_leerling_xml  = $dataPath + "\magister_leerling.clixml"
+    $filename_mag_docent_xml    = $dataPath + "\magister_docent.clixml"
+    $filename_mag_vak_xml       = $dataPath + "\magister_vak.clixml"
 
     if ($kmADUPN -eq $medewerker_id) {
         Write-Log ("Ophalen UserPrincipalNames van personeel uit AD")
@@ -529,6 +543,7 @@ Try {
     Verzamel_docenten
     Verzamel_leerlingen
 
+
     ################# EINDE
 
     $stopwatch.Stop()
@@ -540,7 +555,7 @@ Catch {
     $line = $_.InvocationInfo.ScriptLineNumber
     $msg = $e.Message 
  
-    "$(Get-Date -f "yyyy-MM-ddTHH:mm:ss:fff") [$logtag] caught exception: $msg at line $line" | Out-File -FilePath $filename_log -Append
+    "$(Get-Date -f "yyyy-MM-ddTHH:mm:ss:fff") [$logtag] caught exception: $msg at line $line" | Out-File -FilePath (LogFilename -Number 1) -Append
     Write-Error "caught exception: $msg at line $line"      
     exit 1
 }
