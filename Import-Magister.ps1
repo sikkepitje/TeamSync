@@ -9,7 +9,7 @@
     TeamSync script deel 1 (ophalen) haalt gegevens op uit Medius (Magister)
     Webservice.
 
-    Versie 20210708
+    Versie 20210709
     Auteur Paul Wiegmans (p.wiegmans@svok.nl)
 
     naar een voorbeeld door Wim den Ronde, Eric Redegeld, Joppe van Daalen
@@ -45,11 +45,11 @@ $logCountLimit  = 7
 # initialisatie constanten 
 function Constante ($name, $value) { Set-Variable -Name $Name -Value $Value -Option Constant -Scope Global -Erroraction:SilentlyContinue }
 # constanten voor koppelmethode configuratievariabelen
-Constante kmCODE     'code'
-Constante kmLOGIN    'loginaccount'
-Constante kmCSVUPN   'csv_upn'
-Constante klLOGIN    'loginaccount'
-Constante klEMAIL    'email'
+Constante KOPPEL_MEDEWERKERID_AAN_CODE      'code'
+Constante KOPPEL_MEDEWERKERID_AAN_LOGIN     'loginaccount'
+Constante KOPPEL_MEDEWERKERID_AAN_CSVUPN    'csv_upn'
+Constante KOPPEL_LEERLINGID_AAN_LOGIN       'loginaccount'
+Constante KOPPEL_LEERLINGID_AAN_EMAIL       'email'
 
 # initialisatie variabelen 
 $importfiltermap = "importfilter"
@@ -175,14 +175,14 @@ function Verzamel_leerlingen()
     # Leerjaar, Klas, Studie, Profiel, Groepen, Vakken, Email, Locatie
     # oude code: @{Name = 'Id'; Expression = { if ($useemail) {$_.Email} Else {$_.'loginaccount.naam'}}},
 
-    if ($klEMAIL -eq $leerling_id) {
+    if ($KOPPEL_LEERLINGID_AAN_EMAIL -eq $leerling_id) {
         foreach ($l in $mag_leer) {
-            $l.Id = $l.Email.ToLower()
+            $l.Id = $l.Email
         }
     } 
-    elseif ($klLOGIN -eq $leerling_id) {
+    elseif ($KOPPEL_LEERLINGID_AAN_LOGIN -eq $leerling_id) {
         foreach ($l in $mag_leer) {
-            $l.Id = $l.Login.ToLower()
+            $l.Id = $l.Login
         }
     }
 
@@ -192,6 +192,11 @@ function Verzamel_leerlingen()
     # ID moet gevuld zijn; skip leerlingen zonder e-mail
     $mag_leer = $mag_leer | Where-Object {$_.id.length -gt 0}
     Write-Log ("Leerlingen met geldige ID: " + $mag_leer.count)
+
+    # ID omzetten naar kleine letters 
+    foreach ($l in $mag_leer) {
+        $l.Id = $l.Id.ToLower()
+    }
 
     # voorfilteren
     if (Test-Path $filename_excl_studie) {
@@ -251,13 +256,13 @@ function Verzamel_leerlingen()
             $leerling.Vakken += @($vaknode.Vak)
         }
 
-        Write-Progress -Activity "Magister data verwerken" -status `
+        Write-Progress -Activity "Import Magister leerlingen" -status `
             "Leerling $teller van $($mag_leer.count)" -PercentComplete ($leerlingprocent * $teller++)
     }
-    Write-Progress -Activity "Magister data verwerken" -status "Leerling" -Completed
+    Write-Progress -Activity "Import Magister leerlingen" -status "Leerling" -Completed
     $mag_leer | Export-Clixml -Path $filename_mag_leerling_xml -Encoding UTF8
     if ($toondata) {
-        $mag_leer | Out-GridView
+        $mag_leer | Out-GridView   # Magister leerlingenlijst met gekoppelde ID
     }
 }
 
@@ -316,19 +321,19 @@ function Verzamel_docenten()
     # Functie, Groepvakken, Klasvakken, Docentvakken, Locatie
     # oude code: @{Name = 'Id'; Expression = { if ($useemail) {$upntabel[$_.stamnr_str]} Else {$_.'loginaccount.naam'}}},
 
-    if ($kmCODE -eq $medewerker_id) {
+    if ($KOPPEL_MEDEWERKERID_AAN_CODE -eq $medewerker_id) {
         foreach ($mw in $mag_doc) {
-            $mw.Id = $mw.Code.ToLower()
+            $mw.Id = $mw.Code
         }
     } 
-    elseif ($kmLOGIN -eq $medewerker_id) {
+    elseif ($KOPPEL_MEDEWERKERID_AAN_LOGIN -eq $medewerker_id) {
         foreach ($mw in $mag_doc) {
-            $mw.Id = $mw.Login.ToLower()
+            $mw.Id = $mw.Login
         }
     }
-    elseif ($kmCSVUPN -eq $medewerker_id) {
+    elseif ($KOPPEL_MEDEWERKERID_AAN_CSVUPN -eq $medewerker_id) {
         foreach ($mw in $mag_doc) {
-            $mw.Id = $upntabel[$mw.stamnr].ToLower()
+            $mw.Id = $upntabel[$mw.stamnr]
         }
     }
 
@@ -356,6 +361,11 @@ function Verzamel_docenten()
         Write-Log ("IdNotNull: Docenten na uitfilteren van lege Ids: " + $mag_doc.count)
     }
     Write-Log ("Docenten met geldige Id: " + $mag_doc.count)
+
+    # omzetten naar kleine letters
+    foreach ($mw in $mag_doc) {
+        $mw.ID = $mw.ID.ToLower()
+    }
 
     # voorfilteren
     if ($mag_doc.count -eq 0) {
@@ -422,17 +432,18 @@ function Verzamel_docenten()
             }
         }
 
-        Write-Progress -Activity "Magister uitlezen" -status `
+        Write-Progress -Activity "Import Magister docenten" -status `
             "Docent $teller van $($mag_doc.count)" -PercentComplete ($docentprocent * $teller++)
     }
-    Write-Progress -Activity "Magister uitlezen" -status "Docent" -Completed
+    Write-Progress -Activity "Import Magister docenten" -status "Docent" -Completed
     $mag_doc | Export-Clixml -Path $filename_mag_docent_xml -Encoding UTF8
     $mag_vak | Export-Clixml -Path $filename_mag_vak_xml -Encoding UTF8
 
     if ($toondata) {
-        $mag_vak | Out-GridView
-        $mag_doc | Out-GridView
+        $mag_doc | Out-GridView   # Magister docentenlijst met gekoppelde ID
+        $mag_vak | Out-GridView   # Magister vakcodes en omschrijvingen
     }
+
 }
 #endregion Functies
 
@@ -456,10 +467,10 @@ Try {
     if ($leerling_id -eq "NIETBESCHIKBAAR") { Throw "Configuratieparameter 'leerling_id is' vereist"}
     $handhaafJPTMedewerkerCodeIsLogin = $handhaafJPTMedewerkerCodeIsLogin -ne "0"  # maak boolean
     $toondata = $toondata -ne "0"  # maak boolean
-    if ($medewerker_id -notin $kmCODE, $kmLOGIN, $kmCSVUPN) {
+    if ($medewerker_id -notin $KOPPEL_MEDEWERKERID_AAN_CODE, $KOPPEL_MEDEWERKERID_AAN_LOGIN, $KOPPEL_MEDEWERKERID_AAN_CSVUPN) {
         Throw "Geen geldige koppelmethode voor medewerkers: $medewerker_id "
     }
-    if ($leerling_id -notin $klEMAIL, $klLOGIN) {
+    if ($leerling_id -notin $KOPPEL_LEERLINGID_AAN_EMAIL, $KOPPEL_LEERLINGID_AAN_LOGIN) {
         Throw "Geen geldige koppelmethode voor leerling: $leerling_id "
     }
 
@@ -516,7 +527,7 @@ Try {
         # ter controle, exporteer de relaties tussen employeeId en UserPrincipalName die is bepaald in AD
         $upntabel | Export-Clixml -Path $filename_persemail_xml
     }
-    elseif ($kmCSVUPN -eq $medewerker_id) {
+    elseif ($KOPPEL_MEDEWERKERID_AAN_CSVUPN -eq $medewerker_id) {
         $users = Import-CSV  -Path $filename_mwupncsv
         # maak een hashtable
         $upntabel = @{}
@@ -538,16 +549,15 @@ Try {
         Throw "Fatale fout in GetToken: " + $feed.Response.ResultMessage
     }
     $MyToken = $feed.response.SessionToken
-
     
     Verzamel_docenten
     Verzamel_leerlingen
-
 
     ################# EINDE
 
     $stopwatch.Stop()
     Write-Log ("Klaar in " + $stopwatch.Elapsed.Hours + " uur " + $stopwatch.Elapsed.Minutes + " minuten " + $stopwatch.Elapsed.Seconds + " seconden ")
+
 } 
 Catch {
 

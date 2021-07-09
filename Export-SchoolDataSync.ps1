@@ -10,7 +10,7 @@
     bepaalt actieve teams en genereert CSV-bestanden ten behoeve van 
     School Data Sync.
 
-    Versie 20210708
+    Versie 20210709
     Auteur Paul Wiegmans (p.wiegmans@svok.nl)
 
     naar een voorbeeld door Wim den Ronde, Eric Redegeld, Joppe van Daalen
@@ -60,6 +60,7 @@ $teamnaam_prefix = ""
 $teamnaam_suffix = ""
 $maakklassenteams = "1"
 $logtag = "INIT" 
+$toonresultaat = "0"
 
 #region Functies
 function LogFilename($Number) {
@@ -114,6 +115,7 @@ Try {
     if ($teamnaam_suffix) {
         $teamnaam_suffix = " " + $teamnaam_suffix.trim()
     }
+    $toonresultaat = $toonresultaat -ne "0"  # maak boolean
 
     $logtag = $teamid_prefix
     $host.ui.RawUI.WindowTitle = ((Split-Path -Leaf $MyInvocation.MyCommand.Path) -replace ".ps1") + " " + $logtag
@@ -455,9 +457,11 @@ Try {
     $hteam0doc | Export-Csv -Path $filename_t_team0doc -NoTypeInformation -Encoding UTF8
 
     # voor visuele controle
-    #$hteamactief | Out-GridView
-    #$hteam0ll | Out-GridView
-    #$hteam0doc | Out-GridView
+    if ($toonresultaat) {
+        $hteamactief | Out-GridView  # dit zijn de actieve teams
+        $hteam0ll | Out-GridView   # dit zijn de geschrapte teams met 0 leerlingen
+        $hteam0doc | Out-GridView   # dit zijn de geschrapte teams met 0 docenten
+    }
 
     ################# UITVOER
     Write-Log ("Lijsten voor School Data Sync samenstellen ...")

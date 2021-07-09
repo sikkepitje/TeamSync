@@ -127,6 +127,9 @@ Data Sync TeacherID en StudentID hoofdlettergevoelig verwerkt, hebben
 letterkastwijzigingen (is dat een woord?) in Magister geen verstoringen meer tot gevolg. 
 ** Maximum aantal logbestanden is instelbaar in het script.
 
+## 20210709
+* Import-Magister: Vermijd fout bij omzetten van lege ID naar kleine letters.
+
 ## TO DO
 
 * SDS V2 format 
