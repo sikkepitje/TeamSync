@@ -10,7 +10,7 @@
     bepaalt actieve teams en genereert CSV-bestanden ten behoeve van 
     School Data Sync.
 
-    Versie 20210709
+    Versie 20210803
     Auteur Paul Wiegmans (p.wiegmans@svok.nl)
 
     naar een voorbeeld door Wim den Ronde, Eric Redegeld, Joppe van Daalen
@@ -47,6 +47,7 @@ $herePath = Split-Path -parent $MyInvocation.MyCommand.Definition
 $selfpath_base = $MyInvocation.MyCommand.Path.replace(".ps1","")  # compleet pad zonder extensie
 $host.ui.RawUI.WindowTitle = Split-Path -Leaf $selfpath_base
 $logCountLimit  = 7
+$currentLogFilename = "$selfpath_base.log"
 
 # variabelen initialisatie
 $importdatamap = "ImportData"
@@ -77,6 +78,7 @@ function LogRotate() {
         #Write-Host "  Renaming ($oud) to ($nieuw)" -ForegroundColor cyan
         Rename-Item -Path $oud -NewName $nieuw -ea:SilentlyContinue
     }
+    Rename-Item -Path $currentLogFilename -NewName (LogFilename -Number 1) -ea:SilentlyContinue
 }
 
 Function Write-Log {
@@ -86,7 +88,7 @@ Function Write-Log {
 
     #Write-Host $Tekst
     $log = "$(Get-Date -f "yyyy-MM-ddTHH:mm:ss.fff") [$logtag] $tekst"
-    $log | Out-File -FilePath (LogFilename -Number 1) -Append
+    $log | Out-File -FilePath $currentLogFilename -Append
     Write-Host $log
 }
 #endregion Functies
@@ -147,9 +149,11 @@ Try {
     $filename_excl_studie       = $filterPath + "\excl_studie.csv"
     $filename_incl_studie       = $filterPath + "\incl_studie.csv"
     $filename_incl_locatie      = $filterPath + "\incl_locatie.csv"
+    $filename_excl_teamnaam     = $filterPath + "\excl_teamnaam.csv"
+    $filename_incl_teamnaam     = $filterPath + "\incl_teamnaam.csv"
 
     # Kladbestanden
-    $filename_t_teamactief      = $tempPath + "\teamactief.csv"
+    $filename_t_teamactief      = $tempPath + "\teamactief.csv"    
     $filename_t_team0ll         = $tempPath + "\team0ll.csv"
     $filename_t_team0doc        = $tempPath + "\team0doc.csv"
 
@@ -193,9 +197,10 @@ Try {
     function New-Team($naam, $id)
     {
         # maak een nieuw teamrecord met $naam, geindexeerd op Teamid (dit wordt 'Section SIS ID')
-        $rec = 1 | Select-Object Id, Naam, lltal, leerling, doctal, docent
+        $rec = 1 | Select-Object Id, Naam, Type, lltal, leerling, doctal, docent
         $rec.Naam = $naam       # weergavenaam van team
         $rec.Id = $id
+        $rec.Type = ""
         $rec.lltal = 0          # aantal leerlingen
         $rec.leerling = @()     # lijst met leerlingid
         $rec.doctal = 0         # aantal docenten
@@ -287,6 +292,7 @@ Try {
             $teamid = $leerling.Klas
             if ($team.Keys -notcontains $teamid) {
                 $team[$teamid] = New-Team -Naam $teamnaam -ID $teamid
+                $team[$teamid].Type = "klas"
             }
             $team[$teamid].lltal += 1
             $team[$teamid].leerling += @($leerling.Id)
@@ -304,6 +310,7 @@ Try {
                 $teamid = $groep
                 if ($team.Keys -notcontains $teamid) {
                     $team[$teamid] = New-Team -Naam $teamnaam -ID $teamid
+                    $team[$teamid].Type = "groep"
                 }
                 $team[$teamid].lltal += 1
                 $team[$teamid].leerling += @($leerling.Id)
@@ -318,6 +325,7 @@ Try {
             $teamid = $leerling.klas + " " + $vak
             if ($team.Keys -notcontains $teamid) {
                 $team[$teamid] = New-Team -Naam $teamnaam -ID $teamid
+                $team[$teamid].Type = "vak"
             }        
             $team[$teamid].lltal += 1
             $team[$teamid].leerling += @($leerling.Id)
@@ -345,6 +353,7 @@ Try {
             $teamid = $groepvak.Klas
             if ($team.Keys -notcontains $teamid) {
                 $team[$teamid] = New-Team -Naam $teamnaam -ID $teamid
+                $team[$teamid].Type = "docgroepvak"
             }        
             $team[$teamid].doctal += 1
             if ($team[$teamid].docent -notcontains $docent.Id) {
@@ -356,6 +365,7 @@ Try {
             $teamid = $groepvak.Klas + " " + $groepvak.Vakcode
             if ($team.Keys -notcontains $teamid) {
                 $team[$teamid] = New-Team -Naam $teamnaam -ID $teamid
+                $team[$teamid].Type = "docvak"
             }        
             $team[$teamid].doctal += 1
             if ($team[$teamid].docent -notcontains $docent.Id) {
@@ -375,6 +385,7 @@ Try {
             $teamid = $klasvak
             if ($team.Keys -notcontains $teamid) {
                 $team[$teamid] = New-Team -Naam $teamnaam -ID $teamid
+                $team[$teamid].Type = "docklasvak"
             }        
             $team[$teamid].doctal += 1  
             if ($team[$teamid].docent -notcontains $docent.Id) {
@@ -397,20 +408,20 @@ Try {
     # associatieve array omzetten naar simpele lijst
     $team = $team.Values
 
-    Write-Log ("Omschrijvingen toevoegen..")
-
     # Voeg vakomschrijving toe aan teamnaam
+    Write-Log ("Omschrijvingen toevoegen..")
     foreach ($t in $team) {
         # Bepaal vakcode met laatste deel van de naam (klas/vak of cluster)
         # voorbeeld: "Naamprefix 4h.biol3"
         # voorbeeld: "Naamprefix 1b ne"
         $vak = $t.naam.split(". ")[-1]  # split lesgroep op spatie of punt, vak staat achter punt
-        # verwijder cijfers op het eind
+        # verwijder cijfers op het eind tot minimumlengte van 2
         While (($vak[-1] -match "^\d+$") -and ($vak.length -gt 2)) {
             $vak = $vak.substring(0, $vak.length - 1)
         }
         $omschrijving = $mag_vak[$vak]
-        # indien geen omschrijving gevonden, knip letters van vak totdat omschrijving is gevonden of totdat 2 letters overblijven
+        # indien geen omschrijving gevonden, knip letters van vak totdat 
+        # omschrijving is gevonden tot minimum van 2 letters
         while ((!$omschrijving.length) -and ($vak.length -gt 2)) { 
             $vak = $vak.substring(0, $vak.length - 1)
             $omschrijving = $mag_vak[$vak]
@@ -424,8 +435,20 @@ Try {
         $t.Naam = $teamnaam_prefix + $t.Naam + $teamnaam_suffix
         $t.Id = ($teamid_prefix + $t.Id) -replace $illegal_characters, $safe_character
     }
-
     Write-Log ("Teams totaal          : " + $team.count)
+
+    # Filteren op teamnaam
+    if (Test-Path $filename_excl_teamnaam) {
+        $filter_excl_teamnaam = $(Get-Content -Path $filename_excl_teamnaam) -join '|'
+        $team = $team | Where-Object {$_.Naam -notmatch $filter_excl_teamnaam}
+        Write-Log ("Teams na uitsluiting teamnaam: " + $team.count)
+    }
+    if (Test-Path $filename_incl_teamnaam) {
+        $filter_incl_teamnaam = $(Get-Content -Path $filename_incl_teamnaam) -join '|'
+        $team = $team | Where-Object {$_.Naam -match $filter_incl_teamnaam}
+        Write-Log ("Team na insluiting teamnaam : " + $team.count)
+    }
+
     # Actieve teams bevatten zowel leerlingen als docenten.
     # Splits de teams in 3 lijsten: actief, zonder leerlingen, zonder docenten.
     $teamactief = $team | Where-Object {($_.lltal -gt 0) -and ($_.doctal -gt 0)}
@@ -436,33 +459,21 @@ Try {
     Write-Log ("Teams zonder leerling : " + $team0ll.count )
     Write-Log ("Teams zonder docent   : " + $team0doc.count)
 
-    # door mensen leesbare CSVs uitvoeren ter controle
-    Write-Log ("Uitvoer CSV bestanden...")
-    $hteamactief = $teamactief | Sort-Object Id | Select-Object Id, Naam, Doctal,
+    # Bewaar actieve teams in CSVs ter controle
+    $hteamactief = $teamactief | Sort-Object Id | Select-Object Id, Naam, Type, Doctal,
         @{Name = 'Docenten'; Expression = {($_.docent | Sort-Object) -join ","}},
         Lltal,
         @{Name = 'Leerlingen'; Expression = {($_.leerling | Sort-Object) -join ","}}
     $hteamactief | Export-Csv -Path $filename_t_teamactief -NoTypeInformation -Encoding UTF8
 
-    $hteam0ll = $team0ll | Sort-Object Id | Select-Object Id, Naam, Doctal,
-        @{Name = 'Docenten'; Expression = {($_.docent | Sort-Object) -join ","}},
-        Lltal,
-        @{Name = 'Leerlingen'; Expression = {($_.leerling | Sort-Object) -join ","}}
-    $hteam0ll | Export-Csv -Path $filename_t_team0ll -NoTypeInformation -Encoding UTF8
-
-    $hteam0doc = $team0doc | Sort-Object Id | Select-Object Id, Naam, Doctal,
-        @{Name = 'Docenten'; Expression = {($_.docent | Sort-Object) -join ","}},
-        Lltal,
-        @{Name = 'Leerlingen'; Expression = {($_.leerling | Sort-Object) -join ","}}
-    $hteam0doc | Export-Csv -Path $filename_t_team0doc -NoTypeInformation -Encoding UTF8
+    # Bewaar actieve teams ook als clixml
+    $hteamactief | Export-Clixml -Path ($filename_t_teamactief + ".clixml")
 
     # voor visuele controle
     if ($toonresultaat) {
         $hteamactief | Out-GridView  # dit zijn de actieve teams
-        $hteam0ll | Out-GridView   # dit zijn de geschrapte teams met 0 leerlingen
-        $hteam0doc | Out-GridView   # dit zijn de geschrapte teams met 0 docenten
     }
-
+    
     ################# UITVOER
     Write-Log ("Lijsten voor School Data Sync samenstellen ...")
     # Ik maak de uiteindelijke bestanden aan, die naar School Data Sync worden geupload.
@@ -554,7 +565,6 @@ Try {
     Write-Log ("Section              : " + $section.count)
 
     # Sorteer de teams voor de mooi
-    Write-Log ("Lijsten voor School Data Sync sorteren ...")
     $section = $section | Sort-Object 'SIS ID'
     $student = $student | Sort-Object 'SIS ID'
     $studentenrollment = $studentenrollment | Sort-Object 'Section SIS ID','SIS ID'

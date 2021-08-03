@@ -1,4 +1,4 @@
-= TeamSync versie 20210709
+= TeamSync versie 20210803
 Paul Wiegmans <p.wiegmans@svok.nl>
 8 juli 2021 
 
@@ -24,24 +24,30 @@ toc::[]
 
 == Installatie
 
-. Download link:Import-Magister.ps1[Import-Magister.ps1], link:Export-SchoolDataSync.ps1[Export-SchoolDataSync.ps1] 
-en link:Teamsync.cmd[Teamsync.cmd]  en plaats deze in een map naar keuze
-. Creeer een bestand `Teamsync.ini` in dezelfde map naar het voorbeeld   link:Teamsync-Voorbeeld.ini[Teamsync-Voorbeeld.ini] en pas de parameters aan je eigen behoefte aan.
-. Start Teamsync met het commando link:Teamsync.cmd[Teamsync.cmd].
+U heeft nodig: 
+
+* link:Import-Magister.ps1[Import-Magister.ps1], 
+* link:Export-SchoolDataSync.ps1[Export-SchoolDataSync.ps1],
+* link:Teamsync.cmd[Teamsync.cmd],
+* Een configuratiebestand zoals bijvoorbeeld link:Import-Magister-voorbeeld.ini[Import-Magister-voorbeeld.ini],
+* een configuratiebestand zoals bijvoorbeeld link:Export-SchoolDataSync-voorbeeld.ini[Export-SchoolDataSync-voorbeeld.ini],
+* Een URL naar de Magister webservice; een gebruikersnaam en een wachtwoord met toegangsrechten tot de AD-functies van de Magister SOAP API.
+* Start Teamsync met het commando link:Teamsync.cmd[Teamsync.cmd].
+* Upload de uitvoer naar het gewenste synchronisatieprofiel in https://sds.microsoft.com/[Microsoft School Data Sync].
 
 == Werking 
 
 TeamSync leest uit Magister lijsten met leerlingen, docenten, klassen, lesgroepen en vakken.,
-TeamSync genereert hieruit lijsten waarin voor elk samenwerkingsverband bestaande uit lesgroep of combinatie van klas en vak, waarvan zowel leerlingen als docent(en) lid zijn,  een actief team in de uitvoer terechtkomt. Deze lijsten vormen de basis voor een actieve synchronisatie van https://sds.microsoft.com/[Microsoft School Data Sync], die de juiste Microsoft 365 Teams aanmaakt, maakt de juiste docent teameigenaar en voegt de juiste leerlingen als leden toe.
+TeamSync genereert hieruit lijsten waarin voor elk samenwerkingsverband bestaande uit lesgroep of combinatie van klas en vak, waarvan zowel leerlingen als docent(en) lid zijn, een actief team in de uitvoer terechtkomt. Deze lijsten vormen de basis voor een actieve synchronisatie van https://sds.microsoft.com/[Microsoft School Data Sync], die de juiste Microsoft 365 Teams aanmaakt, maakt de juiste docent teameigenaar en voegt de juiste leerlingen als leden toe.
 
 TeamSync bestaat uit twee scripts: 
 
 * `Import-Magister.ps1`
 * `Export-SchoolDataSync.ps1`
 
-Script `Import-Magister.ps1` wordt eerst uitgevoerd om gegevens uit Magister op te halen. Daarna wordt script `Export-SchoolDataSync.ps1` uitgevoerd om de bestanden te genereren ten behoeve van https://sds.microsoft.com/[Microsoft School Data Sync]. De uitvoer bestaat uit 6 CSV-bestanden die nodig zijn voor synchronisatie met een profiel in https://sds.microsoft.com/[Microsoft School Data Sync].
+Script `Import-Magister.ps1` wordt eerst uitgevoerd om gegevens uit Magister op te halen. Daarna wordt script `Export-SchoolDataSync.ps1` uitgevoerd om de bestanden te genereren. De uitvoer bestaat uit 6 CSV-bestanden die nodig zijn voor synchronisatie met een profiel in https://sds.microsoft.com/[Microsoft School Data Sync].
 
-Voor het ophalen van gegevens wordt gebruik gemaakt van de https://sikkepitje.nl/Tech/MagisterSOAP2020[Magister SOAP/XML webservice]. Hiervoor is een geldige gebruikersnaam en een wachtwoord vereist met permissies voor het uitvoeren van webqueries. Er wordt gebruik gemaakt van de standaard Web API van Magister. Er zijn geen zogenaamde aangepaste lijsten of 'custom queries' nodig. 
+Voor het ophalen van gegevens wordt gebruik gemaakt van de Magister SOAP/XML Webservice. Je kunt meer lezen hierover op https://sikkepitje.nl/Tech/MagisterSOAP2020[Magister SOAP/XML webservice]. Hiervoor is een geldige gebruikersnaam en een wachtwoord vereist met permissies voor het uitvoeren van webqueries en dan specifiek de AD-functies. Er wordt gebruik gemaakt van de standaard Web API van Magister. Er zijn geen zogenaamde aangepaste lijsten of 'custom queries' nodig. 
 
 === Identiteiten koppelen
 
@@ -87,10 +93,10 @@ Dit bestand heet bij verstek `Import-Magister.ini` voor het importscript of `Exp
 In deze map worden <<Filters>> geplaatst ten behoeve van het importscript.
 
 === Importkladmap
-Het importscript plaatst hier tijdelijke bestanden, die kunnen worden gebruikt om de goede werking te controleren van de Magister webservice.
+Het importscript plaatst hier tijdelijke bestanden, die geen andere functie hebben, dan te worden gebruikt om de goede werking te controleren van de Magister webservice. 
 
 === Importdatamap
-In deze map plaatst het importscript de uit Magister opgehaalde gegevens over leerlingen docenten. Het exportscript leest deze in en bewerkt ze verder. 
+Het importscript plaatst in deze map een aantal bestanden met uit Magister opgehaalde gegevens over leerlingen, docenten en vakken. Het exportscript heeft deze bestanden nodig om in te lezen en bewerkt ze verder. 
 
 * `magister_leer.clixml`
 * `magister_docent.clixml`
@@ -106,10 +112,10 @@ Import-CliXML -Path $clixmlfile | Out-GridView -Wait
 In deze map worden <<Filters>> geplaatst ten behoeve van het exportscript.
 
 === Exportkladmap
-Het exportscript plaatst hier tijdelijke bestanden, die kunnen worden gebruikt om de goede werking te controleren.
+Het exportscript plaatst hier tijdelijke bestanden, die geen andere functie hebben dan om de goede werking te controleren.
 
 === Exportdatamap
-Het exportscript maakt in deze map volgens de specificaties van SDS de volgende bestanden aan. 
+Het exportscript maakt in deze map volgens de specificaties van School Data Sync de volgende bestanden aan. 
 
 * `School.csv`
 * `Section.csv`
@@ -118,65 +124,116 @@ Het exportscript maakt in deze map volgens de specificaties van SDS de volgende 
 * `Teacher.csv`
 * `TeacherRoster.csv`
 
+Deze bestanden zijn bedoeld om te uploaden naar het gewenste synchronisatieprofiel in School Data Sync. 
+
 === Medewerker_UPN.CSV
 Dit wordt ingelezen door importscript uit de importfiltermap. Indien de koppelmethode gebruik maakt van een CSV-bestand (configuratieparameter "medewerker_id=csv_upn"), dan moet in de Importfiltermap een CSV-bestand worden aangeleverd worden. 
 De naam van dit bestand is `Medewerker_UPN.csv`. De inhoud van dit bestand bestaat uit een kopregel en één of meer gegevensregels. De kopregel bevat "employeeId,UserPrincipalName". Voor elke medewerker in Magister is er een gegevensregel. De gegevensregels bevatten elk twee gegevensvelden, gescheiden door een komma. Het eerste gegevensveld bevat het stamnummer van een medewerker. Het tweede gegevensveld bevat de overeenkomstige UserPrincipalName die de gebruiker in Microsoft 365 uniek identificeert. De velden mogen omsloten zijn door dubbele aanhalingstekens, maar dat is niet verplicht.
 
 === Filters
-In de Importfiltermap kunnen één of meer filters worden geplaatst, die de hoeveelheid te verwerken gegevens reduceren. Er zijn een aantal filters te definieren , die zowel in `Import-Magister.ps1` als `Export-SchoolDataSync.ps1` wordt gebruikt. De volgende filters kunnen worden gedefinieerd door het overeenkomstige bestand in de Importfiltermap te definieren. 
+In zowel de Importfiltermap als de Exportfiltermap kunnen één of meer bestanden worden geplaatst om filters toe te passen op de te verwerken gegevens. Hierbij wordt gebruikt gemaakt van zogenaamde 'regular expressions' oftewel regex-patronen. Met behulp van de regex-patronen kunnen krachtige selecties worden gemaakt die bepalen welke gegevens moeten worden verwerkt en welke niet. De filters kunnen worden toegepast om de hoeveelheid te verwerken gegevens te reduceren en slimme selecties te maken op welke gegevens resulteren in actieve klassenteams. 
 
-* `excl_docent.csv` : dit bevat filters voor het uitsluiten van docenten op Id.
-* `incl_docent.csv` : dit bevat filters voor het insluiten van docenten op Id.
-* `excl_klas.csv` : dit bevat filters voor het uitsluiten van leerlingen op klasnaam.
-* `incl_klas.csv` : dit bevat filters voor het insluiten van leerlingen op klasnaam.
-* `excl_studie.csv` : dit bevat filters voor het uitsluiten van leerlingen op studie.
-* `incl_studie.csv` : dit bevat filters voor het insluiten van leerlingen op studie.
-* `incl_locatie.csv` : dit bevat filters voor het insluiten van leerlingen op locatie.
+Er kan bij het ophalen van Magistergegevens door `Import-Magister.ps1` worden gefilterd op: 
 
-Deze bestanden bevatten filters, die selectief records uit de invoer filteren. Hierbij wordt gebruik gemaakt van zogenaamde regular expressions. Ze kunnen **exclusief** of uitsluitend filteren, dat wil zeggen dat overeenkomende records worden weggegooid en uitgesloten van verwerking, of ze kunnen **inclusief** of insluitend filteren, dat wil zeggen dat alleen de overeenkomende records verder worden verwerkt.
+* docent(id), 
+* klas, 
+* studie, 
+* locatie (overeenkomend met Administratieve_eenheid.Omschrijving in Magister).
 
-Het gebruik van deze filterbestanden is optioneel. Als ze bestaan, worden ze ingelezen en gebruikt. Als ze niet bestaan, wordt er niet gefilterd. Indien gebruikt, dan kan elk van deze bestand een of meer filters bevatten, elk op een eigen regel, die worden toegepast met behulp van de match-operator voor het filteren van de leerlingen of docenten. Elke filter matcht een deel van de invoer. Wildcards zijn niet nodig. Alle tekens met een speciale betekenis voor de match-operator zijn hierbij toegelaten. Plaats geen lege regels in het filterbestand.
+Er kan bij het bepalen van klassenteams door `Export-Magister.ps1` worden gefilterd op:* docent(id), 
+
+* klas, 
+* studie, 
+* locatie (overeenkomend met Administratieve_eenheid.Omschrijving in Magister),
+* teamnaam.
+
+Er zijn twee typen filters te definieren: 
+
+* _insluitende_ of _inclusieve_ filters, en
+* _uitsluitende_ of _exclusieve_ filters. 
+
+Bij insluitende filters worden alleen de gegevens die overeenkomen met de opgegeven regex-patronen verwerkt en de rest wordt weggegooid. 
+Bij uitsluitende filters worden alle gegevens die **niet** overeenkomen met de opgegeven patronen verwerkt, terwijl de gegevens die wel overeenkomen niet worden verwerkt.
+Je kunt insluitende en uitsluitende filters combineren om te komen tot een nauwkeurige gedefinieerde verzameling klassenteams, die precies beantwoordt aan de behoefte.
+
+
+De volgende filterbestanden kunnen worden gedefinieerd door het overeenkomstige bestand in de Importfiltermap en/of Exportfiltermap te definieren en deze te vullen met de gewenste regex-patronen. 
+
+* `excl_docent.csv` : dit bevat filters voor het uitsluitend filteren van docenten op Id.
+* `incl_docent.csv` : filters voor het insluitend filteren van docenten op Id.
+* `excl_klas.csv` : filters voor het uitsluitend filteren van leerlingen op klasnaam.
+* `incl_klas.csv` : filters voor het insluitend filteren van leerlingen op klasnaam.
+* `excl_studie.csv` : filters voor het uitsluitend filteren van leerlingen op studie.
+* `incl_studie.csv` : filters voor het insluitend filteren van leerlingen op studie.
+* `incl_locatie.csv` : filters voor het insluitend filteren van leerlingen op locatie oftewel Magister:Administratieve_eenheid.Omschrijving.
+* `incl_teamnaam.csv` : (alleen in de ExportFiltermap t.b.v. `Export-SchoolDataSync.ps1`) filters voor het insluitend filteren van teams op (weergave)naam. t.b.v. `Export-SchoolDataSync.ps1`
+* `excl_teamnaam.csv` : (alleen in de ExportFiltermap t.b.v. `Export-SchoolDataSync.ps1`) filters voor het insluitend filteren van teams op (weergave)naam.
+
+Het gebruik van deze filterbestanden is optioneel. Als ze bestaan, worden ze ingelezen en gebruikt. Als ze niet bestaan, wordt er niet gefilterd. Indien gebruikt, dan bevat elk filterbestand één of meer regex-patronen, elk op een eigen regel, die worden toegepast voor het filteren van de relevante gegevens. Elke regex-patroon matcht een deel van de invoer. Wildcards zijn niet nodig. Alle tekens met een speciale betekenis voor de match-operator zijn hierbij toegelaten. Plaats geen lege regels in het filterbestand.
 
 Speciale betekenis hebben:
 
 * `^` matcht het begin van een zoekterm 
 * `$` matcht het eind van een zoekterm
 * '\' is een escape-teken voor tekens die een speciale betekenis voor regex hebben.
+* '\s' is een aanduiding voor een spatie.
 
-Zie voor meer uitleg over de "regex"-functie https://docs.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_regular_expressions?view=powershell-7[about_Regular_Expressions]
+Voor een uitgebreidere uitleg over regular expressions of regex, zie https://nl.wikipedia.org/wiki/Reguliere_expressie[Reguliere expressie - Wikipedia]
 
 ==== Voorbeelden van filters
-Voorbeeld : We willen de VAVO-leerlingen niet verwerken; alle studies die eindigen op VAVO moeten worden uitgesloten.
+===== Filtervoorbeeld VAVO uitfilteren
+Alle leerlingen waarvan de studie eindigt op "VAVO" worden uitgesloten.
 
-Het bestand data_in\excl_studie.csv wordt aangemaakt en bevat: 
+Het bestand ImportFilterMap\excl_studie.csv wordt aangemaakt en bevat: 
 ```
 VAVO$
 ```
+===== Filtervoorbeeld Brugklassen, Mavo, Havo, Vwo
+We willen de leerlingen van Mavo, Havo, Vwo en de brugklassen verwerken; alle leerlingen in een studie die begint met B,M,H of V moeten worden verwerkt. 
 
-Voorbeeld : We willen de leerlingen van Mavo, Havo, Vwo en de brugklassen verwerken; alle leerlingen in een studie die begint met B,M,H of V moeten worden verwerkt. 
-
-Het bestand data_in\incl_studie.csv wordt aangemaakt en bevat:
+Het bestand ImportFilterMap\incl_studie.csv wordt aangemaakt en bevat:
 ```
 ^M
 ^H
 ^V
 ^B
 ```
-
+===== Filtervoorbeeld: H4 en H5
 Voorbeeld : we willen alleen 4 en 5 Havo en verwerken; alle leerlingen in de klas die begint met '4H' of '5H' moeten worden verwerkt. 
 
-Het bestand data_in\incl_klas.csv wordt aangemaakt en bevat:
+Het bestand ImportFilterMap\incl_klas.csv bevat:
 ```
 ^5H
 ^4H
 ```
 
-voorbeeld: we willen alleen docenten wiens id niet begint met '_' of eindigt op '*'. 
-Het bestand data_in\excl_docent.csv bevat:
+===== Filtervoorbeeld: Geen tweede rol in Magister
+Voorbeeld: we willen alleen docenten wiens id niet begint met '_' of eindigt op '*'. 
+
+Het bestand ImportFilterMap\excl_docent.csv bevat:
 ```
 ^_
 \*$
 ```
+
+===== Filtervoorbeeld: 1 Magister, 4 scholen
+Voorbeeld: In het geval dat er 4 scholen gebruik maken van 1 Magisterinstantie, en ik wil alleen klassenteams voor Beroepsgericht. Alle docenten, leerlingen en lesgroepen hebben Magister:Administratieve_eenheid.Omschrijving = "Beroepsgericht".
+
+Het bestand ImportFiltermap\incl_locatie.csv *of* ExportFiltermap\incl_locatie.csv bevat: 
+```
+Beroepsgericht
+```
+
+Merk ook op dat wanneer wordt gefilterd op *leerlingen* in de opgegeven administratieve eenheid, er uiteindelijk alleen klassenteams worden gemaakt met deze leerlingen en docenten
+
+===== Filtervoorbeeld: Alleen teams met " EN "
+Voorbeeld: alleen teams met " EN " in de naam. 
+
+Het bestand Export-Filter\incl_teamnaam.csv bevat: 
+```
+\sEN\s
+```
+Gotcha: het filter is niet hoofdlettergevoelig, dus filtert ook alle voorkomingen van " en ".
 
 == Configuratie
 
@@ -302,34 +359,40 @@ Vanaf PowerShell prompt met parameters:
 ```
 . .\Import-Magister.ps1 -IniFile Magister.ini
 . .\Export-SchoolDataSync.ps1 -IniFile School1.ini
+. .\Export-SchoolDataSync.ps1 -IniFile School2.ini
 ```
 
 Vanaf de CMD prompt of door middel van een batchbestand:
 ```
 @PowerShell.exe -NoProfile -NoLogo -ExecutionPolicy Bypass -File "%~dp0Import-Magister.ps1" -IniFile Magister.ini
 @PowerShell.exe -NoProfile -NoLogo -ExecutionPolicy Bypass -File "%~dp0Export-SchoolDataSync.ps1" -IniFile School1.ini
+@PowerShell.exe -NoProfile -NoLogo -ExecutionPolicy Bypass -File "%~dp0Export-SchoolDataSync.ps1" -IniFile School2.ini
 ```
 
-=== Wat als het script op zijn bek gaat?
+=== Logbestanden
 
-De twee scripts loggen alle schermuitvoer en foutmeldingen in een logbestand, met de naam van het script en extensie ".log". Bestudeer deze logs om te onderzoeken welke foutmeldingen zijn gegenereerd, en op welke regel dat gebeurde.
+De twee scripts loggen alle schermuitvoer en foutmeldingen in een logbestand, met de naam "Import-Magister.log" respectievelijke "Export-SchoolDataSync.log" in dezelfde map als de scriptbestanden. Bestudeer deze logs om te onderzoeken welke foutmeldingen zijn gegenereerd, en op welke regel dat gebeurde.
+
+De logbestanden worden geroteerd elke keer dat een script wordt uitgevoerd. Dat wil zeggen dat een nieuw logbestand wordt aangemaakt, de laatste 7 logbestanden worden bewaard en het oudste logbestand wordt verwijderd. De naam van de bewaarde logbestanden zijn "Import-Magister.01.log" respectievelijk "Export-SchoolDataSync.01.log" en deze zijn opeenvolgend genummerd naarmate het logbestand ouder is. Dus van elke script worden altijd ten hoogste 8 logbestanden bewaard.
 
 === Controle van uitvoer
 
-In de Importkladmap produceert TeamSync een aantal bestanden, die inzicht geven in welke teams door School Data Sync aangemaakt zouden worden en welke gegevens worden verwerkt. Deze bestanden hebben een CSV-formaat (Comma Separated Values) en kunnen met Excel worden geopend.
+TeamSync produceert een aantal bestanden, die inzicht geven in welke teams door School Data Sync aangemaakt zouden worden en welke gegevens worden verwerkt. Deze bestanden hebben een CSV-formaat (Comma Separated Values) en kunnen met Excel worden geopend.
 
-Script `Ophalen` genereert onder andere: 
+Script Import-Magister genereert onder andere: 
 
 * `leerling.csv` : CSV-bestand met platte leerlinglijst uit Magister
 * `docent.csv` : CSV-bestand met platte medewerkerlijst uit Magister
 
-Script `Transformeren` genereert onder andere:
+Script Export-SchoolDataSync genereert onder andere:
 
 * `teamactief.csv` : CSV-bestand met teams die als actief worden aangeduid en die in de uitvoer voor SDS voorkomen: teamid, teamnaam, docentaantal, docentnamen, leerlingaantal, leerlingnamen.
 * `team0doc.csv` : CSV-bestand met Teams die als inactief zijn aangeduid omdat ze geen docent(en) bevatten.
 * `team0ll.csv` : CSV-bestand met Teams die als inactief zijn aangeduid omdat ze geen leerlingen bevatten.
 
 Ook worden enkele *.clixml bestanden aangemaakt, die met behulp van PowerShell kunnen worden ingelezen. 
+
+Om te zien welke teams actief worden gemaakt in School Data Sync, open het bestand `teamactief.csv`.
 
 === Typische gebruikscenarios
 
@@ -341,17 +404,29 @@ Gedurende het testen is het meest  handig als `Import-Magister.ps1` gedurende ee
 
 Een scenario van het soort 'Één Magister - twee scholen' kan er zo uitzien: 
 
-* Het script `Import-Magister.ps1` wordt uitgevoerd met een aangepast configuratiebestand, zonder filters, dat alle gegevens worden opgehaald uit Magister. Dit levert snelheidswinst op. De tussenresultaten worden opgeslagen in een algemene Importkladmap.
-
-* De tussenresultaten `mag_leer.clixml`, `mag_doc.clixml` `mag_vak.clixml` en eventueel `personeelemail.clixml` worden gekopieerd van de algemene Importkladmap naar een school-specifieke Importkladmap.
+* Het script `Import-Magister.ps1` wordt uitgevoerd met een aangepast configuratiebestand, zonder filters, dat alle gegevens worden opgehaald uit Magister. Dit levert snelheidswinst op. De tussenresultaten worden opgeslagen in de Importdatamap. 
 * Het script `Export-SchoolDataSync.ps1` wordt één keer uitgevoerd voor elke school met een voor één school specifiek configuratiebestand: 
-** Importfiltermap, Importkladmap en Importdatamap verwijzen naar een school-specifieke map 
-** de schoolspecifieke Importfiltermap bevat school-specifieke filters, bijvoorbeeld voor locatie. 
-** `teamid_prefix` verschilt per school.
+** Importdatamap, Exportfiltermap, Exportdatamap verwijzen naar een school-specifieke map 
+** de schoolspecifieke Exportfiltermap bevat in het bestand `incl_locatie.csv` een of meer school-specifieke regexpatronen die overeenkomen met de gewenste waarden voor het veld Administratieve_eenheid.Omschrijving in Magister. 
+** `teamid_prefix` enz. verschilt per school.
 
-Door de schoolspecifieke filters worden alleen de leerlingen verwerkt die voor een school interessant zijn. Dit verhoogt de verwerkingssnelheid. 
+Dit scenario wordt gecomplementeerd met een eigen synchronisatieprofiel voor elke school in School Data Sync. De uitvoerbestanden worden geupload naar het respectievelijke synchronisatieprofiel.
 
-Dit scenario wordt compleet met een synchronisatieprofiel voor elke school in School Data Sync. De uitvoerbestanden worden geupload naar het respectievelijke synchronisatieprofiel.
+=== LET OP: Leerlingen, docenten en vakken moeten actief zijn in Magister
+
+Probeer je TeamSync uit, maar krijg je geen actieve teams? Waarschijnlijk haal je de Magistergegevens op in de zomervakantie. 
+Dat gaat niet werken en waarom wordt hieronder uitgelegd. 
+
+Om een lijst met actieve teams te genereren, moeten de gegevens in Magister aan een aantal strikte voorwaarden voldoen:
+
+* Leerlingen en docenten moeten actief zijn, d.w.z. de inschrijfdatum moet in het verleden liggen, en de uitschrijfdatum in de toekomst of leeg.
+* Leerlingen en docenten moeten een ingevulde locatie oftewel "Administratieve_eenheid.Omschrijving" hebben.
+* Leerlingen moeten lid zijn van een klas.
+* Docenten moeten toegewezen zijn aan één of meer vakken. 
+* De lesperiode, waarin elk vak wordt gegeven door de docent aan de klas, moet actief zijn, d.w.z. de huidige datum moet tussen begindatum en einddatum liggen.
+
+Als aan de bovenstaande voorwaarden niet is voldaan, worden de verbanden tussen docenten, leerlingen (lesgroep) en vak niet als actief beschouwd en bevat de uitvoer geen actieve teams.
+Vanwege deze reden zal TeamSync in de zomervakantie geen nuttige uitvoer leveren. 
 
 == Handige links
 

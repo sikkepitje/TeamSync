@@ -114,7 +114,7 @@ Config `handhaafJPTMedewerkerCodeIsLogin=0` verhelpt dat.
 * Naamswijziging van de scripts geeft de functie beter weer: 
 **  Ophalen-MagisterData.ps1 heet nu: `*Import-Magister.ps1*`
 **  Transformeren-naar-SchoolDataSync.ps1 heet nu: `*Export-SchoolDataSync.ps1*`
-* De logbestanden worden geroteerd ; de oudste wordt verwijderd, de nieuwste 9 blijven bewaard.
+* De logbestanden worden geroteerd ; de oudste wordt verwijderd, de laatste 7 blijven bewaard. Documentatie is bijgewerkt.
 
 ## 20210708
 * De import- en exportscript hebben nu eigen mappen voor filters, klad en data. Deze opzet maakt het makkelijker om te werken in een scenario waar één Magister wordt gebruikt voor verscheidene scholen. De configuratievariabelen hebben een naam die duidelijk maakt door welk script deze worden gebruikt. 
@@ -122,18 +122,24 @@ Config `handhaafJPTMedewerkerCodeIsLogin=0` verhelpt dat.
 ** Exportscript gebruikt: ImportDatamap, ExportFiltermap, ExportKladmap en ExportDatamap.
 * Importscript heeft een eigen configuratiebestand, bij verstek `Import-Magister.ini`, wijzigbaar met een commandoregelparameter.
 * Exportscript heeft een eigen configuratiebestand, bij verstek `Export-SchoolDataSync.ini`, wijzigbaar met een commandoregelparameter.
-* LeerlingID's en docentID's worden geconverteerd naar onderkast. Omdat School
-Data Sync TeacherID en StudentID hoofdlettergevoelig verwerkt, hebben
-letterkastwijzigingen (is dat een woord?) in Magister geen verstoringen meer tot gevolg. 
+* LeerlingID's en docentID's worden altijd geconverteerd naar onderkast. School 
+Data Sync verwerkt "SIS ID" hoofdlettergevoelig, en zo hebben
+wijzigingen in hoofdlettergebruik in Magister geen verlies van synchronisatie meer tot gevolg. 
 ** Maximum aantal logbestanden is instelbaar in het script.
 
 ## 20210709
 * Import-Magister: Vermijd fout bij omzetten van lege ID naar kleine letters.
 
+## 20210803
+* Automatische logrotatie: huidig logbestand is "{scriptnaam}.log". Een instelbaar aantal backups worden bewaard met de naam "{scriptnaam}.01.log".
+* Export-SchoolDataSync : toegevoegd mogelijkheid tot filteren op teamnaam
+* Verwijderd code voor aanmaak van lijsten met niet-actieve teams.
+
 ## TO DO
+Dit zijn geplande wijzigingen zonder een vastgesteld tijdpad (krabbels van de auteur).
 
 * SDS V2 format 
 * parameter viewonly toont resultaat.
-
 * controleer omgang met ongeldige tekens, https://support.microsoft.com/en-us/office/invalid-file-names-and-file-types-in-onedrive-and-sharepoint-64883a5d-228e-48f5-b3d2-eb39e07630fa?ui=en-us&rs=en-us&ad=us#invalidcharacters
-* optie toevoegen om SIS ID te kapitaliseren, want SIS ID blijkt hoofdlettergevoelig, maar bestaande synchronisatie moet onveranderd doorgaan.
+* configuratievariabele toevoegen om het toevoegen van de vakomschrijving aan de teamnaam facultatief te maken.
+* configuratievariabelen moeten in een eigen structuur worden bewaard.

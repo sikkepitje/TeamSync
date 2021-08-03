@@ -9,7 +9,7 @@
     TeamSync script deel 1 (ophalen) haalt gegevens op uit Medius (Magister)
     Webservice.
 
-    Versie 20210709
+    Versie 20210803
     Auteur Paul Wiegmans (p.wiegmans@svok.nl)
 
     naar een voorbeeld door Wim den Ronde, Eric Redegeld, Joppe van Daalen
@@ -41,6 +41,7 @@ $herePath = Split-Path -parent $MyInvocation.MyCommand.Definition
 $selfpath_base = $MyInvocation.MyCommand.Path.replace(".ps1","")  # compleet pad zonder extensie
 $host.ui.RawUI.WindowTitle = Split-Path -Leaf $selfpath_base
 $logCountLimit  = 7
+$currentLogFilename = "$selfpath_base.log"
 
 # initialisatie constanten 
 function Constante ($name, $value) { Set-Variable -Name $Name -Value $Value -Option Constant -Scope Global -Erroraction:SilentlyContinue }
@@ -62,7 +63,6 @@ $leerling_id = "NIETBESCHIKBAAR"
 $toondata = "0"
 
 #region Functies
-
 function LogFilename($Number) {
     return ("$selfpath_base.{0:d2}.log" -f $Number)
 }
@@ -77,13 +77,14 @@ function LogRotate() {
         #Write-Host "  Renaming ($oud) to ($nieuw)" -ForegroundColor cyan
         Rename-Item -Path $oud -NewName $nieuw -ea:SilentlyContinue
     }
+    Rename-Item -Path $currentLogFilename -NewName (LogFilename -Number 1) -ea:SilentlyContinue
 }
 
 Function Write-Log {
     Param ([Parameter(Position=0)][Alias('Message')][string]$Tekst="`n")
 
     $log = "$(Get-Date -f "yyyy-MM-ddTHH:mm:ss.fff") [$logtag] $tekst"
-    $log | Out-File -FilePath (LogFilename -Number 1) -Append
+    $log | Out-File -FilePath $currentLogFilename -Append
     Write-Host $log
 }
 
