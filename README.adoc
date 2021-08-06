@@ -14,7 +14,7 @@ Paul Wiegmans <p.wiegmans@svok.nl>
 
 TeamSync is een PowerShell-script dat gegevens ophaalt uit Magister en overbrengt naar School Data Sync ten behoeve van een geautomatiseerde aanmaak van Teams in een Microsoft 365 omgeving. 
 
-Deze oplossing maakt gebruik van https://sds.microsoft.com/[Microsoft School Data Sync]. 
+Deze oplossing maakt gebruik van https://sds.microsoft.com/[Microsoft School Data Sync]. School Data Sync is een oplossing die identiteiten vanuit een schooladministratiesysteem synchroniseert met Microsoft 365, en een klassenteam maakt voor elke actieve klas of lesgroep.
 
 Inspiratie hiervoor komt uit eerder werk genaamd 'v06-sds-files_FONSVITAE.ps1' door Wim den Ronde, Eric Redegeld, Joppe van Daalen.
 
@@ -22,9 +22,9 @@ Gebruikt jouw school Somtoday en zoek je een koppeling tussen Somtoday en School
 
 toc::[]
 
-== Installatie
+== Beknopte installatie
 
-U heeft nodig: 
+Om TeamSync in te zetten is het volgende nodig.  
 
 * link:Import-Magister.ps1[Import-Magister.ps1], 
 * link:Export-SchoolDataSync.ps1[Export-SchoolDataSync.ps1],
@@ -33,12 +33,14 @@ U heeft nodig:
 * een configuratiebestand zoals bijvoorbeeld link:Export-SchoolDataSync-voorbeeld.ini[Export-SchoolDataSync-voorbeeld.ini],
 * Een URL naar de Magister webservice; een gebruikersnaam en een wachtwoord met toegangsrechten tot de AD-functies van de Magister SOAP API.
 * Start Teamsync met het commando link:Teamsync.cmd[Teamsync.cmd].
-* Upload de uitvoer naar het gewenste synchronisatieprofiel in https://sds.microsoft.com/[Microsoft School Data Sync].
+* Maak een scheduled task om TeamSync dagelijks uit te voeren.
+* Richt https://sds.microsoft.com/[Microsoft School Data Sync] in en creëer een synchronisatieprofiel voor de gewenste school. 
+* Upload dagelijks de door TeamSync aangemaakte CSV-bestanden naar het synchronisatieprofiel om de Microsoft 365 klassenteams bijgewerkt te houden met de actuele leerlingen, docenten en lesgroepen.
 
 == Werking 
 
 TeamSync leest uit Magister lijsten met leerlingen, docenten, klassen, lesgroepen en vakken.,
-TeamSync genereert hieruit lijsten waarin voor elk samenwerkingsverband bestaande uit lesgroep of combinatie van klas en vak, waarvan zowel leerlingen als docent(en) lid zijn, een actief team in de uitvoer terechtkomt. Deze lijsten vormen de basis voor een actieve synchronisatie van https://sds.microsoft.com/[Microsoft School Data Sync], die de juiste Microsoft 365 Teams aanmaakt, maakt de juiste docent teameigenaar en voegt de juiste leerlingen als leden toe.
+TeamSync genereert hieruit lijsten waarin voor elk samenwerkingsverband bestaande uit lesgroep of combinatie van klas en vak, waarvan zowel leerlingen als docent(en) lid zijn, een actief team in de uitvoer terechtkomt. Deze lijsten vormen de basis voor een actieve synchronisatie van https://sds.microsoft.com/[Microsoft School Data Sync]. SDS maakt de juiste Microsoft 365 klassenteams aan, maakt de juiste docent teameigenaar en voegt de juiste leerlingen als leden toe.
 
 TeamSync bestaat uit twee scripts: 
 
