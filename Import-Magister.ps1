@@ -9,7 +9,7 @@
     TeamSync script deel 1 (ophalen) haalt gegevens op uit Medius (Magister)
     Webservice.
 
-    Versie 20210803
+    Versie 20210819
     Auteur Paul Wiegmans (p.wiegmans@svok.nl)
 
     naar een voorbeeld door Wim den Ronde, Eric Redegeld, Joppe van Daalen
@@ -506,29 +506,7 @@ Try {
     $filename_mag_docent_xml    = $dataPath + "\magister_docent.clixml"
     $filename_mag_vak_xml       = $dataPath + "\magister_vak.clixml"
 
-    if ($kmADUPN -eq $medewerker_id) {
-        Write-Log ("Ophalen UserPrincipalNames van personeel uit AD")
-        Import-Module activedirectory
-    
-        $users = Get-ADUser -Filter * -Server $ADserver -SearchBase $ADsearchbase -Properties employeeid
-        
-        # Bereken uit employeeid (hier bijv "bc435") een stamnr
-        # DEZE BEWERKING IS SPECIAAL VOOR BONHOEFFERCOLLEGE. Aanpassen aan eigen behoefte
-        $medew = $users | Select-Object UserPrincipalName,employeeid,
-            @{Name = 'Stamnr'; Expression = {$_.employeeid -replace "[A-Za-z]"}}
-        $medew = $medew | Where-Object {$_.Stamnr -ne $null} | Where-Object {$_.Stamnr -gt 0}
-        # Velden: UserPrincipalName, employeeid, stamnr
-        Write-Log ("Aantal: " + $medew.count )
-        # maak een hashtable
-        $upntabel = @{}
-        foreach ($user in $medew) {
-            $upntabel[$user.stamnr] = $user.UserPrincipalName
-        }
-        # hashtable $upntabel["$stamnr"] geeft $UserPrincipalName
-        # ter controle, exporteer de relaties tussen employeeId en UserPrincipalName die is bepaald in AD
-        $upntabel | Export-Clixml -Path $filename_persemail_xml
-    }
-    elseif ($KOPPEL_MEDEWERKERID_AAN_CSVUPN -eq $medewerker_id) {
+    if ($KOPPEL_MEDEWERKERID_AAN_CSVUPN -eq $medewerker_id) {
         $users = Import-CSV  -Path $filename_mwupncsv
         # maak een hashtable
         $upntabel = @{}

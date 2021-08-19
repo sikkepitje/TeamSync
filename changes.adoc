@@ -135,6 +135,9 @@ wijzigingen in hoofdlettergebruik in Magister geen verlies van synchronisatie me
 * Export-SchoolDataSync : toegevoegd mogelijkheid tot filteren op teamnaam
 * Verwijderd code voor aanmaak van lijsten met niet-actieve teams.
 
+# 20210819
+* Importscript: code cleanup
+
 ## TO DO
 Dit zijn geplande wijzigingen zonder een vastgesteld tijdpad (krabbels van de auteur).
 
