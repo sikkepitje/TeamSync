@@ -10,7 +10,7 @@
     bepaalt actieve teams en genereert CSV-bestanden ten behoeve van 
     School Data Sync.
 
-    Versie 20210803
+    Versie 20210820
     Auteur Paul Wiegmans (p.wiegmans@svok.nl)
 
     naar een voorbeeld door Wim den Ronde, Eric Redegeld, Joppe van Daalen
@@ -47,7 +47,12 @@ $herePath = Split-Path -parent $MyInvocation.MyCommand.Definition
 $selfpath_base = $MyInvocation.MyCommand.Path.replace(".ps1","")  # compleet pad zonder extensie
 $host.ui.RawUI.WindowTitle = Split-Path -Leaf $selfpath_base
 $logCountLimit  = 7
-$currentLogFilename = "$selfpath_base.log"
+$selfpath = $MyInvocation.MyCommand.Path
+$selfdir  = Split-Path -Parent $selfpath
+$selfname  = Split-Path -Leaf $selfpath 
+$selfbasename  = [System.IO.Path]::GetFileNameWithoutExtension($selfpath)
+$logBaseFilename = "$selfdir\Log\$selfbasename"
+$currentLogFilename = "$logBaseFilename.log"
 
 # variabelen initialisatie
 $importdatamap = "ImportData"
@@ -64,21 +69,22 @@ $logtag = "INIT"
 $toonresultaat = "0"
 
 #region Functies
-function LogFilename($Number) {
-    return ("$selfpath_base.{0:d2}.log" -f $Number)
+function PreviousLogFilename($Number) {
+    return ("$logBaseFilename.{0:d2}.log" -f $Number)
 }
 
 function LogRotate() {
     # Keep 9 logs, delete oldest, rename the rest
-    Write-Host "Logs roteren..." -ForegroundColor Cyan
-    Remove-Item -Path (LogFilename -Number $logCountLimit) -Force -Confirm:$False -ea:SilentlyContinue 
+    Write-Host "Rotating the logs..." -ForegroundColor Cyan
+    New-Item -Path "$selfdir" -ItemType Directory -Name "Log" -ErrorAction SilentlyContinue | Out-Null
+    Remove-Item -Path (PreviousLogFilename -Number $logCountLimit) -Force -Confirm:$False -ea:SilentlyContinue 
     ($logCountLimit)..1 | ForEach-Object {
-        $oud = LogFilename -Number $_
-        $nieuw = LogFilename -Number ($_ + 1)
+        $oud = PreviousLogFilename -Number $_
+        $nieuw = PreviousLogFilename -Number ($_ + 1)
         #Write-Host "  Renaming ($oud) to ($nieuw)" -ForegroundColor cyan
         Rename-Item -Path $oud -NewName $nieuw -ea:SilentlyContinue
     }
-    Rename-Item -Path $currentLogFilename -NewName (LogFilename -Number 1) -ea:SilentlyContinue
+    Rename-Item -Path $currentLogFilename -NewName (PreviousLogFilename -Number 1) -ea:SilentlyContinue
 }
 
 Function Write-Log {
@@ -589,7 +595,7 @@ Catch {
     $line = $_.InvocationInfo.ScriptLineNumber
     $msg = $e.Message 
  
-    "$(Get-Date -f "yyyy-MM-ddTHH:mm:ss:fff") [$logtag] caught exception: $msg at line $line" | Out-File -FilePath (LogFilename -Number 1) -Append
+    "$(Get-Date -f "yyyy-MM-ddTHH:mm:ss:fff") [$logtag] caught exception: $msg at line $line" | Out-File -FilePath (PreviousLogFilename -Number 1) -Append
     Write-Error "caught exception: $msg at line $line"    
     exit 1  
 }

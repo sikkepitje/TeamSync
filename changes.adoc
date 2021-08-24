@@ -1,7 +1,7 @@
 
 # Changes
 
-## 20200414
+## 20200424
 
 * werkt al goed
 
@@ -135,8 +135,10 @@ wijzigingen in hoofdlettergebruik in Magister geen verlies van synchronisatie me
 * Export-SchoolDataSync : toegevoegd mogelijkheid tot filteren op teamnaam
 * Verwijderd code voor aanmaak van lijsten met niet-actieve teams.
 
-# 20210819
-* Importscript: code cleanup
+# 20210824
+* Importscript: code cleanup, progressiebalktekst
+* Alle logbestanden komen in een submap "Log".
+* Importscript: Excepties in Invoke-WebClient worden nu gelogd in het logbestand.
 
 ## TO DO
 Dit zijn geplande wijzigingen zonder een vastgesteld tijdpad (krabbels van de auteur).

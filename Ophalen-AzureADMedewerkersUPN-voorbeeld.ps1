@@ -24,7 +24,7 @@
     .\Ophalen-AzureADMedewerkersUPN.ps1
 #>    
 
-Install-Module AzureAD
+Import-Module AzureAD
 Connect-AzureAD
 
 $filename_medewerkerUPN = "./Medewerker_UPN.csv"
@@ -42,4 +42,4 @@ $mijnlijst = $medewerkers | Select-Object `
     Where-Object {$_.employeeId -gt 0}
 Write-Host "Aantal medewerkers met geldige employeeId:" $mijnlijst.count 
 
-$mijnlijst | Export-CSV -Path $filename_medewerkerUPN -NoTypeInformation
+$mijnlijst | Export-CSV -Path $filename_medewerkerUPN -NoTypeInformation -Encoding UTF8
