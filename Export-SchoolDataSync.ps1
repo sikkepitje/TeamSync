@@ -10,7 +10,7 @@
     bepaalt actieve teams en genereert CSV-bestanden ten behoeve van 
     School Data Sync.
 
-    Versie 20210820
+    Versie 20210824
     Auteur Paul Wiegmans (p.wiegmans@svok.nl)
 
     naar een voorbeeld door Wim den Ronde, Eric Redegeld, Joppe van Daalen
@@ -466,11 +466,12 @@ Try {
     Write-Log ("Teams zonder docent   : " + $team0doc.count)
 
     # Bewaar actieve teams in CSVs ter controle
-    $hteamactief = $teamactief | Sort-Object Id | Select-Object Id, Naam, Type, Doctal,
+    $hteamactief = $teamactief | Sort-Object Id | Select-Object Id, Naam, Type, 
+        @{Name = 'Aantal_docenten'; Expression = {$_.Doctal}},
         @{Name = 'Docenten'; Expression = {($_.docent | Sort-Object) -join ","}},
-        Lltal,
+        @{Name = 'Aantal_leerlingen'; Expression = {$_.Lltal}},
         @{Name = 'Leerlingen'; Expression = {($_.leerling | Sort-Object) -join ","}}
-    $hteamactief | Export-Csv -Path $filename_t_teamactief -NoTypeInformation -Encoding UTF8
+    $hteamactief | Export-Csv -Path $filename_t_teamactief -NoTypeInformation -Encoding UTF8 -Delimiter ";"
 
     # Bewaar actieve teams ook als clixml
     $hteamactief | Export-Clixml -Path ($filename_t_teamactief + ".clixml")

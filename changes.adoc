@@ -139,6 +139,7 @@ wijzigingen in hoofdlettergebruik in Magister geen verlies van synchronisatie me
 * Importscript: code cleanup, progressiebalktekst
 * Alle logbestanden komen in een submap "Log".
 * Importscript: Excepties in Invoke-WebClient worden nu gelogd in het logbestand.
+* Exportscript: active-teamslijst: direct importeerbaar in Excel; duidelijkere kolomnamen.
 
 ## TO DO
 Dit zijn geplande wijzigingen zonder een vastgesteld tijdpad (krabbels van de auteur).
