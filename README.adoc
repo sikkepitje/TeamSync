@@ -1,4 +1,4 @@
-= TeamSync versie 20210803
+= TeamSync versie 20210825
 Paul Wiegmans <p.wiegmans@svok.nl>
 8 juli 2021 
 
@@ -49,7 +49,7 @@ TeamSync bestaat uit twee scripts:
 
 Script `Import-Magister.ps1` wordt eerst uitgevoerd om gegevens uit Magister op te halen. Daarna wordt script `Export-SchoolDataSync.ps1` uitgevoerd om de bestanden te genereren. De uitvoer bestaat uit 6 CSV-bestanden die nodig zijn voor synchronisatie met een profiel in https://sds.microsoft.com/[Microsoft School Data Sync].
 
-Voor het ophalen van gegevens wordt gebruik gemaakt van de Magister SOAP/XML Webservice. Je kunt meer lezen hierover op https://sikkepitje.nl/Tech/MagisterSOAP2020[Magister SOAP/XML webservice]. Hiervoor is een geldige gebruikersnaam en een wachtwoord vereist met permissies voor het uitvoeren van webqueries en dan specifiek de AD-functies. Er wordt gebruik gemaakt van de standaard Web API van Magister. Er zijn geen zogenaamde aangepaste lijsten of 'custom queries' nodig. 
+Voor het ophalen van gegevens wordt gebruik gemaakt van de Magister SOAP/XML Webservice. Er is hiervoor een geldige gebruikersnaam en een wachtwoord vereist en permissies voor het uitvoeren van webqueries en dan specifiek de AD-functies. Er wordt gebruik gemaakt van de standaard Web API van Magister. Er zijn geen zogenaamde aangepaste lijsten of 'custom queries' nodig. Je kunt meer lezen hierover op https://sikkepitje.nl/Tech/MagisterSOAP2020[Magister SOAP/XML webservice]. 
 
 === Identiteiten koppelen
 
@@ -95,7 +95,7 @@ Dit bestand heet bij verstek `Import-Magister.ini` voor het importscript of `Exp
 In deze map worden <<Filters>> geplaatst ten behoeve van het importscript.
 
 === Importkladmap
-Het importscript plaatst hier tijdelijke bestanden, die geen andere functie hebben, dan te worden gebruikt om de goede werking te controleren van de Magister webservice. 
+Het importscript plaatst hier tijdelijke bestanden, die slechts dienen om de goede werking te controleren van de Magister webservice en instellingen en filters van TeamSync,
 
 === Importdatamap
 Het importscript plaatst in deze map een aantal bestanden met uit Magister opgehaalde gegevens over leerlingen, docenten en vakken. Het exportscript heeft deze bestanden nodig om in te lezen en bewerkt ze verder. 
@@ -114,7 +114,7 @@ Import-CliXML -Path $clixmlfile | Out-GridView -Wait
 In deze map worden <<Filters>> geplaatst ten behoeve van het exportscript.
 
 === Exportkladmap
-Het exportscript plaatst hier tijdelijke bestanden, die geen andere functie hebben dan om de goede werking te controleren.
+Het exportscript plaatst hier tijdelijke bestanden, die dienen om de goede werking te controleren van TeamSync, met name instelingen en filters.
 
 === Exportdatamap
 Het exportscript maakt in deze map volgens de specificaties van School Data Sync de volgende bestanden aan. 
@@ -252,7 +252,7 @@ Aanhalingstekens zijn toegestaan maar niet nodig. Spaties in het waarde-deel zij
 IMPORTANT:  Backslashes worden opgevat als escape-karakters. Om backslashes in paden op te geven, escape deze met een extra backslash. Bijvoorbeeld: `Importfiltermap=Submap1\\Submap2\\Submap3`
 
 === Configuratievariabelen voor importscript
-De volgende parameters kunnen worden gedefinieerd.
+De volgende parameters kunnen worden gedefinieerd in het configuratiebestand van het importscript.
 
 [square]
 * `Importfiltermap=waarde` : pad naar invoermap relatief t.o.v. scriptpad
@@ -266,6 +266,8 @@ De volgende parameters kunnen worden gedefinieerd.
 * `leerling_id=waarde` : koppelmethode voor leerlingen
 
 === Configuratievariabelen voor exportscript
+De volgende parameters kunnen worden gedefinieerd in het configuratiebestand van het exportscript.
+
 * `Importdatamap=waarde` : pad naar importdatamap relatief t.o.v. scriptpad
 * `Exportfiltermap=waarde` : pad naar exportfiltermap relatief t.o.v. scriptpad
 * `Exportkladmap=waarde` : pad naar exportkladmap relatief t.o.v. scriptpad
@@ -276,6 +278,8 @@ De volgende parameters kunnen worden gedefinieerd.
 * `teamnaam_prefix=waarde` : prefix voor teamnamen in SDS
 * `teamnaam_suffix=waarde` : suffix voor teamnamen in SDS
 * `maakklassenteams=waarde` : schakelaar voor aanmaken van een team voor iedere (stam)klas
+* `bon_match_docentlesgroep_aan_leerlingklas=waarde`  : match tweede deel van docent-groepvakken
+* `docenten_per_team_limiet=waarde` : bepaalt limiet van het aantal docenten per tema.
 
 ==== Brin
 Dit is het BRIN-nummer van de school. Vraag je schooladminstratie of directie hiervoor. Deze parameter is verplicht. 
@@ -326,6 +330,13 @@ Deze parameter duidt aan hoe identiteiten van leerlingen in Azure AD worden geko
 `loginaccount`, `email`
 . Zie <<Identiteiten koppelen>> . 
 
+=== bon_match_docentlesgroep_aan_leerlingklas
+Deze parameter is een schakelaar die uit staat met `0` of aan staat met de waarde `1`. Wanneer `1` dan worden extra teams aangemaakt, waarvan de naam wordt opgebouwd uit het deel van de klasnaam na de punt in de docent-groepvakken, gevolgd door een vaknaam. Bij verstek is de waarde `0`. Deze parameter zorgt ervoor dat het aantal actieve teams in de onderbouw van Bonhoeffercollege wordt verhoogd met teams voor docentgroepvakken voor lesgroepen met namen als "B.B2" en "M2.M2a", waarvan alleen het deel achter de punt wordt gebruikt om te kunnen koppelen aan leerlingklassen. 
+
+=== docenten_per_team_limiet
+Deze parameter bevat een getal dat wordt vergeleken met het aantal docenten in elke kandidaatteam. Indien het aantal docenten hoger is dan gegeven door deze parameter, dan wordt het team overgeslagen bij het identificeren van actieve teams. Wanneer deze parameter `0` is, dan wordt deze controle op het aantal docenten niet uitgevoerd. Bij verstek is de waarde `0`.
+
+
 == Commandoregelparameters
 
 === Parameter Inifile 
@@ -373,9 +384,9 @@ Vanaf de CMD prompt of door middel van een batchbestand:
 
 === Logbestanden
 
-De twee scripts loggen alle schermuitvoer en foutmeldingen in een logbestand, met de naam "Import-Magister.log" respectievelijke "Export-SchoolDataSync.log" in dezelfde map als de scriptbestanden. Bestudeer deze logs om te onderzoeken welke foutmeldingen zijn gegenereerd, en op welke regel dat gebeurde.
+De twee scripts loggen alle schermuitvoer en foutmeldingen in een logbestand, met de naam "Import-Magister.log" respectievelijke "Export-SchoolDataSync.log" in de map "Log" in de map waar de scriptbestanden staan. Bestudeer deze logs om te onderzoeken welke foutmeldingen zijn gegenereerd, en op welke regel dat gebeurde.
 
-De logbestanden worden geroteerd elke keer dat een script wordt uitgevoerd. Dat wil zeggen dat een nieuw logbestand wordt aangemaakt, de laatste 7 logbestanden worden bewaard en het oudste logbestand wordt verwijderd. De naam van de bewaarde logbestanden zijn "Import-Magister.01.log" respectievelijk "Export-SchoolDataSync.01.log" en deze zijn opeenvolgend genummerd naarmate het logbestand ouder is. Dus van elke script worden altijd ten hoogste 8 logbestanden bewaard.
+De logbestanden worden geroteerd elke keer dat een script wordt uitgevoerd. Dat wil zeggen dat een nieuw logbestand wordt aangemaakt, de laatste 7 logbestanden worden bewaard en het oudste logbestand wordt verwijderd. De naam van de bewaarde logbestanden zijn "Import-Magister.01.log" respectievelijk "Export-SchoolDataSync.01.log" en deze zijn opeenvolgend genummerd naarmate het logbestand ouder is. Er worden van elke script altijd ten hoogste 8 logbestanden bewaard.
 
 === Controle van uitvoer
 

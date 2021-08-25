@@ -10,7 +10,7 @@
     bepaalt actieve teams en genereert CSV-bestanden ten behoeve van 
     School Data Sync.
 
-    Versie 20210824
+    Versie 20210825
     Auteur Paul Wiegmans (p.wiegmans@svok.nl)
 
     naar een voorbeeld door Wim den Ronde, Eric Redegeld, Joppe van Daalen
@@ -67,6 +67,8 @@ $teamnaam_suffix = ""
 $maakklassenteams = "1"
 $logtag = "INIT" 
 $toonresultaat = "0"
+$bon_match_docentlesgroep_aan_leerlingklas = "0"
+$docenten_per_team_limiet = "0"  # maximum toegestaan aantal docenten per team. 0 betekent geen limiet
 
 #region Functies
 function PreviousLogFilename($Number) {
@@ -124,6 +126,8 @@ Try {
         $teamnaam_suffix = " " + $teamnaam_suffix.trim()
     }
     $toonresultaat = $toonresultaat -ne "0"  # maak boolean
+    $bon_match_docentlesgroep_aan_leerlingklas = $bon_match_docentlesgroep_aan_leerlingklas -ne "0" # maak boolean
+    [int]$skip_docentenaantal_groterofgelijkaan = $skip_docentenaantal_groterofgelijkaan # maak integer
 
     $logtag = $teamid_prefix
     $host.ui.RawUI.WindowTitle = ((Split-Path -Leaf $MyInvocation.MyCommand.Path) -replace ".ps1") + " " + $logtag
@@ -159,9 +163,11 @@ Try {
     $filename_incl_teamnaam     = $filterPath + "\incl_teamnaam.csv"
 
     # Kladbestanden
-    $filename_t_teamactief      = $tempPath + "\teamactief.csv"    
-    $filename_t_team0ll         = $tempPath + "\team0ll.csv"
-    $filename_t_team0doc        = $tempPath + "\team0doc.csv"
+    $hteamid                    = $teamid_prefix.trim() -replace(" ","_")
+    $filename_t_hteamfull       = $tempPath + "\hteamfull_" + $hteamid + ".csv"
+    $filename_t_hteamactief     = $tempPath + "\hteamactief_" + $hteamid + ".csv"
+    $filename_t_hteam0ll        = $tempPath + "\hteam0ll_" + $hteamid + ".csv"
+    $filename_t_hteam0doc       = $tempPath + "\hteam0doc_" + $hteamid + ".csv"
 
     # Files OUT
     $filename_School            = $outputPath + "\School.csv"
@@ -203,10 +209,11 @@ Try {
     function New-Team($naam, $id)
     {
         # maak een nieuw teamrecord met $naam, geindexeerd op Teamid (dit wordt 'Section SIS ID')
-        $rec = 1 | Select-Object Id, Naam, Type, lltal, leerling, doctal, docent
+        $rec = 1 | Select-Object Id, Naam, TypeL, TypeD, lltal, leerling, doctal, docent
         $rec.Naam = $naam       # weergavenaam van team
         $rec.Id = $id
-        $rec.Type = ""
+        $rec.TypeL = ""
+        $rec.TypeD = ""
         $rec.lltal = 0          # aantal leerlingen
         $rec.leerling = @()     # lijst met leerlingid
         $rec.doctal = 0         # aantal docenten
@@ -298,8 +305,8 @@ Try {
             $teamid = $leerling.Klas
             if ($team.Keys -notcontains $teamid) {
                 $team[$teamid] = New-Team -Naam $teamnaam -ID $teamid
-                $team[$teamid].Type = "klas"
             }
+            $team[$teamid].TypeL = "klas"
             $team[$teamid].lltal += 1
             $team[$teamid].leerling += @($leerling.Id)
         }
@@ -316,8 +323,8 @@ Try {
                 $teamid = $groep
                 if ($team.Keys -notcontains $teamid) {
                     $team[$teamid] = New-Team -Naam $teamnaam -ID $teamid
-                    $team[$teamid].Type = "groep"
                 }
+                $team[$teamid].TypeL = "groep"
                 $team[$teamid].lltal += 1
                 $team[$teamid].leerling += @($leerling.Id)
             }
@@ -331,8 +338,8 @@ Try {
             $teamid = $leerling.klas + " " + $vak
             if ($team.Keys -notcontains $teamid) {
                 $team[$teamid] = New-Team -Naam $teamnaam -ID $teamid
-                $team[$teamid].Type = "vak"
             }        
+            $team[$teamid].TypeL = "vak"
             $team[$teamid].lltal += 1
             $team[$teamid].leerling += @($leerling.Id)
         }
@@ -354,28 +361,49 @@ Try {
         foreach ($groepvak in $docent.groepvakken) {
             # velden van mag_doc[].Groepvakken:  Klas, Vakcode
             
-            # maak team voor de klas
+            # maak team voor de klas/groep
             $teamnaam = $groepvak.Klas
             $teamid = $groepvak.Klas
             if ($team.Keys -notcontains $teamid) {
                 $team[$teamid] = New-Team -Naam $teamnaam -ID $teamid
-                $team[$teamid].Type = "docgroepvak"
             }        
+            $team[$teamid].TypeD = "gvklas"
             $team[$teamid].doctal += 1
             if ($team[$teamid].docent -notcontains $docent.Id) {
                 $team[$teamid].docent += @($docent.Id)
             }
         
-            #maak team voor het vak
+            #maak team voor de klas/groep + vak
             $teamnaam = $groepvak.Klas + " " + $groepvak.Vakcode
             $teamid = $groepvak.Klas + " " + $groepvak.Vakcode
-            if ($team.Keys -notcontains $teamid) {
+            if ($team.Keys.cont -notcontains $teamid) {
                 $team[$teamid] = New-Team -Naam $teamnaam -ID $teamid
-                $team[$teamid].Type = "docvak"
             }        
+            $team[$teamid].TypeD = "gvklasvak"
             $team[$teamid].doctal += 1
             if ($team[$teamid].docent -notcontains $docent.Id) {
                 $team[$teamid].docent += @($docent.Id)
+            }
+
+            # Fix voor BON non-match docent:lesgroep+vak aan leerling:klas+vak
+            # $groepvak.Klas bevat een lesgroepnaam zoals "H2.H2d".
+            # Splits de klas af.
+            if ($bon_match_docentlesgroep_aan_leerlingklas)
+            {
+                if ($groepvak.Klas.Contains(".")) {
+                    # klas is bijv "H2.H2d", 
+                    $echteklas = ($groepvak.Klas.Split("."))[1]  # pak deel na de punt
+                    $teamnaam = $echteklas + " " + $groepvak.Vakcode
+                    $teamid = $echteklas + " " + $groepvak.Vakcode
+                    if ($team.Keys -notcontains $teamid) {
+                        $team[$teamid] = New-Team -Naam $teamnaam -ID $teamid
+                    }        
+                    $team[$teamid].TypeD = "splitsklasvak"
+                    $team[$teamid].doctal += 1
+                    if ($team[$teamid].docent -notcontains $docent.Id) {
+                        $team[$teamid].docent += @($docent.Id)
+                    }
+                }
             }
         }
 
@@ -391,8 +419,8 @@ Try {
             $teamid = $klasvak
             if ($team.Keys -notcontains $teamid) {
                 $team[$teamid] = New-Team -Naam $teamnaam -ID $teamid
-                $team[$teamid].Type = "docklasvak"
             }        
+            $team[$teamid].TypeD = "klasvak"
             $team[$teamid].doctal += 1  
             if ($team[$teamid].docent -notcontains $docent.Id) {
                 $team[$teamid].docent += @($docent.Id)
@@ -452,29 +480,44 @@ Try {
     if (Test-Path $filename_incl_teamnaam) {
         $filter_incl_teamnaam = $(Get-Content -Path $filename_incl_teamnaam) -join '|'
         $team = $team | Where-Object {$_.Naam -match $filter_incl_teamnaam}
-        Write-Log ("Team na insluiting teamnaam : " + $team.count)
+        Write-Log ("Teams na insluiting teamnaam : " + $team.count)
+    }
+    # filter op aantal docenten
+    if ($docenten_per_team_limiet) {
+        $team = $team | Where-Object {$_.doctal -le $docenten_per_team_limiet}
+        Write-Log ("Teams na toepassen docentenlimiet : " + $team.count)
     }
 
     # Actieve teams bevatten zowel leerlingen als docenten.
-    # Splits de teams in 3 lijsten: actief, zonder leerlingen, zonder docenten.
+    $team = $team | Sort-Object Id
     $teamactief = $team | Where-Object {($_.lltal -gt 0) -and ($_.doctal -gt 0)}
-    $team0doc = $team | Where-Object {$_.doctal -eq 0}
-    $team0ll = $team | Where-Object {$_.lltal -eq 0}
 
-    Write-Log ("Teams actief          : " + $teamactief.count )
-    Write-Log ("Teams zonder leerling : " + $team0ll.count )
-    Write-Log ("Teams zonder docent   : " + $team0doc.count)
-
-    # Bewaar actieve teams in CSVs ter controle
-    $hteamactief = $teamactief | Sort-Object Id | Select-Object Id, Naam, Type, 
+    # Maak makkelijk leesbare lijsten om te helpen bij foutzoeken en fijnafstelling. 
+    $hteam = $team | Select-Object Id, Naam, 
+        TypeD, 
         @{Name = 'Aantal_docenten'; Expression = {$_.Doctal}},
-        @{Name = 'Docenten'; Expression = {($_.docent | Sort-Object) -join ","}},
+        TypeL, 
         @{Name = 'Aantal_leerlingen'; Expression = {$_.Lltal}},
+        @{Name = 'Docenten'; Expression = {($_.docent | Sort-Object) -join ","}},
         @{Name = 'Leerlingen'; Expression = {($_.leerling | Sort-Object) -join ","}}
-    $hteamactief | Export-Csv -Path $filename_t_teamactief -NoTypeInformation -Encoding UTF8 -Delimiter ";"
+
+    # Splits de teams in 3 lijsten: actief, zonder leerlingen, zonder docenten.
+    $hteamactief = $hteam | Where-Object {($_.Aantal_leerlingen -gt 0) -and ($_.Aantal_docenten -gt 0)}
+    $hteam0ll = $hteam | Where-Object {$_.Aantal_docenten -eq 0}
+    $hteam0doc = $hteam | Where-Object {$_.Aantal_leerlingen -eq 0}
+    
+    Write-Log ("Teams actief          : " + $hteamactief.count )
+    Write-Log ("Teams zonder leerling : " + $hteam0ll.count )
+    Write-Log ("Teams zonder docent   : " + $hteam0doc.count)
+
+    # Bewaar human readable lijsten in CSV om te helpen bij foutzoeken en fijnafstelling. 
+    $hteam | Export-Csv -Path $filename_t_hteamfull -NoTypeInformation -Encoding UTF8 -Delimiter ";"
+    $hteamactief | Export-Csv -Path $filename_t_hteamactief -NoTypeInformation -Encoding UTF8 -Delimiter ";"
+    $hteam0doc | Export-CSV -Path $filename_t_hteam0doc -NoTypeInformation -Encoding UTF8 -Delimiter ";"
+    $hteam0ll | Export-Csv -Path $filename_t_hteam0ll -NoTypeInformation -Encoding UTF8 -Delimiter ";"
 
     # Bewaar actieve teams ook als clixml
-    $hteamactief | Export-Clixml -Path ($filename_t_teamactief + ".clixml")
+    $hteamactief | Export-Clixml -Path ($filename_t_hteamactief + ".clixml")
 
     # voor visuele controle
     if ($toonresultaat) {
