@@ -10,7 +10,7 @@
     bepaalt actieve teams en genereert CSV-bestanden ten behoeve van 
     School Data Sync.
 
-    Versie 20210825
+    Versie 20210827
     Auteur Paul Wiegmans (p.wiegmans@svok.nl)
 
     naar een voorbeeld door Wim den Ronde, Eric Redegeld, Joppe van Daalen
@@ -164,10 +164,10 @@ Try {
 
     # Kladbestanden
     $hteamid                    = $teamid_prefix.trim() -replace(" ","_")
-    $filename_t_hteamfull       = $tempPath + "\hteamfull_" + $hteamid + ".csv"
+    $filename_t_hteamfull       = $tempPath + "\hteamfull_"   + $hteamid + ".csv"
     $filename_t_hteamactief     = $tempPath + "\hteamactief_" + $hteamid + ".csv"
-    $filename_t_hteam0ll        = $tempPath + "\hteam0ll_" + $hteamid + ".csv"
-    $filename_t_hteam0doc       = $tempPath + "\hteam0doc_" + $hteamid + ".csv"
+    $filename_t_hteam0ll        = $tempPath + "\hteam0ll_"    + $hteamid + ".csv"
+    $filename_t_hteam0doc       = $tempPath + "\hteam0doc_"   + $hteamid + ".csv"
 
     # Files OUT
     $filename_School            = $outputPath + "\School.csv"
@@ -639,7 +639,7 @@ Catch {
     $line = $_.InvocationInfo.ScriptLineNumber
     $msg = $e.Message 
  
-    "$(Get-Date -f "yyyy-MM-ddTHH:mm:ss:fff") [$logtag] caught exception: $msg at line $line" | Out-File -FilePath (PreviousLogFilename -Number 1) -Append
-    Write-Error "caught exception: $msg at line $line"    
+    "$(Get-Date -f "yyyy-MM-ddTHH:mm:ss:fff") [$logtag] caught exception: $msg at line $line" | Out-File -FilePath $currentLogFilename -Append
+    Write-Error "Caught exception: $msg at line $line"    
     exit 1  
 }
