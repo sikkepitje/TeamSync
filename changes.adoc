@@ -1,7 +1,7 @@
 
 # Changes
 
-## 20200424
+## 20200425
 
 * werkt al goed
 
@@ -140,6 +140,26 @@ wijzigingen in hoofdlettergebruik in Magister geen verlies van synchronisatie me
 * Alle logbestanden komen in een submap "Log".
 * Importscript: Excepties in Invoke-WebClient worden nu gelogd in het logbestand.
 * Exportscript: active-teamslijst: direct importeerbaar in Excel; duidelijkere kolomnamen.
+
+# 20210825
+* Exportscript: verbeterde bepaling van actieve teams,
+* Exportscript: toevoeging configuratieparameter bon_match_docentlesgroep_aan_leerlingklas ,
+* Exportscript: toevoeging configuratieparameter docenten_per_team_limiet,
+* documentatie bijgewerkt.
+
+# 20210827
+* fout hersteld waardoor exceptions niet werden gelogd in het logbestand
+
+# 20210829
+* Exportscript: verbeterde bepaling van actieve teams,
+* Exportscript: Toegevoegd een speciaal geval voor Bonhoeffercollege, waar team wordt gekoppeld tussen leerling-klas en het tweede deel van docentlesgroep wanneer gesplitst op de punt ("H2.H2a" -> "H2a"). Dit geeft teams voor elke combinatie van klas en vak in onderbouw. 
+Toevoeging configuratieparameter bon_match_docentlesgroep_aan_leerlingklas voor het inschakelen van deze functionaliteit.
+* Export 
+* Exportscript: toegevoegd functionaliteit om actieve teams met meer dan een opgegeven aantal docentern eruit te filteren. toevoeging configuratieparameter docenten_per_team_limiet.
+* documentatie bijgewerkt.
+* fout hersteld waardoor exceptions niet werden gelogd in het logbestand
+* Exportscript: fixed typo in test of groepvak-team bestaat. Deze bug bestond vanaf versie 20210825, veroorzaakte een afwijkende aantal teams. Commits 20210827 en 20210825 zijn teruggedraaid.
+
 
 ## TO DO
 Dit zijn geplande wijzigingen zonder een vastgesteld tijdpad (krabbels van de auteur).
