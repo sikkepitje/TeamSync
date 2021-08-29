@@ -9,7 +9,7 @@
     TeamSync script deel 1 (ophalen) haalt gegevens op uit Medius (Magister)
     Webservice.
 
-    Versie 20210827
+    Versie 20210824
     Auteur Paul Wiegmans (p.wiegmans@svok.nl)
 
     naar een voorbeeld door Wim den Ronde, Eric Redegeld, Joppe van Daalen
@@ -552,7 +552,7 @@ Catch {
     $line = $_.InvocationInfo.ScriptLineNumber
     $msg = $e.Message 
  
-    "$(Get-Date -f "yyyy-MM-ddTHH:mm:ss:fff") [$logtag] caught exception: $msg at line $line" | Out-File -FilePath $currentLogFilename -Append
-    Write-Error "Caught exception: $msg at line $line"      
+    "$(Get-Date -f "yyyy-MM-ddTHH:mm:ss:fff") [$logtag] caught exception: $msg at line $line" | Out-File -FilePath (PreviousLogFilename -Number 1) -Append
+    Write-Error "caught exception: $msg at line $line"      
     exit 1
 }

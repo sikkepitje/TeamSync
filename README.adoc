@@ -1,7 +1,6 @@
-= TeamSync versie 20210827
-
+= TeamSync versie 20210825
 Paul Wiegmans <p.wiegmans@svok.nl>
-27 aug 2021 
+8 juli 2021 
 
 :idprefix:
 :idseparator: -
@@ -387,24 +386,26 @@ Vanaf de CMD prompt of door middel van een batchbestand:
 
 De twee scripts loggen alle schermuitvoer en foutmeldingen in een logbestand, met de naam "Import-Magister.log" respectievelijke "Export-SchoolDataSync.log" in de map "Log" in de map waar de scriptbestanden staan. Bestudeer deze logs om te onderzoeken welke foutmeldingen zijn gegenereerd, en op welke regel dat gebeurde.
 
-De logbestanden worden geroteerd elke keer dat een script wordt uitgevoerd. Bij elke keer dat het importscript en exportscript worden uitgevoerd, worden de laatste 7 logbestanden hernoemd en een nieuw logbestand wordt aangemaakt. Het oudste logbestand wordt verwijderd. De naam van de bewaarde logbestanden zijn "Import-Magister.01.log" respectievelijk "Export-SchoolDataSync.01.log" en deze zijn opeenvolgend genummerd naarmate het logbestand ouder is. Er worden van elke script altijd ten hoogste 8 logbestanden bewaard.
+De logbestanden worden geroteerd elke keer dat een script wordt uitgevoerd. Dat wil zeggen dat een nieuw logbestand wordt aangemaakt, de laatste 7 logbestanden worden bewaard en het oudste logbestand wordt verwijderd. De naam van de bewaarde logbestanden zijn "Import-Magister.01.log" respectievelijk "Export-SchoolDataSync.01.log" en deze zijn opeenvolgend genummerd naarmate het logbestand ouder is. Er worden van elke script altijd ten hoogste 8 logbestanden bewaard.
 
 === Controle van uitvoer
 
-TeamSync maakt een aantal bestanden aan, die inzicht geven in welke teams door School Data Sync aangemaakt zouden worden en welke gegevens worden verwerkt. Deze bestanden hebben een CSV-formaat (Comma Separated Values). Dit is een belangrijke hulp bij het bepalen van de juiste filters en instellingen. 
+TeamSync produceert een aantal bestanden, die inzicht geven in welke teams door School Data Sync aangemaakt zouden worden en welke gegevens worden verwerkt. Deze bestanden hebben een CSV-formaat (Comma Separated Values) en kunnen met Excel worden geopend.
 
 Script Import-Magister genereert onder andere: 
 
-* `leerling.csv` : Een lijst met leerlingen zoals die uit Magister wordt gelezen.
-* `docent.csv` : Een lijst met medewerkers zoals die uit Magister wordt gelezen.
+* `leerling.csv` : CSV-bestand met platte leerlinglijst uit Magister
+* `docent.csv` : CSV-bestand met platte medewerkerlijst uit Magister
 
 Script Export-SchoolDataSync genereert onder andere:
 
-* `hteamactief_{teamid_prefix}.csv` : Een lijst met alle teams die TeamSync als actief aanmerkt. Dit zijn de teams die in de uitvoer voor SDS voorkomen.
-* `hteam0doc_{teamid_prefix}.csv` : Een lijst met Teams die als inactief zijn aangeduid omdat een docent hierin ontbreekt.
-* `hteam0ll_{teamid_prefix}.csv` : Een lijst met Teams die als inactief zijn aangeduid omdat leerlingen hierin ontbreken.
+* `teamactief.csv` : CSV-bestand met teams die als actief worden aangeduid en die in de uitvoer voor SDS voorkomen: teamid, teamnaam, docentaantal, docentnamen, leerlingaantal, leerlingnamen.
+* `team0doc.csv` : CSV-bestand met Teams die als inactief zijn aangeduid omdat ze geen docent(en) bevatten.
+* `team0ll.csv` : CSV-bestand met Teams die als inactief zijn aangeduid omdat ze geen leerlingen bevatten.
 
-Om te zien welke teams actief zouden worden gesynchroniseerd door Microsoft School Data Sync, open het bestand met de naam `hteamactief_{teamid_prefix}.csv`.
+Ook worden enkele *.clixml bestanden aangemaakt, die met behulp van PowerShell kunnen worden ingelezen. 
+
+Om te zien welke teams actief worden gemaakt in School Data Sync, open het bestand `teamactief.csv`.
 
 === Typische gebruikscenarios
 
