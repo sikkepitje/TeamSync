@@ -1,7 +1,7 @@
 
 # Changes
 
-## 20200425
+## 20200424
 
 * werkt al goed
 
@@ -140,12 +140,6 @@ wijzigingen in hoofdlettergebruik in Magister geen verlies van synchronisatie me
 * Alle logbestanden komen in een submap "Log".
 * Importscript: Excepties in Invoke-WebClient worden nu gelogd in het logbestand.
 * Exportscript: active-teamslijst: direct importeerbaar in Excel; duidelijkere kolomnamen.
-
-# 20210825
-* Exportscript: verbeterde bepaling van actieve teams,
-* Exportscript: toevoeging configuratieparameter bon_match_docentlesgroep_aan_leerlingklas,
-* Exportscript: toevoeging configuratieparameter docenten_per_team_limiet,
-* documentatie bijgewerkt.
 
 ## TO DO
 Dit zijn geplande wijzigingen zonder een vastgesteld tijdpad (krabbels van de auteur).
