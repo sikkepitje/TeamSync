@@ -1,7 +1,6 @@
-= TeamSync versie 20210829
-
+= TeamSync 
 Paul Wiegmans <p.wiegmans@svok.nl>
-27 aug 2021 
+v20210908
 
 :idprefix:
 :idseparator: -
@@ -143,8 +142,9 @@ Er kan bij het ophalen van Magistergegevens door `Import-Magister.ps1` worden ge
 * studie, 
 * locatie (overeenkomend met Administratieve_eenheid.Omschrijving in Magister).
 
-Er kan bij het bepalen van klassenteams door `Export-Magister.ps1` worden gefilterd op:* docent(id), 
+Er kan bij het bepalen van klassenteams door `Export-Magister.ps1` worden gefilterd op:
 
+* docent(id),
 * klas, 
 * studie, 
 * locatie (overeenkomend met Administratieve_eenheid.Omschrijving in Magister),
@@ -170,7 +170,7 @@ De volgende filterbestanden kunnen worden gedefinieerd door het overeenkomstige 
 * `incl_studie.csv` : filters voor het insluitend filteren van leerlingen op studie.
 * `incl_locatie.csv` : filters voor het insluitend filteren van leerlingen op locatie oftewel Magister:Administratieve_eenheid.Omschrijving.
 * `incl_teamnaam.csv` : (alleen in de ExportFiltermap t.b.v. `Export-SchoolDataSync.ps1`) filters voor het insluitend filteren van teams op (weergave)naam. t.b.v. `Export-SchoolDataSync.ps1`
-* `excl_teamnaam.csv` : (alleen in de ExportFiltermap t.b.v. `Export-SchoolDataSync.ps1`) filters voor het insluitend filteren van teams op (weergave)naam.
+* `excl_teamnaam.csv` : (alleen in de ExportFiltermap t.b.v. `Export-SchoolDataSync.ps1`) filters voor het uitsluitend filteren van teams op (weergave)naam.
 
 Het gebruik van deze filterbestanden is optioneel. Als ze bestaan, worden ze ingelezen en gebruikt. Als ze niet bestaan, wordt er niet gefilterd. Indien gebruikt, dan bevat elk filterbestand één of meer regex-patronen, elk op een eigen regel, die worden toegepast voor het filteren van de relevante gegevens. Elke regex-patroon matcht een deel van de invoer. Wildcards zijn niet nodig. Alle tekens met een speciale betekenis voor de match-operator zijn hierbij toegelaten. Plaats geen lege regels in het filterbestand.
 
@@ -187,14 +187,14 @@ Voor een uitgebreidere uitleg over regular expressions of regex, zie https://nl.
 ===== Filtervoorbeeld VAVO uitfilteren
 Alle leerlingen waarvan de studie eindigt op "VAVO" worden uitgesloten.
 
-Het bestand ImportFilterMap\excl_studie.csv wordt aangemaakt en bevat: 
+Het bestand `ImportFilterMap\excl_studie.csv` wordt aangemaakt en bevat: 
 ```
 VAVO$
 ```
 ===== Filtervoorbeeld Brugklassen, Mavo, Havo, Vwo
 We willen de leerlingen van Mavo, Havo, Vwo en de brugklassen verwerken; alle leerlingen in een studie die begint met B,M,H of V moeten worden verwerkt. 
 
-Het bestand ImportFilterMap\incl_studie.csv wordt aangemaakt en bevat:
+Het bestand `ImportFilterMap\incl_studie.csv` wordt aangemaakt en bevat:
 ```
 ^M
 ^H
@@ -204,7 +204,7 @@ Het bestand ImportFilterMap\incl_studie.csv wordt aangemaakt en bevat:
 ===== Filtervoorbeeld: H4 en H5
 Voorbeeld : we willen alleen 4 en 5 Havo en verwerken; alle leerlingen in de klas die begint met '4H' of '5H' moeten worden verwerkt. 
 
-Het bestand ImportFilterMap\incl_klas.csv bevat:
+Het bestand `ImportFilterMap\incl_klas.csv` bevat:
 ```
 ^5H
 ^4H
@@ -213,26 +213,24 @@ Het bestand ImportFilterMap\incl_klas.csv bevat:
 ===== Filtervoorbeeld: Geen tweede rol in Magister
 Voorbeeld: we willen alleen docenten wiens id niet begint met '_' of eindigt op '*'. 
 
-Het bestand ImportFilterMap\excl_docent.csv bevat:
+Het bestand `ImportFilterMap\excl_docent.csv` bevat:
 ```
 ^_
 \*$
 ```
 
 ===== Filtervoorbeeld: 1 Magister, 4 scholen
-Voorbeeld: In het geval dat er 4 scholen gebruik maken van 1 Magisterinstantie, en ik wil alleen klassenteams voor Beroepsgericht. Alle docenten, leerlingen en lesgroepen hebben Magister:Administratieve_eenheid.Omschrijving = "Beroepsgericht".
+Voorbeeld: In het geval dat er 4 scholen gebruik maken van 1 Magisterinstantie, en alleen klassenteams voor Beroepsgericht zijn gewenst. Alle docenten, leerlingen en lesgroepen hebben Magister:Administratieve_eenheid.Omschrijving = "Beroepsgericht".
 
-Het bestand ImportFiltermap\incl_locatie.csv *of* ExportFiltermap\incl_locatie.csv bevat: 
+Het bestand `ImportFiltermap\incl_locatie.csv` *of* `ExportFiltermap\incl_locatie.csv` bevat: 
 ```
 Beroepsgericht
 ```
 
-Merk ook op dat wanneer wordt gefilterd op *leerlingen* in de opgegeven administratieve eenheid, er uiteindelijk alleen klassenteams worden gemaakt met deze leerlingen en docenten
-
 ===== Filtervoorbeeld: Alleen teams met " EN "
 Voorbeeld: alleen teams met " EN " in de naam. 
 
-Het bestand Export-Filter\incl_teamnaam.csv bevat: 
+Het bestand `Export-Filter\incl_teamnaam.csv` bevat: 
 ```
 \sEN\s
 ```
@@ -279,20 +277,20 @@ De volgende parameters kunnen worden gedefinieerd in het configuratiebestand van
 * `teamnaam_prefix=waarde` : prefix voor teamnamen in SDS
 * `teamnaam_suffix=waarde` : suffix voor teamnamen in SDS
 * `maakklassenteams=waarde` : schakelaar voor aanmaken van een team voor iedere (stam)klas
-* `bon_match_docentlesgroep_aan_leerlingklas=waarde`  : match tweede deel van docent-groepvakken
+* `bon_match_docentlesgroep_aan_leerlingklas=waarde`  : schakelaar voor matchen aan tweede deel van docent-groepvaknaam
 * `docenten_per_team_limiet=waarde` : bepaalt limiet van het aantal docenten per tema.
 
 ==== Brin
-Dit is het BRIN-nummer van de school. Vraag je schooladminstratie of directie hiervoor. Deze parameter is verplicht. 
+Deze parameter is verplicht. Dit is het BRIN-nummer van de school. Vraag je schooladminstratie of directie hiervoor. 
 
 ==== Schoolnaam 
-Dit is de schoolnaam zoals die in SDS moet zijn gedefinieerd. Deze parameter is verplicht. 
+Deze parameter is verplicht. Dit is de schoolnaam zoals die in School Data Sync moet zijn gedefinieerd. 
 
 ==== MagisterUser, MagisterPassword, MagisterUrl 
 Deze parameters zijn verplicht. Deze gegevens zijn vereist om toegang te krijgen tot de Medius Webservices. De LAS-beheerder maakt een gebruiker aan in de Webservice gebruikerslijst in Magister. De gebruikersnaam en wachtwoord moeten worden gegeven in `MagisterUser` en `MagisterPassword`. Deze gebruiker heeft toegangsrechten nodig tot de *_ADfuncties_* in de Medius Webservices. De MagisterUrl is de URL waar de webservices worden aangeboden. Dit bestaat uit de schoolspecifieke URL voor  Schoolwerkplek met daarachter poort en padaanduiding _:8800/doc_ . De hele URL ziet er uit als `https://schooldomein.swp.nl:8800/doc`.
 
 ==== Teamid_prefix
-Deze tekst wordt toegevoegd aan het begin van de ID van team. Dit wordt deel van de unieke ID die elk team uniek identificeert in Microsoft 365. Een nuttige prefix identificeert zowel de school als het schooljaar en is bijvoorbeeld "JPT 1920". Spaties in de naam worden omgezet in underscores ten behoeve van het bepalen van de ObjectID. Deze parameter is verplicht. 
+Deze parameter is verplicht. Deze tekst wordt toegevoegd aan het begin van de ID van team. Dit wordt deel van de unieke ID die elk team uniek identificeert in Microsoft 365. Een nuttige prefix identificeert zowel de school als het schooljaar en is bijvoorbeeld "JPT 1920". Spaties in de naam worden omgezet in underscores ten behoeve van het bepalen van de ObjectID. 
 
 ==== Teamnaam_prefix
 Deze tekst wordt toegevoegd aan het begin van de weergavenaam van elk team en wordt zichtbaar in de teamlijst van alle deelnemers.
@@ -347,7 +345,7 @@ Een voorbeeld :
 
  <scriptnaam> -Inifile <bestandsnaam> 
 
-waarbij `<bestandsnaam>` de naam is van een configuratiebestand. De commandoregelparameter heeft een aantal aliassen. Deze zijn `Inifilename`,`Inibestandsnaam`,`Config`,`Configfile`,`Configuratiebestand`. Een alternatief configuratiebestand kan dus ook worden opgegeven met bijvoorbeeld: 
+waarbij `<bestandsnaam>` de naam is van een configuratiebestand. Deze parameter heeft de aliassen `Inifilename`,`Inibestandsnaam`,`Config`,`Configfile` en `Configuratiebestand`. Een alternatief configuratiebestand kan dus ook worden opgegeven met bijvoorbeeld: 
 
  <scriptnaam> -Config <bestandsnaam> 
 
@@ -434,7 +432,7 @@ Om een lijst met actieve teams te genereren, moeten de gegevens in Magister aan 
 * Leerlingen en docenten moeten actief zijn, d.w.z. de inschrijfdatum moet in het verleden liggen, en de uitschrijfdatum in de toekomst of leeg.
 * Leerlingen en docenten moeten een ingevulde locatie oftewel "Administratieve_eenheid.Omschrijving" hebben.
 * Leerlingen moeten lid zijn van een klas.
-* Docenten moeten toegewezen zijn aan één of meer vakken. 
+* Er moet een docent zijn toegewezen aan elk vak (in de lessentabel van een leerling). 
 * De lesperiode, waarin elk vak wordt gegeven door de docent aan de klas, moet actief zijn, d.w.z. de huidige datum moet tussen begindatum en einddatum liggen.
 
 Als aan de bovenstaande voorwaarden niet is voldaan, worden de verbanden tussen docenten, leerlingen (lesgroep) en vak niet als actief beschouwd en bevat de uitvoer geen actieve teams.
