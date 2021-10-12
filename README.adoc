@@ -1,6 +1,6 @@
-= TeamSync 
+= TeamSync versie 20210908
+
 Paul Wiegmans <p.wiegmans@svok.nl>
-v20210908
 
 :idprefix:
 :idseparator: -

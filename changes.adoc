@@ -1,6 +1,8 @@
 
 # Changes
 
+Wijzigingen /commits gesorteerd van oud naar nieuw
+
 ## 20200425
 
 * werkt al goed
@@ -160,6 +162,8 @@ Toevoeging configuratieparameter bon_match_docentlesgroep_aan_leerlingklas voor 
 * fout hersteld waardoor exceptions niet werden gelogd in het logbestand
 * Exportscript: fixed typo in test of groepvak-team bestaat. Deze bug bestond vanaf versie 20210825, veroorzaakte een afwijkende aantal teams. Commits 20210827 en 20210825 zijn teruggedraaid.
 
+# 20211012
+* Importscript: TeamSync gebruikt beveiligingsprotocol TLS versie 1.2, in overeenstemming met het stoppen van ondersteuning van oudere onveilige beveiligingsprotocollen TLS 1.1 of ouder in Magister SOAP Webservices vanaf 18 okt 2021. 
 
 ## TO DO
 Dit zijn geplande wijzigingen zonder een vastgesteld tijdpad (krabbels van de auteur).
