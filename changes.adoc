@@ -165,6 +165,9 @@ Toevoeging configuratieparameter bon_match_docentlesgroep_aan_leerlingklas voor 
 # 20211012
 * Importscript: TeamSync gebruikt beveiligingsprotocol TLS versie 1.2, in overeenstemming met het stoppen van ondersteuning van oudere onveilige beveiligingsprotocollen TLS 1.1 of ouder in Magister SOAP Webservices vanaf 18 okt 2021. 
 
+# 20211019 
+* Documentatie vermeld in bekende tekortkomingen een geval waarin de onjuiste vakomschrijving in de team-weergavenaam wordt geplaatst en een workaround. 
+
 ## TO DO
 Dit zijn geplande wijzigingen zonder een vastgesteld tijdpad (krabbels van de auteur).
 

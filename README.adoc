@@ -1,4 +1,4 @@
-= TeamSync versie 20210908
+= TeamSync versie 20211019
 
 Paul Wiegmans <p.wiegmans@svok.nl>
 
@@ -437,6 +437,16 @@ Om een lijst met actieve teams te genereren, moeten de gegevens in Magister aan 
 
 Als aan de bovenstaande voorwaarden niet is voldaan, worden de verbanden tussen docenten, leerlingen (lesgroep) en vak niet als actief beschouwd en bevat de uitvoer geen actieve teams.
 Vanwege deze reden zal TeamSync in de zomervakantie geen nuttige uitvoer leveren. 
+
+=== Bekende tekortkomingen
+
+==== Vakomschrijving in teamnaam wijkt af
+
+Voor elk team dat TeamSync samenstelt uit een lesgroep, plaatst het een vakomschrijving in de weergavenaam van het team. De vakomschrijving wordt bepaald door een vakcode te distilleren uit de lesgroepnaam. Het kijkt naar de tekens achter een punt of komma, met weglating van alle cijfers. De overblijvende tekenreeks wordt achtereenvolgens kleiner gemaakt totdat er een overeenkomstige vakcode gevonden wordt in de vakkentabel. De daarbij horende vakomschrijving wordt in de teamnaam geplaatst. Wanneer de vakcode niet eenduidig kan worden bepaald, kan het gebeuren dat een verkeerde vakomschrijving in de teamnaam geplaatst. 
+
+De makkelijkste manier om dit te verhelpen is om door te gaan met de implementatie van TeamSync en School Data Sync. Wanneer de teams met een verkeerde vakomschrijving in de weergavenaam zijn aangemaakt, wijzig de naam van de teams met de hand. Iedereen kan dit doen voor elk team waarvan iemand eigenaar is of een beheerder kan dit doen voor alle teams in de Teams Admin Center.
+
+Een minder makkelijke workaround wanneer de teams nog niet zijn aangemaakt, is na uitvoeren van het importscript en vóór het uitvoeren van het exportscript om de vakkentabel `magister_vak.clixml` aan te passen, en een vakomschrijving te geven voor een afwijkende vakcode. Dit is dan alleen nodig voor de initiele synchronisatie van School Data Sync, en kies daarbij de instellingen "Section display names are synced only on first sync" . Wanneer de teams eenmaal zijn aangemaakt, wijzigt de naam niet meer.
 
 == Handige links
 

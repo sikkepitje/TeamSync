@@ -518,6 +518,9 @@ Try {
 
     if ($KOPPEL_MEDEWERKERID_AAN_CSVUPN -eq $medewerker_id) {
         $users = Import-CSV  -Path $filename_mwupncsv
+        if (!$users)  {
+            Throw "Geen records in de medewerker_upn tabel"
+        }
         # maak een hashtable
         $upntabel = @{}
         foreach ($user in $users) {
