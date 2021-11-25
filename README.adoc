@@ -12,9 +12,9 @@ Paul Wiegmans <p.wiegmans@svok.nl>
 :toclevels: 4
 :toc-title:
 
-TeamSync is een PowerShell-script dat gegevens ophaalt uit Magister en overbrengt naar School Data Sync ten behoeve van een geautomatiseerde aanmaak van Teams in een Microsoft 365 omgeving. 
+TeamSync is een universele oplossing voor het overbrengen van gegevens uit Magister naar School Data Sync ten behoeve van een geautomatiseerde aanmaak van Teams in een Microsoft 365 omgeving. 
 
-Deze oplossing maakt gebruik van https://sds.microsoft.com/[Microsoft School Data Sync]. School Data Sync is een oplossing die identiteiten vanuit een schooladministratiesysteem synchroniseert met Microsoft 365, en een klassenteam maakt voor elke actieve klas of lesgroep.
+Deze oplossing maakt gebruik van https://sds.microsoft.com/[Microsoft School Data Sync]. School Data Sync is een oplossing die identiteiten vanuit een schooladministratiesysteem synchroniseert met Microsoft 365, en klassenteams maakt voor alle actieve klassen of lesgroepen.
 
 Inspiratie hiervoor komt uit eerder werk genaamd 'v06-sds-files_FONSVITAE.ps1' door Wim den Ronde, Eric Redegeld, Joppe van Daalen.
 
@@ -447,6 +447,15 @@ Voor elk team dat TeamSync samenstelt uit een lesgroep, plaatst het een vakomsch
 De makkelijkste manier om dit te verhelpen is om door te gaan met de implementatie van TeamSync en School Data Sync. Wanneer de teams met een verkeerde vakomschrijving in de weergavenaam zijn aangemaakt, wijzig de naam van de teams met de hand. Iedereen kan dit doen voor elk team waarvan iemand eigenaar is of een beheerder kan dit doen voor alle teams in de Teams Admin Center.
 
 Een minder makkelijke workaround wanneer de teams nog niet zijn aangemaakt, is na uitvoeren van het importscript en vóór het uitvoeren van het exportscript om de vakkentabel `magister_vak.clixml` aan te passen, en een vakomschrijving te geven voor een afwijkende vakcode. Dit is dan alleen nodig voor de initiele synchronisatie van School Data Sync, en kies daarbij de instellingen "Section display names are synced only on first sync" . Wanneer de teams eenmaal zijn aangemaakt, wijzigt de naam niet meer.
+
+== Schermafdrukken
+
+=== Import-Magister
+image::bronnen/afbeelding-import1.png[]
+image::bronnen/afbeelding-import2.png[]
+
+=== Export-SchoolDataSync
+image::bronnen/afbeelding-export.png[]
 
 == Handige links
 
