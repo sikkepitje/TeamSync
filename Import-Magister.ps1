@@ -1,15 +1,15 @@
 <#
     .SYNOPSIS
 
-    TeamSync script deel 1; koppeling tussen Magister en School Data Sync.
+    TeamSync script Import-Magister.ps1; koppeling tussen Magister en School Data Sync.
 
     .DESCRIPTION
 
     TeamSync is een koppeling tussen Magister en School Data Sync.
-    TeamSync script deel 1 (ophalen) haalt gegevens op uit Medius (Magister)
+    TeamSync script Import-Magister.ps1 (ophalen) haalt gegevens op uit Medius (Magister)
     Webservice.
 
-    Versie 20211012
+    Versie 20211125
     Auteur Paul Wiegmans (p.wiegmans@svok.nl)
 
     naar een voorbeeld door Wim den Ronde, Eric Redegeld, Joppe van Daalen
@@ -30,7 +30,7 @@
 [CmdletBinding()]
 param (
     [Parameter(
-        HelpMessage="Geef de naam van de te gebruiken configuratiebestand, bij verstek 'TeamSync.ini'"
+        HelpMessage="Geef de naam van de te gebruiken configuratiebestand, bij verstek 'Import-Magister.ini'"
     )]
     [Alias('Inifile','Inibestandsnaam','Config','Configfile','Configuratiebestand')]
     [String]  $Inifilename = "Import-Magister.ini"
@@ -440,13 +440,14 @@ function Verzamel_docenten()
 
             if ($mag_vak.keys -notcontains $dvnode.'Vak.Vakcode') {
                 $mag_vak[$dvnode.'Vak.Vakcode'] = $dvnode.'Vak.Omschrijving'
-            }
+            }    
         }
 
         Write-Progress -Activity "Import Magister docentgroepen" -status `
             "Docent $teller van $($mag_doc.count)" -PercentComplete ($docentprocent * $teller++)
     }
     Write-Progress -Activity "Import Magister docentgroepen" -status "Docent" -Completed
+    
     $mag_doc | Export-Clixml -Path $filename_mag_docent_xml -Encoding UTF8
     $mag_vak | Export-Clixml -Path $filename_mag_vak_xml -Encoding UTF8
 

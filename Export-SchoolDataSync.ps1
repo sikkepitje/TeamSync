@@ -1,16 +1,16 @@
 <#
     .SYNOPSIS
 
-    TeamSync script deel 2; koppeling tussen Magister en School Data Sync.
+    TeamSync script Export-SchoolDataSync.ps1; koppeling tussen Magister en School Data Sync.
 
     .DESCRIPTION
 
     TeamSync is een koppeling tussen Magister en School Data Sync.
-    TeamSync script deel 2 (transformeren en uitvoeren)
+    TeamSync script Export-SchoolDataSync.ps1 (transformeren en uitvoeren)
     bepaalt actieve teams en genereert CSV-bestanden ten behoeve van 
     School Data Sync.
 
-    Versie 20210829
+    Versie 20211125
     Auteur Paul Wiegmans (p.wiegmans@svok.nl)
 
     naar een voorbeeld door Wim den Ronde, Eric Redegeld, Joppe van Daalen
@@ -36,7 +36,7 @@
 [CmdletBinding()]
 param (
     [Parameter(
-        HelpMessage="Geef de naam van de te gebruiken INI-file, bij verstek 'TeamSync.ini'"
+        HelpMessage="Geef de naam van de te gebruiken INI-file, bij verstek 'Export-SchoolDataSync.ini'"
     )]
     [Alias('Inifile','Inibestandsnaam','Config','Configfile','Configuratiebestand')]
     [String]  $Inifilename = "Export-SchoolDataSync.ini"
@@ -221,7 +221,7 @@ Try {
         return $rec
     }
 
-    ################# LEES TUSSENDATA
+    ################# LEES DATA van Import-Magister
     $mag_leer = Import-Clixml -Path $filename_mag_leerling_xml
     # velden: Stamnr, Id, Login, Roepnaam, Tussenv, Achternaam, Lesperiode, 
     # Leerjaar, Klas, Studie, Profiel, Groepen, Vakken, Email, Locatie
@@ -462,7 +462,10 @@ Try {
         }
         # indien omschrijving is gevonden, voeg toe aan naam
         if ($omschrijving.length) {
-            $t.naam += " " + $omschrijving
+            # .. maar alleen als de omschrijving niet al in de naam aanwezig is.
+            if (-not $t.naam.contains($omschrijving)) {
+                $t.naam += " " + $omschrijving
+            }
         }
 
         # Voeg prefix en suffix toe aan naam, voeg prefix to aan id
