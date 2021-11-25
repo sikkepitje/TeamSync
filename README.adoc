@@ -1,4 +1,4 @@
-= TeamSync versie 20211019
+= TeamSync versie 20211125
 
 Paul Wiegmans <p.wiegmans@svok.nl>
 
@@ -12,9 +12,9 @@ Paul Wiegmans <p.wiegmans@svok.nl>
 :toclevels: 4
 :toc-title:
 
-TeamSync is een PowerShell-script dat gegevens ophaalt uit Magister en overbrengt naar School Data Sync ten behoeve van een geautomatiseerde aanmaak van Teams in een Microsoft 365 omgeving. 
+TeamSync is een PowerShell-script dat gegevens uit Magister overbrengt naar School Data Sync ten behoeve van een geautomatiseerde aanmaak van Teams in een Microsoft 365 omgeving. 
 
-Deze oplossing maakt gebruik van https://sds.microsoft.com/[Microsoft School Data Sync]. School Data Sync is een oplossing die identiteiten vanuit een schooladministratiesysteem synchroniseert met Microsoft 365, en een klassenteam maakt voor elke actieve klas of lesgroep.
+Deze oplossing maakt gebruik van https://sds.microsoft.com/[Microsoft School Data Sync], een oplossing die identiteiten vanuit een schooladministratiesysteem synchroniseert met Microsoft 365, en een klassenteam maakt voor elke actieve klas of lesgroep.
 
 Inspiratie hiervoor komt uit eerder werk genaamd 'v06-sds-files_FONSVITAE.ps1' door Wim den Ronde, Eric Redegeld, Joppe van Daalen.
 
