@@ -36,7 +36,7 @@ Om TeamSync in te zetten is het volgende nodig.
 * Start Teamsync met het commando link:Teamsync.cmd[Teamsync.cmd].
 * Maak een scheduled task om TeamSync dagelijks uit te voeren.
 * Richt https://sds.microsoft.com/[Microsoft School Data Sync] in en creëer een synchronisatieprofiel voor de gewenste school. 
-* Upload dagelijks de door TeamSync aangemaakte CSV-bestanden naar het synchronisatieprofiel om de Microsoft 365 klassenteams bijgewerkt te houden met de actuele leerlingen, docenten en lesgroepen.
+* Upload dagelijks de door TeamSync aangemaakte CSV-bestanden naar het synchronisatieprofiel om de Microsoft 365 klassenteams bijgewerkt te houden met de actuele leerlingen, docenten en lesgroepen. 
 
 == Werking 
 
@@ -448,6 +448,10 @@ Voor elk team dat TeamSync samenstelt uit een lesgroep, plaatst het een vakomsch
 De makkelijkste manier om dit te verhelpen is om door te gaan met de implementatie van TeamSync en School Data Sync. Wanneer de teams met een verkeerde vakomschrijving in de weergavenaam zijn aangemaakt, wijzig de naam van de teams met de hand. Iedereen kan dit doen voor elk team waarvan iemand eigenaar is of een beheerder kan dit doen voor alle teams in de Teams Admin Center.
 
 Een minder makkelijke workaround wanneer de teams nog niet zijn aangemaakt, is na uitvoeren van het importscript en vóór het uitvoeren van het exportscript om de vakkentabel `magister_vak.clixml` aan te passen, en een vakomschrijving te geven voor een afwijkende vakcode. Dit is dan alleen nodig voor de initiele synchronisatie van School Data Sync, en kies daarbij de instellingen "Section display names are synced only on first sync" . Wanneer de teams eenmaal zijn aangemaakt, wijzigt de naam niet meer.
+
+=== CSV synchronisatie automatiseren
+
+Om ten volle gebruik te maken van dagelijks bijgewerkte Microsoft 365 klassenteams, is het  aanbevolen om de door TeamSync aangemaakte CSV-bestanden dagelijks naar Microsoft School Data Sync te uploaden. Om dit op een betrouwbare manier te automatiseren kun je gebruik maken van Microsoft Power Automate en de https://powerautomate.microsoft.com/nl-NL/connectors/details/shared_microsoftschooldatasync/microsoft-school-data-sync/[SDS Flow Connector]. Lees meer over de inrichting en vereisten op https://docs.microsoft.com/en-us/schooldatasync/csv-file-sync-automation[CSV File Sync Automation].
 
 == Schermafdrukken
 
