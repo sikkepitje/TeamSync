@@ -26,6 +26,7 @@ toc::[]
 
 Om TeamSync in te zetten is het volgende nodig.  
 
+* Een computer met Windows PowerShell versie 5, welk ip-adres is opgenomen in de lijst met ip-adressen die zijn toegestaan om te verbinden met Magister SOAP API, ook bekend als webqueries.
 * link:Import-Magister.ps1[Import-Magister.ps1], 
 * link:Export-SchoolDataSync.ps1[Export-SchoolDataSync.ps1],
 * link:Teamsync.cmd[Teamsync.cmd],

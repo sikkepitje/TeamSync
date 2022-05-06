@@ -172,6 +172,9 @@ Toevoeging configuratieparameter bon_match_docentlesgroep_aan_leerlingklas voor 
 * Foute HelpMessage gecorrigeerd
 * Exportscript: cosmetische verbetering; voorkom dubbele woorden in teamnaam, wanneer vakcode gelijk is aan vakomschrijving
 
+## 20220506 
+* Handleiding toevoeging: vereiste Windows PowerShell 5
+
 ## TO DO
 Dit zijn geplande wijzigingen zonder een vastgesteld tijdpad (krabbels van de auteur).
 
