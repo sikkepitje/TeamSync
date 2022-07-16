@@ -532,16 +532,16 @@ Try {
     # Ik maak de uiteindelijke bestanden aan, die naar School Data Sync worden geupload.
 
     # voorbereiden SDS formaat CSV bestanden
-    $school = @()               # 'SIS ID','Name'    bijv "20MH","Jac P. Thijsse College"
-    $section =  @()             # 'SIS ID','School SIS ID','Section Name'  bijv 'SDS_1920_1A_ak','20MH','SDS 1920 1A ak'
-    $student =  @()             # 'SIS ID','School SIS ID','Username'   bijv '10935','20MH','10935'
-    $studentenrollment = @()    # 'Section SIS ID','SIS ID'   bijv 'SDS_1920_1A','11210'
-    $teacher =  @()             # 'SIS ID','School SIS ID','Username','First Name','Last Name'  bijv "ABl","20MH","ABl","Aaaaaa","Bbbbb"
-    $teacherroster =  @()       # 'Section SIS ID','SIS ID'  bijv "SDS_1920_1A","DZn"
+    $school = [System.Collections.ArrayList]@()               # 'SIS ID','Name'    bijv "20MH","Jac P. Thijsse College"
+    $section =  [System.Collections.ArrayList]@()             # 'SIS ID','School SIS ID','Section Name'  bijv 'SDS_1920_1A_ak','20MH','SDS 1920 1A ak'
+    $student =  [System.Collections.ArrayList]@()             # 'SIS ID','School SIS ID','Username'   bijv '10935','20MH','10935'
+    $studentenrollment = [System.Collections.ArrayList]@()    # 'Section SIS ID','SIS ID'   bijv 'SDS_1920_1A','11210'
+    $teacher =  [System.Collections.ArrayList]@()             # 'SIS ID','School SIS ID','Username','First Name','Last Name'  bijv "ABl","20MH","ABl","Aaaaaa","Bbbbb"
+    $teacherroster =  [System.Collections.ArrayList]@()       # 'Section SIS ID','SIS ID'  bijv "SDS_1920_1A","DZn"
 
     # actieve leerlingen actieve docenten tabel 
-    $teamdoc = @()
-    $teamleer = @()
+    $teamdoc = [System.Collections.ArrayList]@()
+    $teamleer = [System.Collections.ArrayList]@()
     # maak docentopzoektabel
     $hashdoc = @{}
     $mag_doc | ForEach-Object { $hashdoc[$_.Id] = $_}
@@ -554,15 +554,15 @@ Try {
         $rec.'SIS ID' = $t.id 
         $rec.'School SIS ID' = $brin
         $rec.'Section Name' = $t.naam 
-        $section += $rec
+        $null = $section.Add($rec)
 
         foreach ($leerling in $t.leerling) {
             $rec = 1 | Select-Object 'Section SIS ID','SIS ID'
             $rec.'Section SIS ID' = $t.id
             $rec.'SIS ID' = $leerling
-            $studentenrollment += $rec
+            $null = $studentenrollment.Add($rec)
             if ($teamleer -notcontains $leerling) {
-                $teamleer += $leerling
+                $null = $teamleer.Add($leerling)
             }
         }
 
@@ -570,9 +570,9 @@ Try {
             $rec = 1 | Select-Object 'Section SIS ID','SIS ID'
             $rec.'Section SIS ID' = $t.id
             $rec.'SIS ID' = $docent
-            $teacherroster += $rec
+            $null = $teacherroster.Add($rec)
             if ($teamdoc -notcontains $docent) {
-                $teamdoc += $docent
+                $null = $teamdoc.Add($docent)
             }
         }
         if (!(++$teller % 10)) {
@@ -594,21 +594,21 @@ Try {
         } else {
             $rec.'Last Name' = $hashdoc[$doc].Achternaam
         }
-        $teacher += $rec
+        $null = $teacher.Add($rec)
     }
     foreach ($leer in $teamleer) {
         $rec = 1 | Select-Object 'SIS ID','School SIS ID','Username'
         $rec.'SIS ID' = $leer
         $rec.'School SIS ID' = $brin
         $rec.'Username' = $leer
-        $student += $rec
+        $null = $student.Add($rec)
     }
 
     # Maak een school
     $schoolrec = 1 | Select-Object 'SIS ID',Name
     $schoolrec.'SIS ID' = $brin
     $schoolrec.Name = $schoolnaam
-    $school += $schoolrec
+    $null = $school.Add($schoolrec)
 
     Write-Log ("School               : " + $school.count)
     Write-Log ("Student              : " + $student.count)
