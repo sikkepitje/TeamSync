@@ -1,0 +1,14 @@
+*.*
+!changes.adoc
+!Export-SchoolDataSync.ps1
+!Export-SchoolDataSync-Voorbeeld.ini
+!Import-Magister.ps1
+!Import-Magister-Voorbeeld.ini
+LICENSE
+!README.adoc
+!Ophalen-ADMedewerkerUPN.ps1
+!Ophalen-AzureADMedewerkersUPN-voorbeeld.ps1
+!README.adoc
+!Teamsync.cmd
+!bronnen
+!ImportFilter
