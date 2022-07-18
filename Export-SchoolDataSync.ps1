@@ -10,7 +10,7 @@
     bepaalt actieve teams en genereert CSV-bestanden ten behoeve van 
     School Data Sync.
 
-    Versie 20211125
+    Versie 20220718
     Auteur Paul Wiegmans (p.wiegmans@svok.nl)
 
     naar een voorbeeld door Wim den Ronde, Eric Redegeld, Joppe van Daalen
@@ -197,30 +197,6 @@ Try {
         return ($teamid_prefix + $naam).replace($illegal_characters, $safe_character)
     }
 
-    $team = @{}
-    # associatieve array van records:
-    #   Naam         : weergavenaam
-    #   lltal        : aantal leerlingen
-    #   doctal       : aantal docenten
-    #   leerling     : lijst van leerlingid's 
-    #   docent       : lijst van docentid's
-    # index is teamid
-
-    function New-Team($naam, $id)
-    {
-        # maak een nieuw teamrecord met $naam, geindexeerd op Teamid (dit wordt 'Section SIS ID')
-        $rec = 1 | Select-Object Id, Naam, TypeL, TypeD, lltal, leerling, doctal, docent
-        $rec.Naam = $naam       # weergavenaam van team
-        $rec.Id = $id
-        $rec.TypeL = ""
-        $rec.TypeD = ""
-        $rec.lltal = 0          # aantal leerlingen
-        $rec.leerling = @()     # lijst met leerlingid
-        $rec.doctal = 0         # aantal docenten
-        $rec.docent = @()       # lijst met docentid
-        return $rec
-    }
-
     ################# LEES DATA van Import-Magister
     $mag_leer = Import-Clixml -Path $filename_mag_leerling_xml
     # velden: Stamnr, Id, Login, Roepnaam, Tussenv, Achternaam, Lesperiode, 
@@ -293,144 +269,56 @@ Try {
         Write-Log ("D na insluiting docent : " + $mag_doc.count)
     }
 
-    ################# LEERLINGEN -> TEAMS BEPALEN
-    Write-Log ("Teams voor leerlingen maken ...")
-    $teller = 0
-    $leerlingprocent = 100 / [Math]::Max($mag_leer.count, 1)
-    foreach ($leerling in $mag_leer) {
+    ################# Teams bepalen aan de hand van docent groepvakken (a la WootsSyncReadPhase.ps1)
+    $team = @{}
+    # associatieve array van records:
+    #   Id           :
+    #   groep        : groep van docent.groepvak[n]
+    #   vak          : vakcode van docent.groepvak[n]
+    #   VakOms       : omschrijving bij vakcode
+    #   Doctal       : aantal docenten
+    #   Docent       : lijst van docentid's
+    #   Lltal        : aantal leerlingen
+    #   TypeL        : type groep : "lgrp" of "klas" oftewel waarom deze leerling hierin zit
+    #   Leerling     : lijst van leerlingid's 
+    # index is groep
 
-        # verzamel de stamklassen
-        if ($maakklassenteams -ne "0") {
-            $teamnaam = $leerling.Klas
-            $teamid = $leerling.Klas
-            if ($team.Keys -notcontains $teamid) {
-                $team[$teamid] = New-Team -Naam $teamnaam -ID $teamid
-            }
-            $team[$teamid].TypeL = "klas"
-            $team[$teamid].lltal += 1
-            $team[$teamid].leerling += @($leerling.Id)
-        }
-
-        # corrigeer lege groepen artefact uit CliXML
-        if ($leerling.groepen.ToString() -eq "") {
-            $leerling.groepen = $null
-        }
-        # verzamel de lesgroepen
-        # een team voor elke lesgroep
-        if ($leerling.groepen) {
-            foreach ($groep in $leerling.groepen) {
-                $teamnaam = $groep
-                $teamid = $groep
-                if ($team.Keys -notcontains $teamid) {
-                    $team[$teamid] = New-Team -Naam $teamnaam -ID $teamid
-                }
-                $team[$teamid].TypeL = "groep"
-                $team[$teamid].lltal += 1
-                $team[$teamid].leerling += @($leerling.Id)
-            }
-        }
-
-        # verzamel de vakken
-        # een team voor elke vakklas
-
-        foreach ($vak in $leerling.vakken) {
-            $teamnaam = $leerling.klas + " " + $vak
-            $teamid = $leerling.klas + " " + $vak
-            if ($team.Keys -notcontains $teamid) {
-                $team[$teamid] = New-Team -Naam $teamnaam -ID $teamid
-            }        
-            $team[$teamid].TypeL = "vak"
-            $team[$teamid].lltal += 1
-            $team[$teamid].leerling += @($leerling.Id)
-        }
-
-        if (!(++$teller % 20)) {
-            Write-Progress -PercentComplete ($leerlingprocent * $teller) `
-                -Activity "Teams maken" -status "Leerling $teller van $($mag_leer.count)" 
+    function New-Team($id, $klas, $vak)
+    {
+        # maak een nieuw teamrecord met $naam, geindexeerd op Teamid (dit wordt 'Section SIS ID')
+        return [PSCustomObject]@{
+            Id      = $id
+            Naam    = $id
+            Groep   = $groep
+            Vak     = $vak
+            VakOms  = $vakoms[$vak]
+            Doctal  = 0
+            Docent  = @()
+            Lltal   = 0
+            TypeL   = ""
+            Leerling = @()
         }
     }
-    Write-Progress -Activity "Teams maken" -status "Leerling" -Completed
 
-    ################# DOCENTEN TEAMs BEPALEN
-    Write-Log ("Teams voor docenten maken ...")
+    Write-Log ("Team voor docenten maken ...")
     $teller = 0
     $docentprocent = 100 / [Math]::Max($mag_doc.count, 1)
-    foreach ($docent in $mag_doc ) {
-
-        # verzamel groepen per docent
+    foreach ($docent in $mag_doc) {
         foreach ($groepvak in $docent.groepvakken) {
-            # velden van mag_doc[].Groepvakken:  Klas, Vakcode
-            
-            # maak team voor de klas/groep
-            $teamnaam = $groepvak.Klas
-            $teamid = $groepvak.Klas
-            if ($team.Keys -notcontains $teamid) {
-                $team[$teamid] = New-Team -Naam $teamnaam -ID $teamid
-            }        
-            $team[$teamid].TypeD = "gvklas"
-            $team[$teamid].doctal += 1
-            if ($team[$teamid].docent -notcontains $docent.Id) {
-                $team[$teamid].docent += @($docent.Id)
+            $groep = $groepvak.Klas
+            $vak = $groepvak.Vakcode
+            $id = "{0}@{1}" -f ($groep, $vak) # tijdelijk identifier uniek voor de combinatie van groep en vak 
+            if ($team.Keys -notcontains $id) {
+                $tm = New-Team -id $id -klas $groep -vak $vak
+                $team[$id] = $tm
+            } else {
+                $tm = $team[$id]
             }
-        
-            #maak team voor de klas/groep + vak
-            $teamnaam = $groepvak.Klas + " " + $groepvak.Vakcode
-            $teamid = $groepvak.Klas + " " + $groepvak.Vakcode
-            if ($team.Keys -notcontains $teamid) {
-                $team[$teamid] = New-Team -Naam $teamnaam -ID $teamid
-            }        
-            $team[$teamid].TypeD = "gvklasvak"
-            $team[$teamid].doctal += 1
-            if ($team[$teamid].docent -notcontains $docent.Id) {
-                $team[$teamid].docent += @($docent.Id)
-            }
-
-            # Fix voor BON non-match docent:lesgroep+vak aan leerling:klas+vak
-            # $groepvak.Klas bevat een lesgroepnaam zoals "H2.H2d".
-            # Splits de klas af.
-            if ($bon_match_docentlesgroep_aan_leerlingklas)
-            {
-                if ($groepvak.Klas.Contains(".")) {
-                    # klas is bijv "H2.H2d", 
-                    $echteklas = ($groepvak.Klas.Split("."))[1]  # pak deel na de punt
-                    $teamnaam = $echteklas + " " + $groepvak.Vakcode
-                    $teamid = $echteklas + " " + $groepvak.Vakcode
-                    if ($team.Keys -notcontains $teamid) {
-                        $team[$teamid] = New-Team -Naam $teamnaam -ID $teamid
-                    }        
-                    $team[$teamid].TypeD = "splitsklasvak"
-                    $team[$teamid].doctal += 1
-                    if ($team[$teamid].docent -notcontains $docent.Id) {
-                        $team[$teamid].docent += @($docent.Id)
-                    }
-                }
+            if ($tm.Docent -notcontains $docent.id) {
+                $tm.Docent += $docent.id
+                $tm.Doctal += 1
             }
         }
-
-        # corrigeer lege klasvakken artefact uit CliXML
-        if ($docent.Klasvakken.Tostring() -eq "") {
-            $docent.Klasvakken = $null
-        }
-        # verzamelen klasvakken
-        # LET OP: Normaliter wordt dit niet gedaan. Controleer nut.
-        foreach ($klasvak in $docent.klasvakken) {
-            #maak team voor klasvak
-            $teamnaam = $klasvak
-            $teamid = $klasvak
-            if ($team.Keys -notcontains $teamid) {
-                $team[$teamid] = New-Team -Naam $teamnaam -ID $teamid
-            }        
-            $team[$teamid].TypeD = "klasvak"
-            $team[$teamid].doctal += 1  
-            if ($team[$teamid].docent -notcontains $docent.Id) {
-                $team[$teamid].docent += @($docent.Id)
-            }      
-        }
-
-        # verzamel docentvakken
-        # Normaliter wordt dit niet gedaan.
-        #foreach ($vak in $docent.docentvakken) { }
-
         if (!(++$teller % 10)) {
             Write-Progress -PercentComplete ($docentprocent * $teller) `
                 -Activity "Teams maken" -Status "Docent $teller van $($mag_doc.count)" 
@@ -438,66 +326,86 @@ Try {
     }
     Write-Progress -Activity "Teams maken" -status "Docent" -Completed
 
-    ################# ACTIEVE TEAMS BEPALEN
-    # associatieve array omzetten naar simpele lijst
-    $team = $team.Values
-
-    # Voeg vakomschrijving toe aan teamnaam
-    Write-Log ("Omschrijvingen toevoegen..")
-    foreach ($t in $team) {
-        # Bepaal vakcode met laatste deel van de naam (klas/vak of cluster)
-        # voorbeeld: "Naamprefix 4h.biol3"
-        # voorbeeld: "Naamprefix 1b ne"
-        $vak = $t.naam.split(". ")[-1]  # split lesgroep op spatie of punt, vak staat achter punt
-        # verwijder cijfers op het eind tot minimumlengte van 2
-        While (($vak[-1] -match "^\d+$") -and ($vak.length -gt 2)) {
-            $vak = $vak.substring(0, $vak.length - 1)
+    # maak opzoektabel groep->team
+    $groepteams =@{} 
+    $team.Values | foreach {
+        if ($groepteams.Keys -notcontains $_.Groep) {
+            $grpteam = [PSCustomObject]@{
+                Groep = $_.Groep
+                Aantal = 0
+                Teams = @()
+            }
+            $groepteams[$_.Groep] = $grpteam
+        } else {
+            $grpteam = $groepteams[$_.Groep]
         }
-        $omschrijving = $mag_vak[$vak]
-        # indien geen omschrijving gevonden, knip letters van vak totdat 
-        # omschrijving is gevonden tot minimum van 2 letters
-        while ((!$omschrijving.length) -and ($vak.length -gt 2)) { 
-            $vak = $vak.substring(0, $vak.length - 1)
-            $omschrijving = $mag_vak[$vak]
-        }
-        # indien omschrijving is gevonden, voeg toe aan naam
-        if ($omschrijving.length) {
-            # .. maar alleen als de omschrijving niet al in de naam aanwezig is.
-            if (-not $t.naam.contains($omschrijving)) {
-                $t.naam += " " + $omschrijving
+        $grpteam.Teams += $_.naam
+        $grpteam.Aantal += 1        
+    }
+    
+    function ToevoegenAan-Team ($Leerling, $Groep, $Label) {
+        $teams = $groepteams[$groep].Teams  # zoek bijbehorend teamindex(en) in opzoektabel
+        if ($teams) {
+            foreach ($samegroup in $teams) {
+                $tm = $team[$samegroup] 
+                if ($tm) {
+                    $tm.Leerling += $leerling.id 
+                    $tm.Lltal += 1
+                    if (!$tm.TypeL.contains($Label)){
+                        $tm.TypeL += "$Label"
+                    }
+                } else { 
+                    Write-Warning "Team niet gevonden voor $groep"
+                }
             }
         }
-
-        # Voeg prefix en suffix toe aan naam, voeg prefix to aan id
-        $t.Naam = $teamnaam_prefix + $t.Naam + $teamnaam_suffix
-        $t.Id = ($teamid_prefix + $t.Id) -replace $illegal_characters, $safe_character
     }
-    Write-Log ("Teams totaal          : " + $team.count)
+
+    Write-Log ("Team voor leerlingen maken ...")
+    $teller = 0
+    $leerlingprocent = 100 / [Math]::Max($mag_leer.count, 1)
+    foreach ($leerling in $mag_leer) {
+        ToevoegenAan-Team -Leerling $leerling -Groep $leerling.klas -Label "klas"
+        foreach ($groep in $leerling.groepen) {
+            ToevoegenAan-Team -Leerling $leerling -Groep $groep -Label "groep"
+        }
+
+        if (!(++$teller % 50)) {
+            Write-Progress -PercentComplete ($leerlingprocent * $teller) `
+                -Activity "Teams maken" -status "Leerling $teller van $($mag_leer.count)" 
+        }
+    }
+    Write-Progress -Activity "Teams maken" -status "Leerling" -Completed
+
+    $team = $team.Values | Sort-Object id
+
+    # Teamnaam en Id  bepalen volgens gewenst formaat
+    foreach ($t in $team) {
+        $t.Naam = "{0}{1} {2} {3}" -f ($teamnaam_prefix, $t.Groep, $t.VakOms, $teamnaam_suffix) 
+        $t.Id = ("{0}{1} {2}" -f ($teamid_prefix, $t.Groep, $t.Vak)) -replace $illegal_characters, $safe_character
+    }
+    
+    Write-Log ("Team Totaal: {0} " -f $team.count)
 
     # Filteren op teamnaam
     if (Test-Path $filename_excl_teamnaam) {
         $filter_excl_teamnaam = $(Get-Content -Path $filename_excl_teamnaam) -join '|'
         $team = $team | Where-Object {$_.Naam -notmatch $filter_excl_teamnaam}
-        Write-Log ("Teams na uitsluiting teamnaam: " + $team.count)
+        Write-Log ("Team na uitsluiting teamnaam: " + $team.count)
     }
     if (Test-Path $filename_incl_teamnaam) {
         $filter_incl_teamnaam = $(Get-Content -Path $filename_incl_teamnaam) -join '|'
         $team = $team | Where-Object {$_.Naam -match $filter_incl_teamnaam}
-        Write-Log ("Teams na insluiting teamnaam : " + $team.count)
+        Write-Log ("Team na insluiting teamnaam : " + $team.count)
     }
     # filter op aantal docenten
     if ($docenten_per_team_limiet -gt 0) {
         $team = $team | Where-Object {$_.doctal -le $docenten_per_team_limiet}
-        Write-Log ("Teams na toepassen docentenlimiet : " + $team.count)
+        Write-Log ("Team na toepassen docentenlimiet : " + $team.count)
     }
 
-    # Actieve teams bevatten zowel leerlingen als docenten.
-    $team = $team | Sort-Object Id
-    $teamactief = $team | Where-Object {($_.lltal -gt 0) -and ($_.doctal -gt 0)}
-
     # Maak makkelijk leesbare lijsten om te helpen bij foutzoeken en fijnafstelling. 
-    $hteam = $team | Select-Object Id, Naam, 
-        TypeD, 
+    $hteam = $team | Select-Object Id, Naam, Groep,Vak,VakOms,
         @{Name = 'Aantal_docenten'; Expression = {$_.Doctal}},
         TypeL, 
         @{Name = 'Aantal_leerlingen'; Expression = {$_.Lltal}},

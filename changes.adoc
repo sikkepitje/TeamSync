@@ -176,6 +176,14 @@ Toevoeging configuratieparameter bon_match_docentlesgroep_aan_leerlingklas voor 
 * Toegevoegd in handleiding: vereiste Windows PowerShell 5
 * Toegevoegd in handleiding: Tips en trucs: SDS Flow Connector en CSV file synchronisatie automatiseren
 
+## 20220701
+* Eerste release v1.0.0 op GitHub. Waarom heb ik dat niet eerder gedaan?
+
+## 20220718
+* Export-SchoolDataSync.ps1: snelheidsverhoging door gebruik van arraylists. Typische uitvoertijd is nu 30 seconden.
+* Export-SchoolDataSync.ps1: teams bepaald door harde match van docentgroepvak met leerling-lesgroep/klas. Dit werkt eenvoudiger, betrouwbaarder en sneller.
+* Export-SchoolDataSync.ps1: configuratieparameter bon_match_docentlesgroep_aan_leerlingklas is overbodig geworden.
+
 ## TO DO
 Dit zijn geplande wijzigingen zonder een vastgesteld tijdpad (krabbels van de auteur).
 

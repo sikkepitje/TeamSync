@@ -1,4 +1,4 @@
-= TeamSync versie 20211019
+= TeamSync versie 20220718
 
 Paul Wiegmans <p.wiegmans@svok.nl>
 
@@ -332,6 +332,7 @@ Deze parameter duidt aan hoe identiteiten van leerlingen in Azure AD worden geko
 
 === bon_match_docentlesgroep_aan_leerlingklas
 Deze parameter is een schakelaar die uit staat met `0` of aan staat met de waarde `1`. Wanneer `1` dan worden extra teams aangemaakt, waarvan de naam wordt opgebouwd uit het deel van de klasnaam na de punt in de docent-groepvakken, gevolgd door een vaknaam. Bij verstek is de waarde `0`. Deze parameter zorgt ervoor dat het aantal actieve teams in de onderbouw van Bonhoeffercollege wordt verhoogd met teams voor docentgroepvakken voor lesgroepen met namen als "B.B2" en "M2.M2a", waarvan alleen het deel achter de punt wordt gebruikt om te kunnen koppelen aan leerlingklassen. 
+Vanaf versie 20220718 heeft deze parameter geen functie meer.
 
 === docenten_per_team_limiet
 Deze parameter bevat een getal dat wordt vergeleken met het aantal docenten in elke kandidaatteam. Indien het aantal docenten hoger is dan gegeven door deze parameter, dan wordt het team overgeslagen bij het identificeren van actieve teams. Wanneer deze parameter `0` is, dan wordt deze controle op het aantal docenten niet uitgevoerd. Bij verstek is de waarde `0`.
