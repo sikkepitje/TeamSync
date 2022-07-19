@@ -10,7 +10,7 @@
     bepaalt actieve teams en genereert CSV-bestanden ten behoeve van 
     School Data Sync.
 
-    Versie 20220718
+    Versie 20220719
     Auteur Paul Wiegmans (p.wiegmans@svok.nl)
 
     naar een voorbeeld door Wim den Ronde, Eric Redegeld, Joppe van Daalen
@@ -456,6 +456,8 @@ Try {
 
     $teller = 0
     $teamprocent = 100 / [Math]::Max($teamactief.count, 1)
+
+    $teamactief = $team | Where-Object {($_.lltal -gt 0) -and ($_.doctal -gt 0)}
 
     foreach ($t in $teamactief) {
         $rec = 1 | Select-Object 'SIS ID','School SIS ID','Section Name'

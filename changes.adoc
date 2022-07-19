@@ -184,6 +184,9 @@ Toevoeging configuratieparameter bon_match_docentlesgroep_aan_leerlingklas voor 
 * Export-SchoolDataSync.ps1: teams bepaald door harde match van docentgroepvak met leerling-lesgroep/klas. Dit werkt eenvoudiger, betrouwbaarder en sneller.
 * Export-SchoolDataSync.ps1: configuratieparameter bon_match_docentlesgroep_aan_leerlingklas is overbodig geworden.
 
+## 20220719
+* Export-SchoolDataSync.ps1: bugfix: uitvoer leeg, want vergat tabel teamactief aan te maken.
+
 ## TO DO
 Dit zijn geplande wijzigingen zonder een vastgesteld tijdpad (krabbels van de auteur).
 
