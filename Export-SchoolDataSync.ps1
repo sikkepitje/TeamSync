@@ -454,10 +454,10 @@ Try {
     $hashdoc = @{}
     $mag_doc | ForEach-Object { $hashdoc[$_.Id] = $_}
 
+    $teamactief = $team | Where-Object {($_.lltal -gt 0) -and ($_.doctal -gt 0)}
+
     $teller = 0
     $teamprocent = 100 / [Math]::Max($teamactief.count, 1)
-
-    $teamactief = $team | Where-Object {($_.lltal -gt 0) -and ($_.doctal -gt 0)}
 
     foreach ($t in $teamactief) {
         $rec = 1 | Select-Object 'SIS ID','School SIS ID','Section Name'
