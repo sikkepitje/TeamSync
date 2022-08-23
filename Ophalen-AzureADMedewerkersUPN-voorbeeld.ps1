@@ -23,6 +23,8 @@
 .EXAMPLE
     .\Ophalen-AzureADMedewerkersUPN.ps1
 #>    
+Write-Host "========  $(Split-Path -Leaf $MyInvocation.MyCommand.Definition)  ========"
+[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
 Import-Module AzureAD
 Connect-AzureAD
