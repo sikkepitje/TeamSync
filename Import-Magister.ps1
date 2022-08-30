@@ -9,7 +9,7 @@
     TeamSync script Import-Magister.ps1 (ophalen) haalt gegevens op uit Medius (Magister)
     Webservice.
 
-    Versie 20211125
+    Versie 20220830
     Auteur Paul Wiegmans (p.wiegmans@svok.nl)
 
     naar een voorbeeld door Wim den Ronde, Eric Redegeld, Joppe van Daalen

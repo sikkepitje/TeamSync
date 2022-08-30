@@ -187,6 +187,11 @@ Toevoeging configuratieparameter bon_match_docentlesgroep_aan_leerlingklas voor 
 ## 20220719
 * Export-SchoolDataSync.ps1: bugfix: uitvoer leeg, want vergat tabel teamactief aan te maken.
 
+## 20220830
+* Vanwege een bug kwam groepnaam niet in hteam-bestanden.
+* leest configuratie en filterbestanden in als UTF8; maakt ondersteuning voor UTF8 tekens in schoolnaam mogelijk.
+* verwijdert niet-ASCII tekens uit teamid. Hoeft niet perse, maar is wel makkelijk.
+
 ## TO DO
 Dit zijn geplande wijzigingen zonder een vastgesteld tijdpad (krabbels van de auteur).
 

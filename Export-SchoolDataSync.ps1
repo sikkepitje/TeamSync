@@ -10,7 +10,7 @@
     bepaalt actieve teams en genereert CSV-bestanden ten behoeve van 
     School Data Sync.
 
-    Versie 20220719
+    Versie 20220830
     Auteur Paul Wiegmans (p.wiegmans@svok.nl)
 
     naar een voorbeeld door Wim den Ronde, Eric Redegeld, Joppe van Daalen
@@ -99,6 +99,18 @@ Function Write-Log {
     $log | Out-File -FilePath $currentLogFilename -Append
     Write-Host $log
 }
+
+$illegal_characters = "[^\S]|[\~\""\#\%\&\*\:\<\>\?\/\\{\|}\.]"
+$safe_character = "_"
+function ConvertTo-SISID([string]$Naam) {
+    return $Naam -replace $illegal_characters, $safe_character
+    # https://support.microsoft.com/en-us/office/invalid-file-names-and-file-types-in-onedrive-and-sharepoint-64883a5d-228e-48f5-b3d2-eb39e07630fa
+}
+Function ConvertTo-ASCII([string]$naam) {
+    # Verwijder alle tekens anders dan a-z, A-Z, 0-9, underscore en punt
+    $naam -replace '[^a-zA-Z0-9_.]', ''
+}
+
 #endregion Functies
 
 # Start hoofdprogramma
@@ -182,19 +194,9 @@ Try {
     if (!(Test-Path -Path $filename_mag_docent_xml)) {  Throw "Vereist bestand ontbreekt: " + $filename_mag_docent_xml }
     if (!(Test-Path -Path $filename_mag_vak_xml)) {  Throw "Vereist bestand ontbreekt: " + $filename_mag_vak_xml }
 
-    $illegal_characters = "[^\S]|[\~\""\#\%\&\*\:\<\>\?\/\\{\|}\.]"
-    $safe_character = "_"
-    function ConvertTo-SISID([string]$Naam) {
-        return $Naam -replace $illegal_characters, $safe_character
-        # https://support.microsoft.com/en-us/office/invalid-file-names-and-file-types-in-onedrive-and-sharepoint-64883a5d-228e-48f5-b3d2-eb39e07630fa
-    }
 
     function ConvertTo-Teamnaam([string]$Naam) {
         return ($teamnaam_prefix + $naam + $teamnaam_suffix)
-    }
-
-    function ConvertTo-TeamId([string]$Naam) {
-        return ($teamid_prefix + $naam).replace($illegal_characters, $safe_character)
     }
 
     ################# LEES DATA van Import-Magister
@@ -283,7 +285,7 @@ Try {
     #   Leerling     : lijst van leerlingid's 
     # index is groep
 
-    function New-Team($id, $klas, $vak)
+    function New-Team($id, $groep, $vak)
     {
         # maak een nieuw teamrecord met $naam, geindexeerd op Teamid (dit wordt 'Section SIS ID')
         return [PSCustomObject]@{
@@ -309,7 +311,7 @@ Try {
             $vak = $groepvak.Vakcode
             $id = "{0}@{1}" -f ($groep, $vak) # tijdelijk identifier uniek voor de combinatie van groep en vak
             if ($team.Keys -notcontains $id) {
-                $tm = New-Team -id $id -klas $groep -vak $vak
+                $tm = New-Team -id $id -groep $groep -vak $vak
                 $team[$id] = $tm
             } else {
                 $tm = $team[$id]
@@ -382,7 +384,7 @@ Try {
     # Teamnaam en Id  bepalen volgens gewenst formaat
     foreach ($t in $team) {
         $t.Naam = "{0}{1} {2} {3}" -f ($teamnaam_prefix, $t.Groep, $t.VakOms, $teamnaam_suffix) 
-        $t.Id = ("{0}{1} {2}" -f ($teamid_prefix, $t.Groep, $t.Vak)) -replace $illegal_characters, $safe_character
+        $t.Id = ConvertTo-ASCII (("{0}{1} {2}" -f ($teamid_prefix, $t.Groep, $t.Vak)) -replace $illegal_characters, $safe_character)
     }
     
     Write-Log ("Team Totaal: {0} " -f $team.count)
