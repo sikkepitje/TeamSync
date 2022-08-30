@@ -109,7 +109,7 @@ Try {
     # Lees instellingen uit bestand met key=value
     $filename_settings = $herePath + "\" + $Inifilename
     Write-Log ("Configuratiebestand: " + $filename_settings)
-    $settings = Get-Content $filename_settings | ConvertFrom-StringData
+    $settings = Get-Content $filename_settings -Encoding UTF8 | ConvertFrom-StringData
     foreach ($key in $settings.Keys) {
         Set-Variable -Name $key -Value $settings.$key -Scope global
         Write-Log ("Configuratieparameter: " + $key + "=" + $settings.$key)
@@ -232,39 +232,39 @@ Try {
 
     # filters toepassen op leerlingen
     if (Test-Path $filename_excl_studie) {
-        $filter_excl_studie = $(Get-Content -Path $filename_excl_studie) -join '|'
+        $filter_excl_studie = $(Get-Content -Path $filename_excl_studie -Encoding UTF8) -join '|'
         $mag_leer = $mag_leer | Where-Object {$_.Studie -notmatch $filter_excl_studie}
         Write-Log ("L na uitsluiting studie: " + $mag_leer.count)
     }
     if (Test-Path $filename_incl_studie) {
-        $filter_incl_studie = $(Get-Content -Path $filename_incl_studie) -join '|'
+        $filter_incl_studie = $(Get-Content -Path $filename_incl_studie -Encoding UTF8) -join '|'
         $mag_leer = $mag_leer | Where-Object {$_.Studie -match $filter_incl_studie}
         Write-Log ("L na insluiting studie : " + $mag_leer.count)
     }
     if (Test-Path $filename_excl_klas) {
-        $filter_excl_klas = $(Get-Content -Path $filename_excl_klas) -join '|'
+        $filter_excl_klas = $(Get-Content -Path $filename_excl_klas -Encoding UTF8) -join '|'
         $mag_leer = $mag_leer | Where-Object {$_.Klas -notmatch $filter_excl_klas}
         Write-Log ("L na uitsluiting klas  : " + $mag_leer.count)
     }
     if (Test-Path $filename_incl_klas) {
-        $filter_incl_klas = $(Get-Content -Path $filename_incl_klas) -join '|'
+        $filter_incl_klas = $(Get-Content -Path $filename_incl_klas -Encoding UTF8) -join '|'
         $mag_leer = $mag_leer | Where-Object {$_.Klas -match $filter_incl_klas}
         Write-Log ("L na insluiting klas   : " + $mag_leer.count)
     }
     if (Test-Path $filename_incl_locatie) {
-        $filter_incl_locatie = $(Get-Content -Path $filename_incl_locatie) -join '|'
+        $filter_incl_locatie = $(Get-Content -Path $filename_incl_locatie -Encoding UTF8) -join '|'
         $mag_leer = $mag_leer | Where-Object {$_.Locatie -match $filter_incl_locatie}
         Write-Log ("L na insluiting locatie: " + $mag_leer.count)
     }
 
     # filter toepassen op docent
     if (Test-Path $filename_excl_docent) {
-        $filter_excl_docent = $(Get-Content -Path $filename_excl_docent) -join '|'
+        $filter_excl_docent = $(Get-Content -Path $filename_excl_docent -Encoding UTF8) -join '|'
         $mag_doc = $mag_doc | Where-Object {$_.Id -notmatch $filter_excl_docent}
         Write-Log ("D na uitsluiting docent: " + $mag_doc.count)
     }
     if (Test-Path $filename_incl_docent) {
-        $filter_incl_docent = $(Get-Content -Path $filename_incl_docent) -join '|'
+        $filter_incl_docent = $(Get-Content -Path $filename_incl_docent -Encoding UTF8) -join '|'
         $mag_doc = $mag_doc | Where-Object {$_.Id -match $filter_incl_docent}
         Write-Log ("D na insluiting docent : " + $mag_doc.count)
     }
@@ -307,7 +307,7 @@ Try {
         foreach ($groepvak in $docent.groepvakken) {
             $groep = $groepvak.Klas
             $vak = $groepvak.Vakcode
-            $id = "{0}@{1}" -f ($groep, $vak) # tijdelijk identifier uniek voor de combinatie van groep en vak 
+            $id = "{0}@{1}" -f ($groep, $vak) # tijdelijk identifier uniek voor de combinatie van groep en vak
             if ($team.Keys -notcontains $id) {
                 $tm = New-Team -id $id -klas $groep -vak $vak
                 $team[$id] = $tm
@@ -389,12 +389,12 @@ Try {
 
     # Filteren op teamnaam
     if (Test-Path $filename_excl_teamnaam) {
-        $filter_excl_teamnaam = $(Get-Content -Path $filename_excl_teamnaam) -join '|'
+        $filter_excl_teamnaam = $(Get-Content -Path $filename_excl_teamnaam -Encoding UTF8) -join '|'
         $team = $team | Where-Object {$_.Naam -notmatch $filter_excl_teamnaam}
         Write-Log ("Team na uitsluiting teamnaam: " + $team.count)
     }
     if (Test-Path $filename_incl_teamnaam) {
-        $filter_incl_teamnaam = $(Get-Content -Path $filename_incl_teamnaam) -join '|'
+        $filter_incl_teamnaam = $(Get-Content -Path $filename_incl_teamnaam -Encoding UTF8) -join '|'
         $team = $team | Where-Object {$_.Naam -match $filter_incl_teamnaam}
         Write-Log ("Team na insluiting teamnaam : " + $team.count)
     }
