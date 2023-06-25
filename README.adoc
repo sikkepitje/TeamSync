@@ -30,8 +30,8 @@ Om TeamSync in te zetten is het volgende nodig.
 * link:Import-Magister.ps1[Import-Magister.ps1], 
 * link:Export-SchoolDataSync.ps1[Export-SchoolDataSync.ps1],
 * link:Teamsync.cmd[Teamsync.cmd],
-* Een configuratiebestand zoals bijvoorbeeld link:Import-Magister-voorbeeld.ini[Import-Magister-voorbeeld.ini],
-* een configuratiebestand zoals bijvoorbeeld link:Export-SchoolDataSync-voorbeeld.ini[Export-SchoolDataSync-voorbeeld.ini],
+* Een configuratiebestand zoals bijvoorbeeld link:Import-Magister-voorbeeld.ini[Import-Magister-Voorbeeld.ini],
+* een configuratiebestand zoals bijvoorbeeld link:Export-SchoolDataSync-voorbeeld.ini[Export-SchoolDataSync-Voorbeeld.ini],
 * Een URL naar de Magister webservice; een gebruikersnaam en een wachtwoord met toegangsrechten tot de AD-functies van de Magister SOAP API.
 * Start Teamsync met het commando link:Teamsync.cmd[Teamsync.cmd].
 * Maak een scheduled task om TeamSync dagelijks uit te voeren.
