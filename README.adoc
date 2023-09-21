@@ -1,4 +1,4 @@
-= TeamSync versie 20220830
+= TeamSync versie 20230921
 
 Paul Wiegmans <p.wiegmans@svok.nl>
 
@@ -14,7 +14,7 @@ Paul Wiegmans <p.wiegmans@svok.nl>
 
 TeamSync is een universele oplossing voor het overbrengen van gegevens uit Magister naar School Data Sync ten behoeve van een geautomatiseerde aanmaak van Teams in een Microsoft 365 omgeving. 
 
-Deze oplossing maakt gebruik van https://sds.microsoft.com/[Microsoft School Data Sync]. School Data Sync creeert en synchroniseert klassenteams voor alle actieve klassen en lesgroepenvan een school, door deze te voeden met informatie uit een schooladministratiesysteem.
+Deze oplossing maakt gebruik van https://sds.microsoft.com/[Microsoft School Data Sync]. School Data Sync is een oplossing die identiteiten vanuit een schooladministratiesysteem synchroniseert met Microsoft 365, en klassenteams maakt voor alle actieve klassen of lesgroepen.
 
 Inspiratie hiervoor komt uit eerder werk genaamd 'v06-sds-files_FONSVITAE.ps1' door Wim den Ronde, Eric Redegeld, Joppe van Daalen.
 
@@ -56,7 +56,7 @@ Voor het ophalen van gegevens wordt gebruik gemaakt van de Magister SOAP/XML Web
 
 Voor het genereren van de juiste gegevens voor School Data Sync moeten de identiteiten van docenten en leerlingen in Magister worden gepaard (gekoppeld, "match") aan de overeenkomstige identiteiten van alle gebruikers in Microsoft 365 en Teams, dus in Azure Active Directory (AAD). In de uitvoer die TeamSync genereert, wijst ID naar de unieke identiteit van een medewerker of gebruiker in AAD. De ID kan een suffix bevatten, maar dat hoeft niet. Indien nodig wordt door School Data Sync aan dit veld de suffix toegevoegd om te refereren aan een unieke gebruiker in AAD. 
 
-Voor leerlingen kan het Magister email-veld worden gebruikt om de unieke ID te bepalen. Voor medewerkers is dit lastiger omdat in Magister geen e-mailadres is opgeslagen op een manier die TeamSync kan uitlezen. Hierin kan worden voorzien door een lijst met stamnummers en gebruikersnamen uit een externe bron aan te bieden, bijvoorbeeld door deze lijst op te halen uit Active Directory of Azure Active Directory. Zie verderop voor de details.
+Voor leerlingen kan makkelijker het Magister email gebruikt om de unieke ID te bepalen. Voor medewerkers is dit lastiger omdat in Magister geen e-mailadres is opgeslagen op een manier die TeamSync kan uitlezen. 
 
 IMPORTANT: Hier wordt ervan uitgegaan dat alle gebruikersaccounts al in AAD aanwezig zijn en dus niet door School Data Sync actief worden aangemaakt.
 
@@ -77,13 +77,13 @@ IMPORTANT: TeamSync vanaf versie 20201127 ondersteunt niet meer het opzoeken van
 
 De gewenste koppelmethode wordt aangeduid met één van de volgende variabelen. 
 
-** `medewerker_id=loginaccount` : Koppel Id aan Magister loginaccount. Id bevat geen domeinsuffix. School Data Sync vult Id aan met een domeinsuffix. 
+** `medewerker_id=loginaccount` : Koppel Id aan Magister loginaccount. Id bevat geen domeinsuffix. SDS vult Id aan met een domeinsuffix. 
 
-** `medewerker_id=code` : Koppel Id aan Magister code. Id bevat geen domeinsuffix. School Data Sync vult Id aan met een domeinsuffix.
+** `medewerker_id=code` : Koppel Id aan Magister code. Id bevat geen domeinsuffix. School Data Sync (SDS) vult Id aan met een domeinsuffix.
 
 ** `medewerker_id=csv_upn` : Koppel Id aan UserPrincipalName van de gebruiker in een extern CSV-bestand waarvan employeeId overeenkomt met Magister stamnummer. Zie sectie Medewerker-UPN-CSV voor een beschrijving van dit bestand. Id bevat de domeinsuffix.
 
-** `leerling_id=loginaccount` : koppel Id aan Magister loginaccount. Id bevat geen domeinsuffix. School Data Sync vult Id aan met een domeinsuffix.
+** `leerling_id=loginaccount` : koppel Id aan Magister loginaccount. Id bevat geen domeinsuffix. SDS vult Id aan met een domeinsuffix.
 
 ** `leerling_id=email` : Koppel ID aan Magister email. Id bevat een domeinsuffix. De leerlingen worden uniek geidentificeerd met het "email" veld in de Magister leerlingkaart. Het is de verantwoordelijkheid van de school om ervoor te zorgen dat het email-veld van leerlingen is ingevuld met de overeenkomstige userPrincipalName van de leerling in Azure AD / Microsoft 365. 
 
@@ -452,7 +452,15 @@ Een minder makkelijke workaround wanneer de teams nog niet zijn aangemaakt, is n
 
 === CSV synchronisatie automatiseren
 
-Om ten volle gebruik te maken van dagelijks bijgewerkte Microsoft 365 klassenteams, is het  aanbevolen om de door TeamSync aangemaakte CSV-bestanden dagelijks naar Microsoft School Data Sync te uploaden. Om dit op een betrouwbare manier te automatiseren kun je gebruik maken van Microsoft Power Automate en de https://powerautomate.microsoft.com/nl-NL/connectors/details/shared_microsoftschooldatasync/microsoft-school-data-sync/[SDS Flow Connector]. Lees meer over de inrichting en vereisten op https://docs.microsoft.com/en-us/schooldatasync/csv-file-sync-automation[CSV File Sync Automation].
+Om ten volle gebruik te maken van dagelijks bijgewerkte Microsoft 365 klassenteams, is het  aanbevolen om de door TeamSync aangemaakte CSV-bestanden dagelijks naar Microsoft School Data Sync te uploaden. Om dit op een betrouwbare manier te automatiseren raadt de auteur aanom gebruik te maken van Microsoft Power Automate en de https://powerautomate.microsoft.com/nl-NL/connectors/details/shared_microsoftschooldatasync/microsoft-school-data-sync/[SDS Flow Connector]. Lees meer over de inrichting en vereisten op https://docs.microsoft.com/en-us/schooldatasync/csv-file-sync-automation[CSV File Sync Automation].
+
+=== Een woordje over de nieuwe School Data Sync v2 
+
+D.d. september 2023 is School Data Sync v2 nog in publieke beta. V2 wijkt in zoverre af van de oude School Data Sync dat het geen afzonderlijke synchronisatieprofielen ondersteunt. De consequentie hiervan is dat het synchroniseren van verscheidene scholen naar School Data Sync tegelijk alleen mogelijk is door de uitvoer van TeamSync voor verscheidene scholen samen te voegen in één bestandenverzameling voor School Data Sync. TeamSync ondersteunt dat nog niet, maar misschien gebeurt dat nog ooit in de toekomst, afhankelijk van de noden van mijn werkgever, Stichting Voortgezet Onderwijs Kennemerland. Voor schooljaar 2023-2024 is dat in ieder geval nog niet het geval.
+
+=== Een woordje over School Data Sync CSV v2.1 
+
+School Data Sync ondersteunt nieuwe uitgebreidere bestandsformaten. Mijn wereld bestaat uitsluitend uit leerlingen en docenten. TeamSync kan daarom nog prima uit de voeten met CSV v1 en blijft dat formaat handhaven zolang dat nog kan. Bovendien heeft TeamSync nog helemaal geen ondersteuning voor de synchronisatie van guardians (ouders). Heb jij dat nodig, voel je vrij om deze repo te forken en dit zelf te implementeren. 
 
 == Schermafdrukken
 

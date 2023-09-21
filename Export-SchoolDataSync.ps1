@@ -10,7 +10,7 @@
     bepaalt actieve teams en genereert CSV-bestanden ten behoeve van 
     School Data Sync.
 
-    Versie 20220830
+    Versie 20230921
     Auteur Paul Wiegmans (p.wiegmans@svok.nl)
 
     naar een voorbeeld door Wim den Ronde, Eric Redegeld, Joppe van Daalen
@@ -293,7 +293,7 @@ Try {
             Naam    = $id
             Groep   = $groep
             Vak     = $vak
-            VakOms  = $vakoms[$vak]
+            VakOms  = $mag_vak[$vak]
             Doctal  = 0
             Docent  = @()
             Lltal   = 0
@@ -302,31 +302,34 @@ Try {
         }
     }
 
-    Write-Log ("Team voor docenten maken ...")
+    $activity = "Teams voor docenten maken ..."
+    Write-Log ($activity)
     $teller = 0
     $docentprocent = 100 / [Math]::Max($mag_doc.count, 1)
     foreach ($docent in $mag_doc) {
         foreach ($groepvak in $docent.groepvakken) {
-            $groep = $groepvak.Klas
-            $vak = $groepvak.Vakcode
-            $id = "{0}@{1}" -f ($groep, $vak) # tijdelijk identifier uniek voor de combinatie van groep en vak
-            if ($team.Keys -notcontains $id) {
-                $tm = New-Team -id $id -groep $groep -vak $vak
-                $team[$id] = $tm
-            } else {
-                $tm = $team[$id]
-            }
-            if ($tm.Docent -notcontains $docent.id) {
-                $tm.Docent += $docent.id
-                $tm.Doctal += 1
+            if ($groepvak.vakcode.length -ge 1) {  # skip null-items
+                $groep = $groepvak.Klas
+                $vak = $groepvak.Vakcode
+                $id = "{0}@{1}" -f ($groep, $vak) # tijdelijk identifier uniek voor de combinatie van groep en vak
+                if ($team.Keys -notcontains $id) {
+                    $tm = New-Team -id $id -groep $groep -vak $vak
+                    $team[$id] = $tm
+                } else {
+                    $tm = $team[$id]
+                }
+                if ($tm.Docent -notcontains $docent.id) {
+                    $tm.Docent += $docent.id
+                    $tm.Doctal += 1
+                }
             }
         }
         if (!(++$teller % 10)) {
             Write-Progress -PercentComplete ($docentprocent * $teller) `
-                -Activity "Teams maken" -Status "Docent $teller van $($mag_doc.count)" 
+                -Activity $activity -Status "Docent $teller van $($mag_doc.count)" 
         }
     }
-    Write-Progress -Activity "Teams maken" -status "Docent" -Completed
+    Write-Progress -Activity $activity -status "Docent" -Completed
 
     # maak opzoektabel groep->team
     $groepteams =@{} 
@@ -363,7 +366,8 @@ Try {
         }
     }
 
-    Write-Log ("Team voor leerlingen maken ...")
+    $activity = "Teams voor leerlingen maken ..."
+    Write-Log ($activity)
     $teller = 0
     $leerlingprocent = 100 / [Math]::Max($mag_leer.count, 1)
     foreach ($leerling in $mag_leer) {
@@ -374,10 +378,10 @@ Try {
 
         if (!(++$teller % 50)) {
             Write-Progress -PercentComplete ($leerlingprocent * $teller) `
-                -Activity "Teams maken" -status "Leerling $teller van $($mag_leer.count)" 
+                -Activity $activity -status "Leerling $teller van $($mag_leer.count)" 
         }
     }
-    Write-Progress -Activity "Teams maken" -status "Leerling" -Completed
+    Write-Progress -Activity $activity -status "Leerling" -Completed
 
     $team = $team.Values | Sort-Object id
 
@@ -438,7 +442,8 @@ Try {
     }
     
     ################# UITVOER
-    Write-Log ("Lijsten voor School Data Sync samenstellen ...")
+    $activity = "School Data Sync CSV v1 lijsten samenstellen ..."
+    Write-Log ($activity)
     # Ik maak de uiteindelijke bestanden aan, die naar School Data Sync worden geupload.
 
     # voorbereiden SDS formaat CSV bestanden
@@ -489,10 +494,10 @@ Try {
         }
         if (!(++$teller % 10)) {
             Write-Progress -PercentComplete ($teamprocent * $teller) `
-                -Activity "Lijsten voor School Data Sync samenstellen" -Status "Team $teller van $($teamactief.count)" 
+                -Activity $activity -Status "Team $teller van $($teamactief.count)" 
         }
     }
-    Write-Progress -Activity "Lijsten voor School Data Sync samenstellen" -Completed
+    Write-Progress -Activity $activity -Completed
 
     # actieve docenten opzoeken 
     foreach ($doc in $teamdoc) {

@@ -9,7 +9,7 @@
     TeamSync script Import-Magister.ps1 (ophalen) haalt gegevens op uit Medius (Magister)
     Webservice.
 
-    Versie 20220830
+    Versie 20230921
     Auteur Paul Wiegmans (p.wiegmans@svok.nl)
 
     naar een voorbeeld door Wim den Ronde, Eric Redegeld, Joppe van Daalen
@@ -197,9 +197,6 @@ function Verzamel_leerlingen()
         }
     }
 
-    # tussentijds opslaan
-    $mag_leer | Export-Csv -Path $filename_t_leerling -Delimiter ";" -NoTypeInformation -Encoding UTF8
-    Write-Log ("Leerlingen: " + $mag_leer.count)
     # ID moet gevuld zijn; skip leerlingen zonder e-mail
     $mag_leer = $mag_leer | Where-Object {$_.id.length -gt 0}
     Write-Log ("Leerlingen met geldige ID: " + $mag_leer.count)
@@ -240,6 +237,7 @@ function Verzamel_leerlingen()
         Throw "Er zijn nul leerlingen. Uitvoering stopt"
     }
     $teller = 0
+    $activity = "Import Magister leerlingen gedetailleerd"
     $leerlingprocent = 100 / [Math]::Max($mag_leer.count, 1)
     foreach ($leerling in $mag_leer) {
 
@@ -267,14 +265,26 @@ function Verzamel_leerlingen()
             $leerling.Vakken += @($vaknode.Vak)
         }
 
-        Write-Progress -Activity "Import Magister leerlinggroepen" -status `
+        Write-Progress -Activity $activity -status `
             "Leerling $teller van $($mag_leer.count)" -PercentComplete ($leerlingprocent * $teller++)
     }
-    Write-Progress -Activity "Import Magister leerlinggroepen" -status "Leerling" -Completed
+    Write-Progress -Activity $activity -status "Leerling" -Completed
+    Write-Log ("Leerlingen: " + $mag_leer.count)
+
     $mag_leer | Export-Clixml -Path $filename_mag_leerling_xml -Encoding UTF8
     if ($toondata) {
         $mag_leer | Out-GridView   # Magister leerlingenlijst met gekoppelde ID
     }
+
+    # maak CSV export van leerlingen met vakken en groepen
+    $csvleer = [System.Management.Automation.PSSerializer]::Deserialize([System.Management.Automation.PSSerializer]::Serialize($mag_leer)) # diepe kopie
+
+    foreach ($l in $csvleer) {
+        $l.groepen = $l.groepen -join ','
+        $l.vakken = $l.vakken -join ','
+    }
+
+    $csvleer | Export-Csv -Path $filename_t_leerling -Delimiter ";" -NoTypeInformation -Encoding UTF8
 }
 
 ################# VERZAMEL DOCENTEN
@@ -324,7 +334,7 @@ function Verzamel_docenten()
         Code, Roepnaam, Tussenv, Achternaam,
         @{Name = 'Naam'; Expression = {$_.'Loginaccount.Volledige_naam'}},
         @{Name = 'Functie'; Expression = { $_.'Functie.Omschr' }},
-        @{Name = 'Groepvakken'; Expression = { $null }},
+    @{Name = 'Groepvakken'; Expression = { @() } },
         @{Name = 'Klasvakken'; Expression = { @() }},
         @{Name = 'Docentvakken'; Expression = { @() }},
         @{Name = 'Locatie'; Expression = { $_.'Administratieve_eenheid.Omschrijving' }}
@@ -348,9 +358,6 @@ function Verzamel_docenten()
         }
     }
 
-    # tussentijds opslaan
-    $mag_doc | Export-Csv -Path $filename_t_docent -Delimiter ";" -NoTypeInformation -Encoding UTF8
-    Write-Log ("Docenten : " + $mag_doc.count)
 
     # Speciaal geval JPT: Om onbekende redenen staan sommige personeelsleden dubbel erin. 
     # Docenten met voornaam als login zijn overtollig. 
@@ -396,6 +403,7 @@ function Verzamel_docenten()
     }
 
     $teller = 0
+    $activity = "Import Magister docenten gedetailleerd"
     $docentprocent = 100 / [Math]::Max($mag_doc.count, 1)
     foreach ($docent in $mag_doc ) {
 
@@ -407,9 +415,10 @@ function Verzamel_docenten()
             -------------------- ----     ----------- ----------------
             11                   4v.dutl1 dutl        Duitse taal en literatuur 
             #>
-            $rec = 1 | Select-Object Klas, Vakcode
-            $rec.Klas = $gvnode.Klas
-            $rec.Vakcode = $gvnode.'Vak.Vakcode'
+            $rec = [PSCustomObject]@{
+                Klas    = $gvnode.Klas
+                Vakcode = $gvnode.'Vak.Vakcode'
+            }
             $docent.Groepvakken += @($rec) 
 
             if ($mag_vak.keys -notcontains $gvnode.'Vak.Vakcode') {
@@ -443,11 +452,12 @@ function Verzamel_docenten()
             }    
         }
 
-        Write-Progress -Activity "Import Magister docentgroepen" -status `
+        Write-Progress -Activity $activity -status `
             "Docent $teller van $($mag_doc.count)" -PercentComplete ($docentprocent * $teller++)
     }
-    Write-Progress -Activity "Import Magister docentgroepen" -status "Docent" -Completed
+    Write-Progress -Activity $activity -status "Docent" -Completed
     
+    Write-Log ("Docenten : " + $mag_doc.count)
     $mag_doc | Export-Clixml -Path $filename_mag_docent_xml -Encoding UTF8
     $mag_vak | Export-Clixml -Path $filename_mag_vak_xml -Encoding UTF8
 
@@ -455,6 +465,20 @@ function Verzamel_docenten()
         $mag_doc | Out-GridView   # Magister docentenlijst met gekoppelde ID
         $mag_vak | Out-GridView   # Magister vakcodes en omschrijvingen
     }
+
+    # maak een CSV export met groepvakken, klasvakken en docentvakken. 
+    $csvdoc = [System.Management.Automation.PSSerializer]::Deserialize([System.Management.Automation.PSSerializer]::Serialize($mag_doc)) # diepe kopie
+
+    foreach ($d in $csvdoc) {
+        $gvlist = @()
+        foreach ($g in $d.groepvakken) {
+            $gvlist += "$($g.klas)@$($g.vakcode)"
+        }
+        $d.groepvakken = $gvlist -join ','
+        $d.klasvakken = $d.klasvakken -join ','
+        $d.docentvakken = $d.docentvakken -join ','
+    }
+    $csvdoc | Export-Csv -Path $filename_t_docent -Delimiter ";" -NoTypeInformation -Encoding UTF8
 
 }
 #endregion Functies
