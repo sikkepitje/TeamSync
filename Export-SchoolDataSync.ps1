@@ -100,7 +100,7 @@ Function Write-Log {
     Write-Host $log
 }
 
-$illegal_characters = "[^\S]|[\~\""\#\%\&\*\:\<\>\?\/\\{\|}\.]"
+$illegal_characters = "[^\S]|[\~\""\#\%\&\*\:\<\>\?\/\\{\|}\.\[\]]"
 $safe_character = "_"
 function ConvertTo-SISID([string]$Naam) {
     return $Naam -replace $illegal_characters, $safe_character
