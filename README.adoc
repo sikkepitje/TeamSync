@@ -1,4 +1,4 @@
-= TeamSync versie 20230921
+= TeamSync versie 20240222
 
 Paul Wiegmans <p.wiegmans@svok.nl>
 
@@ -30,8 +30,8 @@ Om TeamSync in te zetten is het volgende nodig.
 * link:Import-Magister.ps1[Import-Magister.ps1], 
 * link:Export-SchoolDataSync.ps1[Export-SchoolDataSync.ps1],
 * link:Teamsync.cmd[Teamsync.cmd],
-* Een configuratiebestand zoals bijvoorbeeld link:Import-Magister-Voorbeeld.ini[Import-Magister-Voorbeeld.ini],
-* een configuratiebestand zoals bijvoorbeeld link:Export-SchoolDataSync-Voorbeeld.ini[Export-SchoolDataSync-Voorbeeld.ini],
+* Een configuratiebestand zoals bijvoorbeeld link:Import-Magister-voorbeeld.ini[Import-Magister-voorbeeld.ini],
+* een configuratiebestand zoals bijvoorbeeld link:Export-SchoolDataSync-voorbeeld.ini[Export-SchoolDataSync-voorbeeld.ini],
 * Een URL naar de Magister webservice; een gebruikersnaam en een wachtwoord met toegangsrechten tot de AD-functies van de Magister SOAP API.
 * Start Teamsync met het commando link:Teamsync.cmd[Teamsync.cmd].
 * Maak een scheduled task om TeamSync dagelijks uit te voeren.
@@ -73,7 +73,7 @@ De volgende methoden van koppeling worden ondersteund voor leerlingen:
 
 In het configuratiebestand moet één koppelmethode voor leerlingen en één koppelmethode voor medewerkers worden gedefinieerd. 
 
-IMPORTANT: TeamSync vanaf versie 20201127 ondersteunt niet meer het opzoeken van de UserPrincipalName in active Directory (via INI-parameters `useemail`, `ADsearchscope`, `ADserver`). Het alternatief hiervoor is om een CSV-opzoektabel te gebruiken. Je kunt deze CSV-tabel aanmaken met behulp van een script die de informatie leest uit Active Directory of uit een andere bron. Een voorbeeld van een script die de CSV-tabel vult met informatie uit Active Directory vind je in link:Ophalen-ADMedewerkerUPN.ps1[Ophalen-ADMedewerkerUPN.ps1].
+TeamSync vanaf versie 20201127 ondersteunt niet meer het opzoeken van de UserPrincipalName in active Directory (via INI-parameters `useemail`, `ADsearchscope`, `ADserver`). Het alternatief hiervoor is om een CSV-opzoektabel te gebruiken. Je kunt deze CSV-tabel aanmaken met behulp van een script die de informatie leest uit Active Directory of uit een andere bron. Een voorbeeld van een script die de CSV-tabel vult met informatie uit Entra ID met behulp van Microsoft Graph PowerShell SDK vind je in link:Ophalen-ADMedewerkerUPN.ps1[Ophalen-EntraMedewerkerUPN-voorbeeld.ps1].
 
 De gewenste koppelmethode wordt aangeduid met één van de volgende variabelen. 
 
@@ -251,7 +251,7 @@ Aanhalingstekens zijn toegestaan maar niet nodig. Spaties in het waarde-deel zij
 
 IMPORTANT:  Backslashes worden opgevat als escape-karakters. Om backslashes in paden op te geven, escape deze met een extra backslash. Bijvoorbeeld: `Importfiltermap=Submap1\\Submap2\\Submap3`
 
-=== Configuratievariabelen voor importscript
+=== Lijst configuratievariabelen voor importscript
 De volgende parameters kunnen worden gedefinieerd in het configuratiebestand van het importscript.
 
 [square]
@@ -265,14 +265,14 @@ De volgende parameters kunnen worden gedefinieerd in het configuratiebestand van
 * `medewerker_id=waarde` : koppelmethode voor medewerkers
 * `leerling_id=waarde` : koppelmethode voor leerlingen
 
-=== Configuratievariabelen voor exportscript
+=== Lijst configuratievariabelen voor exportscript
 De volgende parameters kunnen worden gedefinieerd in het configuratiebestand van het exportscript.
 
 * `Importdatamap=waarde` : pad naar importdatamap relatief t.o.v. scriptpad
 * `Exportfiltermap=waarde` : pad naar exportfiltermap relatief t.o.v. scriptpad
 * `Exportkladmap=waarde` : pad naar exportkladmap relatief t.o.v. scriptpad
 * `Exportdatamap=waarde` : pad naar exportdatamap relatief t.o.v. scriptpad
-* `brin=waarde` : BRIN-nummer van de school
+* `schoolid=waarde` : unieke identificatie van de school
 * `schoolnaam=waarde` : naam van de school in SDS
 * `teamid_prefix=waarde` : prefix voor team-ids in SDS
 * `teamnaam_prefix=waarde` : prefix voor teamnamen in SDS
@@ -281,11 +281,13 @@ De volgende parameters kunnen worden gedefinieerd in het configuratiebestand van
 * `bon_match_docentlesgroep_aan_leerlingklas=waarde`  : schakelaar voor matchen aan tweede deel van docent-groepvaknaam
 * `docenten_per_team_limiet=waarde` : bepaalt limiet van het aantal docenten per tema.
 
-==== Brin
-Deze parameter is verplicht. Dit is het BRIN-nummer van de school. Vraag je schooladminstratie of directie hiervoor. 
+=== Verklaring van configuratievariabelen
+
+==== Schoolid
+Deze parameter is verplicht. Dit is een identificatie van de school. Je kunt hiervoor het BRIN van de school gebruiken of een andere unieke aanduiding. 
 
 ==== Schoolnaam 
-Deze parameter is verplicht. Dit is de schoolnaam zoals die in School Data Sync moet zijn gedefinieerd. 
+Deze parameter is verplicht. Dit is de weergavenaam van de school. 
 
 ==== MagisterUser, MagisterPassword, MagisterUrl 
 Deze parameters zijn verplicht. Deze gegevens zijn vereist om toegang te krijgen tot de Medius Webservices. De LAS-beheerder maakt een gebruiker aan in de Webservice gebruikerslijst in Magister. De gebruikersnaam en wachtwoord moeten worden gegeven in `MagisterUser` en `MagisterPassword`. Deze gebruiker heeft toegangsrechten nodig tot de *_ADfuncties_* in de Medius Webservices. De MagisterUrl is de URL waar de webservices worden aangeboden. Dit bestaat uit de schoolspecifieke URL voor  Schoolwerkplek met daarachter poort en padaanduiding _:8800/doc_ . De hele URL ziet er uit als `https://schooldomein.swp.nl:8800/doc`.
@@ -456,7 +458,7 @@ Om ten volle gebruik te maken van dagelijks bijgewerkte Microsoft 365 klassentea
 
 === Een woordje over de nieuwe School Data Sync v2 
 
-D.d. september 2023 is School Data Sync v2 nog in publieke beta. V2 wijkt in zoverre af van de oude School Data Sync dat het geen afzonderlijke synchronisatieprofielen ondersteunt. De consequentie hiervan is dat het synchroniseren van verscheidene scholen naar School Data Sync tegelijk alleen mogelijk is door de uitvoer van TeamSync voor verscheidene scholen samen te voegen in één bestandenverzameling voor School Data Sync. TeamSync ondersteunt dat nog niet, maar misschien gebeurt dat nog ooit in de toekomst, afhankelijk van de noden van mijn werkgever, Stichting Voortgezet Onderwijs Kennemerland. Voor schooljaar 2023-2024 is dat in ieder geval nog niet het geval.
+d.d. September 2023 is SDS in een overgangsfase. De oorspronkelijke School Data Sync heet nu School Data Sync (Classic) en de actuele versie heet "Microsoft School Data Sync". School Data Sync (Classic) blijft beschikbaar tot einde 2024. De nieuwe SDS wijkt in zoverre af van de oude School Data Sync dat het geen afzonderlijke synchronisatieprofielen ondersteunt. In de woorden van Microsoft heet het dat "Single Subscription - Multi-Academy Trust Support" vooralsnog ontbreekt. De consequentie hiervan is dat het gelijktijdig synchroniseren van verscheidene scholen naar School Data Sync alleen mogelijk is door de uitvoer van TeamSync voor verscheidene scholen samen te voegen in één bestandenverzameling voor School Data Sync. TeamSync ondersteunt dat nog niet, maar misschien gebeurt dat nog ooit in de toekomst, afhankelijk van de behoefte bij Stichting Voortgezet Onderwijs Kennemerland. Voor schooljaar 2023-2024 is dat in ieder geval nog niet het geval.
 
 === Een woordje over School Data Sync CSV v2.1 
 

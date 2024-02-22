@@ -10,7 +10,7 @@
     bepaalt actieve teams en genereert CSV-bestanden ten behoeve van 
     School Data Sync.
 
-    Versie 20230921
+    Versie 20240222
     Auteur Paul Wiegmans (p.wiegmans@svok.nl)
 
     naar een voorbeeld door Wim den Ronde, Eric Redegeld, Joppe van Daalen
@@ -59,7 +59,7 @@ $importdatamap = "ImportData"
 $exportfiltermap = "ExportFilter"
 $exportkladmap = "ExportKlad"
 $exportdatamap = "Exportdata"
-$brin = $null
+$schoolid = $null
 $schoolnaam = $null
 $teamid_prefix = ""
 $teamnaam_prefix = ""
@@ -127,7 +127,7 @@ Try {
         Write-Log ("Configuratieparameter: " + $key + "=" + $settings.$key)
     }
     <# $teamid_prefix = $settings.teamid_prefix #>
-    if (!$brin)  { Throw "Configuratieparameter 'BRIN' is vereist"}
+    if (!$schoolid)  { Throw "Configuratieparameter 'BRIN' is vereist"}
     if (!$schoolnaam)  { Throw "Configuratieparameter 'schoolnaam' is vereist"}
     if (!$teamid_prefix)  { Throw "Configuratieparameter 'teamid_prefix' is vereist"}
     $teamid_prefix = $teamid_prefix.trim() + " "
@@ -469,7 +469,7 @@ Try {
     foreach ($t in $teamactief) {
         $rec = 1 | Select-Object 'SIS ID','School SIS ID','Section Name'
         $rec.'SIS ID' = $t.id 
-        $rec.'School SIS ID' = $brin
+        $rec.'School SIS ID' = $schoolid
         $rec.'Section Name' = $t.naam 
         $null = $section.Add($rec)
 
@@ -503,7 +503,7 @@ Try {
     foreach ($doc in $teamdoc) {
         $rec = 1 | Select-Object 'SIS ID','School SIS ID','Username','First Name','Last Name'
         $rec.'SIS ID' = $hashdoc[$doc].Id
-        $rec.'School SIS ID' = $brin
+        $rec.'School SIS ID' = $schoolid
         $rec.'Username' = $hashdoc[$doc].Id
         $rec.'First Name' = $hashdoc[$doc].Roepnaam
         if ($hashdoc[$doc].Tussenv -ne '') {
@@ -516,14 +516,14 @@ Try {
     foreach ($leer in $teamleer) {
         $rec = 1 | Select-Object 'SIS ID','School SIS ID','Username'
         $rec.'SIS ID' = $leer
-        $rec.'School SIS ID' = $brin
+        $rec.'School SIS ID' = $schoolid
         $rec.'Username' = $leer
         $null = $student.Add($rec)
     }
 
     # Maak een school
     $schoolrec = 1 | Select-Object 'SIS ID',Name
-    $schoolrec.'SIS ID' = $brin
+    $schoolrec.'SIS ID' = $schoolid
     $schoolrec.Name = $schoolnaam
     $null = $school.Add($schoolrec)
 
