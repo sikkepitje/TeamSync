@@ -1,4 +1,4 @@
-= TeamSync versie 20240222
+= TeamSync versie 20240222a
 
 Paul Wiegmans <p.wiegmans@svok.nl>
 
@@ -22,33 +22,23 @@ Gebruikt jouw school Somtoday en zoek je een koppeling tussen Somtoday en School
 
 toc::[]
 
-== Beknopte installatie
-
-Om TeamSync in te zetten is het volgende nodig.  
-
-* Een computer met Windows PowerShell versie 5, welk ip-adres is opgenomen in de lijst met ip-adressen die zijn toegestaan om te verbinden met Magister SOAP API, ook bekend als webqueries.
-* link:Import-Magister.ps1[Import-Magister.ps1], 
-* link:Export-SchoolDataSync.ps1[Export-SchoolDataSync.ps1],
-* link:Teamsync.cmd[Teamsync.cmd],
-* Een configuratiebestand zoals bijvoorbeeld link:Import-Magister-voorbeeld.ini[Import-Magister-voorbeeld.ini],
-* een configuratiebestand zoals bijvoorbeeld link:Export-SchoolDataSync-voorbeeld.ini[Export-SchoolDataSync-voorbeeld.ini],
-* Een URL naar de Magister webservice; een gebruikersnaam en een wachtwoord met toegangsrechten tot de AD-functies van de Magister SOAP API.
-* Start Teamsync met het commando link:Teamsync.cmd[Teamsync.cmd].
-* Maak een scheduled task om TeamSync dagelijks uit te voeren.
-* Richt https://sds.microsoft.com/[Microsoft School Data Sync] in en creëer een synchronisatieprofiel voor de gewenste school. 
-* Upload dagelijks de door TeamSync aangemaakte CSV-bestanden naar het synchronisatieprofiel om de Microsoft 365 klassenteams bijgewerkt te houden met de actuele leerlingen, docenten en lesgroepen. 
-
 == Werking 
 
 TeamSync leest uit Magister lijsten met leerlingen, docenten, klassen, lesgroepen en vakken.,
 TeamSync genereert hieruit lijsten waarin voor elk samenwerkingsverband bestaande uit lesgroep of combinatie van klas en vak, waarvan zowel leerlingen als docent(en) lid zijn, een actief team in de uitvoer terechtkomt. Deze lijsten vormen de basis voor een actieve synchronisatie van https://sds.microsoft.com/[Microsoft School Data Sync]. SDS maakt de juiste Microsoft 365 klassenteams aan, maakt de juiste docent teameigenaar en voegt de juiste leerlingen als leden toe.
+
+De werking van TeamSync wordt weergegeven als volgt:
+
+1. gegevens inladen
+2. gegevens verwerken
+3. gegevens opslaan
 
 TeamSync bestaat uit twee scripts: 
 
 * `Import-Magister.ps1`
 * `Export-SchoolDataSync.ps1`
 
-Script `Import-Magister.ps1` wordt eerst uitgevoerd om gegevens uit Magister op te halen. Daarna wordt script `Export-SchoolDataSync.ps1` uitgevoerd om de bestanden te genereren. De uitvoer bestaat uit 6 CSV-bestanden die nodig zijn voor synchronisatie met een profiel in https://sds.microsoft.com/[Microsoft School Data Sync].
+Script `Import-Magister.ps1` wordt eerst uitgevoerd om gegevens uit Magister op te halen. Gegevens worden tussentijds opgeslagen in een aantal tijdelijke bestanden. Daarna wordt script `Export-SchoolDataSync.ps1` uitgevoerd om de bestanden te genereren. De uitvoer bestaat uit 6 CSV-bestanden die nodig zijn voor synchronisatie met een profiel in https://sds.microsoft.com/[Microsoft School Data Sync].
 
 Voor het ophalen van gegevens wordt gebruik gemaakt van de Magister SOAP/XML Webservice. Er is hiervoor een geldige gebruikersnaam en een wachtwoord vereist en permissies voor het uitvoeren van webqueries en dan specifiek de AD-functies. Er wordt gebruik gemaakt van de standaard Web API van Magister. Er zijn geen zogenaamde aangepaste lijsten of 'custom queries' nodig. Je kunt meer lezen hierover op https://sikkepitje.nl/Tech/MagisterSOAP2020[Magister SOAP/XML webservice]. 
 
@@ -87,7 +77,30 @@ De gewenste koppelmethode wordt aangeduid met één van de volgende variabelen.
 
 ** `leerling_id=email` : Koppel ID aan Magister email. Id bevat een domeinsuffix. De leerlingen worden uniek geidentificeerd met het "email" veld in de Magister leerlingkaart. Het is de verantwoordelijkheid van de school om ervoor te zorgen dat het email-veld van leerlingen is ingevuld met de overeenkomstige userPrincipalName van de leerling in Azure AD / Microsoft 365. 
 
+== Installatie
+
+Om TeamSync in te zetten is het volgende nodig.  
+
+* Een computer, welk ip-adres is opgenomen in de lijst met ip-adressen die zijn toegestaan om te verbinden met Magister SOAP API, ook bekend als webqueries.
+* Windows PowerShell 5.1 of https://aka.ms/powershell[PowerShell 7].
+* link:Import-Magister.ps1[Import-Magister.ps1], 
+* link:Export-SchoolDataSync.ps1[Export-SchoolDataSync.ps1],
+* link:Teamsync.cmd[Teamsync.cmd],
+* Een configuratiebestand zoals bijvoorbeeld link:Import-Magister-voorbeeld.ini[Import-Magister-voorbeeld.ini],
+* een configuratiebestand zoals bijvoorbeeld link:Export-SchoolDataSync-voorbeeld.ini[Export-SchoolDataSync-voorbeeld.ini],
+* Een URL naar de Magister webservice; een gebruikersnaam en een wachtwoord met toegangsrechten tot de AD-functies van de Magister SOAP API.
+
+Doe het volgende:
+
+* Lees deze handleiding en configureer TeamSync naar wens.
+* Start Teamsync met het commando link:Teamsync.cmd[Teamsync.cmd].
+* Maak een scheduled task om TeamSync dagelijks uit te voeren.
+* Richt https://sds.microsoft.com/[Microsoft School Data Sync] in en creëer een synchronisatieprofiel voor de gewenste school. 
+* Upload dagelijks de door TeamSync aangemaakte CSV-bestanden naar het synchronisatieprofiel om de Microsoft 365 klassenteams bijgewerkt te houden met de actuele leerlingen, docenten en lesgroepen. 
+
 == Bestanden en mappen
+
+Om TeamSync te gebruken, is het essentieel om de functie en structuur van enkele bestanden en mappen te gebruiken. 
 
 === Configuratiebestand
 Dit bestand heet bij verstek `Import-Magister.ini` voor het importscript of `Export-SchoolDataSync.ps1` voor het exportscript en staat in dezelfde map als het script. Het bevat configuratievariabelen die de werking van TeamSync beinvloeden. Een andere bestandsnaam kan worden aangegeven door middel van de  <<Parameter Inifile>>. Configuratievariabelen worden behandeld in hoofdstuk <<Configuratie>>.
@@ -128,6 +141,15 @@ Het exportscript maakt in deze map volgens de specificaties van School Data Sync
 * `TeacherRoster.csv`
 
 Deze bestanden zijn bedoeld om te uploaden naar het gewenste synchronisatieprofiel in School Data Sync. 
+
+=== ExportVerzamelmap
+
+In deze map worden de naar SDS te uploaden gegevensbestanden voor alle scholen wordt verzameld. Elke keer dat Export-SchoolDataSync wordt uitgevoerd, wordt de uitvoer die afzonderlijk worden opgeslagen in de exportdatamap óók *toegevoegd* aan de bestanden in de ExportVerzamelmap. Deze functie is toegevoegd in TeamSync vanaf versie 20240222 en compenseert het gebrek aan "Single Subscription - Multi-Academy Trust Support" in de huidige School Data Sync v2. Het maakt het mogelijk dat TeamSync gegevens van verscheidene scholen samenvoegt om te kunnen uploaden naar School Data Sync v2. 
+
+Voor elk van de vereiste bestanden in de SDS CSV V1 specificatie, neemt TeamSync de volgende beslissing:
+
+* Indien het bestand in de ExportVerzamelmap niet aanwezig is, dan creeert TeamSync een nieuw bestand en bewaart de gegevens daarin. 
+* Indien het bestand in de ExportVerzamelmap wel aanwezig is, dan voegt TeamSync de gegevens toe aan het bestaande bestand. 
 
 === Medewerker_UPN.CSV
 Dit wordt ingelezen door importscript uit de importfiltermap. Indien de koppelmethode gebruik maakt van een CSV-bestand (configuratieparameter "medewerker_id=csv_upn"), dan moet in de Importfiltermap een CSV-bestand worden aangeleverd worden. 
@@ -272,6 +294,7 @@ De volgende parameters kunnen worden gedefinieerd in het configuratiebestand van
 * `Exportfiltermap=waarde` : pad naar exportfiltermap relatief t.o.v. scriptpad
 * `Exportkladmap=waarde` : pad naar exportkladmap relatief t.o.v. scriptpad
 * `Exportdatamap=waarde` : pad naar exportdatamap relatief t.o.v. scriptpad
+* `Exportverzamelmap=waarde` : pad naar exportverzamelmap relatief t.o.v. scriptpad
 * `schoolid=waarde` : unieke identificatie van de school
 * `schoolnaam=waarde` : naam van de school in SDS
 * `teamid_prefix=waarde` : prefix voor team-ids in SDS
@@ -311,13 +334,17 @@ Dit specificeert de mapnaam van de Importkladmap relatief ten opzichte van de lo
 Dit specificeert de mapnaam van de Importdatamap relatief ten opzichte van de locatie van het script. Bij verstek is de naam `ImportData`.
 
 ==== Exportfiltermap
-Dit specifieert de naam van de Importfiltermap, relatief ten opzichte van de locatie van het script. Bij verstek is de naam `ExportFilter`. 
+Dit specifieert de naam van de Exportfiltermap, relatief ten opzichte van de locatie van het script. Bij verstek is de naam `ExportFilter`. 
 
 ==== Exportkladmap
-Dit specificeert de mapnaam van de Importkladmap relatief ten opzichte van de locatie van het script. Bij verstek is de naam `ExportKlad`.
+Dit specificeert de mapnaam van de Exportkladmap relatief ten opzichte van de locatie van het script. Bij verstek is de naam `ExportKlad`.
 
 ==== Exportdatamap
-Dit specificeert de mapnaam van de Importdatamap relatief ten opzichte van de locatie van het script. Bij verstek is de naam `ExportData`.
+Dit specificeert de mapnaam van de Exportdatamap relatief ten opzichte van de locatie van het script. Bij verstek is de naam `ExportData`.
+
+==== Exportverzamelmap
+Dit specificeert de mapnaam van de Exportverzamelmap relatief ten opzichte van de locatie van het script. Bij verstek is de naam `ExportVerzameld`.
+
 
 ==== handhaafJPTMedewerkerCodeIsLogin 
 Gebruik `handhaafJPTMedewerkerCodeIsLogin=1`. Bij verstek geldt `handhaafJPTMedewerkerCodeIsLogin=0` . Deze instelling dient om uitsluitend medewerkers te verwerken waarbij Magister->Code gelijk is aan Magister->loginaccount.naam. Dit filter wordt in een speciaal geval voor JPT toegepast om dubbele identiteiten weg te filteren. 

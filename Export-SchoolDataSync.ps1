@@ -10,7 +10,7 @@
     bepaalt actieve teams en genereert CSV-bestanden ten behoeve van 
     School Data Sync.
 
-    Versie 20240222
+    Versie 20240222a
     Auteur Paul Wiegmans (p.wiegmans@svok.nl)
 
     naar een voorbeeld door Wim den Ronde, Eric Redegeld, Joppe van Daalen
@@ -49,7 +49,6 @@ $host.ui.RawUI.WindowTitle = Split-Path -Leaf $selfpath_base
 $logCountLimit  = 7
 $selfpath = $MyInvocation.MyCommand.Path
 $selfdir  = Split-Path -Parent $selfpath
-$selfname  = Split-Path -Leaf $selfpath 
 $selfbasename  = [System.IO.Path]::GetFileNameWithoutExtension($selfpath)
 $logBaseFilename = "$selfdir\Log\$selfbasename"
 $currentLogFilename = "$logBaseFilename.log"
@@ -59,6 +58,7 @@ $importdatamap = "ImportData"
 $exportfiltermap = "ExportFilter"
 $exportkladmap = "ExportKlad"
 $exportdatamap = "Exportdata"
+$exportverzamelmap = "Exportverzamelmap"
 $schoolid = $null
 $schoolnaam = $null
 $teamid_prefix = ""
@@ -126,8 +126,9 @@ Try {
         Set-Variable -Name $key -Value $settings.$key -Scope global
         Write-Log ("Configuratieparameter: " + $key + "=" + $settings.$key)
     }
+    # validatie van configuratievariabelen
     <# $teamid_prefix = $settings.teamid_prefix #>
-    if (!$schoolid)  { Throw "Configuratieparameter 'BRIN' is vereist"}
+    if (!$schoolid)  { Throw "Configuratieparameter 'schoolid' is vereist"}
     if (!$schoolnaam)  { Throw "Configuratieparameter 'schoolnaam' is vereist"}
     if (!$teamid_prefix)  { Throw "Configuratieparameter 'teamid_prefix' is vereist"}
     $teamid_prefix = $teamid_prefix.trim() + " "
@@ -137,11 +138,14 @@ Try {
     if ($teamnaam_suffix) {
         $teamnaam_suffix = " " + $teamnaam_suffix.trim()
     }
+    if ($exportdatamap -eq $exportverzamelmap) {
+        Throw "Exportdatamap kan niet gelijk zijn aan ExportVerzamelmap: $exportdatamap"
+    }
     $toonresultaat = $toonresultaat -ne "0"  # maak boolean
     $bon_match_docentlesgroep_aan_leerlingklas = $bon_match_docentlesgroep_aan_leerlingklas -ne "0" # maak boolean
     [int]$docenten_per_team_limiet = $docenten_per_team_limiet # maak integer
 
-    $logtag = $teamid_prefix
+    $logtag = $teamid_prefix.Trim()
     $host.ui.RawUI.WindowTitle = ((Split-Path -Leaf $MyInvocation.MyCommand.Path) -replace ".ps1") + " " + $logtag
     Write-Log ("Schoolnaam     : " + $schoolnaam)
 
@@ -150,13 +154,21 @@ Try {
     $filterPath         = "$herePath\$exportfiltermap"
     $tempPath           = "$herePath\$exportkladmap"
     $outputPath         = "$herePath\$exportdatamap"
+    $outputCollectPath        = "$herePath\$exportverzamelmap"
+
+    New-Item -path $tempPath -ItemType Directory -ea:Silentlycontinue | Out-Null
+    New-Item -path $outputPath -ItemType Directory -ea:Silentlycontinue | Out-Null
+    New-Item -path $outputCollectPath -ItemType Directory -ea:Silentlycontinue | Out-Null
+
+    if ((Resolve-path $exportdatamap).Path -eq (Resolve-Path $exportverzamelmap).Path) {
+        Throw "Exportdatamap kan niet wijzen naar dezelfde map als ExportVerzamelmap: $((Resolve-path $exportdatamap).Path)" 
+    }
+
     Write-Log ("ImportDataMap    : " + $importPath)
     Write-Log ("ExportFilterMap  : " + $filterPath)
     Write-Log ("ExportKladMap    : " + $tempPath)
     Write-Log ("ExportDataMap    : " + $outputPath)
-
-    New-Item -path $tempPath -ItemType Directory -ea:Silentlycontinue
-    New-Item -path $outputPath -ItemType Directory -ea:Silentlycontinue
+    Write-Log ("ExportVerzamelMap: " + $outputCollectPath)
 
     # Import
     $filename_mag_leerling_xml  = $importPath + "\magister_leerling.clixml"
@@ -189,11 +201,18 @@ Try {
     $filename_Teacher           = $outputPath + "\Teacher.csv"
     $filename_TeacherRoster     = $outputPath + "\TeacherRoster.csv"
 
+    # Files OUT
+    $filename_CollectedSchool            = $outputCollectPath + "\School.csv"
+    $filename_CollectedSection           = $outputCollectPath + "\Section.csv"
+    $filename_CollectedStudent           = $outputCollectPath + "\Student.csv"
+    $filename_CollectedStudentEnrollment = $outputCollectPath + "\StudentEnrollment.csv"
+    $filename_CollectedTeacher           = $outputCollectPath + "\Teacher.csv"
+    $filename_CollectedTeacherRoster     = $outputCollectPath + "\TeacherRoster.csv"
+    
     # controleer vereiste bestanden
     if (!(Test-Path -Path $filename_mag_leerling_xml)) {  Throw "Vereist bestand ontbreekt: " + $filename_mag_leerling_xml }
     if (!(Test-Path -Path $filename_mag_docent_xml)) {  Throw "Vereist bestand ontbreekt: " + $filename_mag_docent_xml }
     if (!(Test-Path -Path $filename_mag_vak_xml)) {  Throw "Vereist bestand ontbreekt: " + $filename_mag_vak_xml }
-
 
     function ConvertTo-Teamnaam([string]$Naam) {
         return ($teamnaam_prefix + $naam + $teamnaam_suffix)
@@ -541,14 +560,23 @@ Try {
     $teacher = $teacher | Sort-Object 'SIS ID'
     $teacherroster = $teacherroster | Sort-Object 'Section SIS ID','SIS ID'
 
-    # Alles opslaan
+    # gegevens opslaan in ExportDatamap
     Write-Log ("Lijsten voor School Data Sync opslaan ...")
-    $school | Export-Csv -Path $filename_School -Encoding UTF8 -NoTypeInformation
-    $section | Export-Csv -Path $filename_Section -Encoding UTF8 -NoTypeInformation
-    $student | Export-Csv -Path $filename_Student -Encoding UTF8 -NoTypeInformation
-    $studentenrollment | Export-Csv -Path $filename_StudentEnrollment -Encoding UTF8 -NoTypeInformation
-    $teacher | Export-Csv -Path $filename_Teacher -Encoding UTF8 -NoTypeInformation
-    $teacherroster | Export-Csv -Path $filename_TeacherRoster -Encoding UTF8 -NoTypeInformation
+    $school             | Export-Csv -Path $filename_School             -Encoding UTF8 -NoTypeInformation
+    $section            | Export-Csv -Path $filename_Section            -Encoding UTF8 -NoTypeInformation
+    $student            | Export-Csv -Path $filename_Student            -Encoding UTF8 -NoTypeInformation
+    $studentenrollment  | Export-Csv -Path $filename_StudentEnrollment  -Encoding UTF8 -NoTypeInformation
+    $teacher            | Export-Csv -Path $filename_Teacher            -Encoding UTF8 -NoTypeInformation
+    $teacherroster      | Export-Csv -Path $filename_TeacherRoster      -Encoding UTF8 -NoTypeInformation
+
+    # gegevens opslaan/toevoegen in ExportVerzamelmap
+    write-Host ("Lijsten opslaan in verzamelmap ...")
+    $school            | Export-Csv -Path $filename_CollectedSchool            -Encoding UTF8 -NoTypeInformation -Append
+    $section           | Export-Csv -Path $filename_CollectedSection           -Encoding UTF8 -NoTypeInformation -Append
+    $student           | Export-Csv -Path $filename_CollectedStudent           -Encoding UTF8 -NoTypeInformation -Append
+    $studentenrollment | Export-Csv -Path $filename_CollectedStudentEnrollment -Encoding UTF8 -NoTypeInformation -Append
+    $teacher           | Export-Csv -Path $filename_CollectedTeacher           -Encoding UTF8 -NoTypeInformation -Append
+    $teacherroster     | Export-Csv -Path $filename_CollectedTeacherRoster     -Encoding UTF8 -NoTypeInformation -Append
 
     $stopwatch.Stop()
     Write-Log ("Klaar in " + $stopwatch.Elapsed.Hours + " uur " + $stopwatch.Elapsed.Minutes + " minuten " + $stopwatch.Elapsed.Seconds + " seconden ")    
