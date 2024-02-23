@@ -196,15 +196,21 @@ Toevoeging configuratieparameter bon_match_docentlesgroep_aan_leerlingklas voor 
 ** Console boodschappen
 
 ## 20240222
-* Export-Magister.ps1:
+* Export-SchoolDataSync.ps1:
 ** wijziging: configuratievariabele 'brin' heet nu 'schoolid'
 ** toevoeging: voorbeeldscript voor ophalen medewerker UPN m.b.v. Microsoft Graph PowerShell SDK.
 
 ## 20240222a
-* Export-Magister:
+* Export-SchoolDataSync.ps1:
 ** toegevoegd ondersteuning voor verscheidene scholen aan SDS v2. 
 ** toegevoegd configuratievariabele 'exportverzamelmap' voor toevoegen 
 * documentatie bijgewerkt
+
+## 20240224
+* hersteld typefout in changes.adoc
+* Import-Magister.ps1:
+** bij koppelmethode CSVUPN worden medewerkers in de tabel gezocht op employeeid, in plaats van stamnummer.
+** toegevoegd configuratievariabele 'employeeid_prefix'
 
 ## TO DO
 Dit zijn geplande wijzigingen zonder een vastgesteld tijdpad (krabbels van de auteur).

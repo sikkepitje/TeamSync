@@ -1,4 +1,4 @@
-= TeamSync versie 20240222a
+= TeamSync versie 20240224
 
 Paul Wiegmans <p.wiegmans@svok.nl>
 
@@ -35,10 +35,10 @@ De werking van TeamSync wordt weergegeven als volgt:
 
 TeamSync bestaat uit twee scripts: 
 
-* `Import-Magister.ps1`
-* `Export-SchoolDataSync.ps1`
+* `Import-Magister.ps1`  hierna genoemd het importscript,
+* `Export-SchoolDataSync.ps1` hierna genoemd het exportscript.
 
-Script `Import-Magister.ps1` wordt eerst uitgevoerd om gegevens uit Magister op te halen. Gegevens worden tussentijds opgeslagen in een aantal tijdelijke bestanden. Daarna wordt script `Export-SchoolDataSync.ps1` uitgevoerd om de bestanden te genereren. De uitvoer bestaat uit 6 CSV-bestanden die nodig zijn voor synchronisatie met een profiel in https://sds.microsoft.com/[Microsoft School Data Sync].
+Het importscript wordt eerst uitgevoerd om gegevens uit Magister op te halen. Gegevens worden tussentijds opgeslagen in een aantal tijdelijke bestanden. Daarna wordt het exportscript uitgevoerd om de bestanden te genereren voor School Data Sync. De uitvoer bestaat uit 6 CSV-bestanden die nodig zijn voor synchronisatie met een profiel in https://sds.microsoft.com/[Microsoft School Data Sync].
 
 Voor het ophalen van gegevens wordt gebruik gemaakt van de Magister SOAP/XML Webservice. Er is hiervoor een geldige gebruikersnaam en een wachtwoord vereist en permissies voor het uitvoeren van webqueries en dan specifiek de AD-functies. Er wordt gebruik gemaakt van de standaard Web API van Magister. Er zijn geen zogenaamde aangepaste lijsten of 'custom queries' nodig. Je kunt meer lezen hierover op https://sikkepitje.nl/Tech/MagisterSOAP2020[Magister SOAP/XML webservice]. 
 
@@ -54,7 +54,7 @@ De volgende methoden van koppeling worden ondersteund voor medewerkers:
 
 * ID <- Magister:code
 * ID <- Magister:loginaccount
-* ID <- CSV[Magister:stamnr]
+* ID <- CSV[EmployeeId_Prefix + Magister:stamnr]
 
 De volgende methoden van koppeling worden ondersteund voor leerlingen:
 
@@ -63,7 +63,7 @@ De volgende methoden van koppeling worden ondersteund voor leerlingen:
 
 In het configuratiebestand moet één koppelmethode voor leerlingen en één koppelmethode voor medewerkers worden gedefinieerd. 
 
-TeamSync vanaf versie 20201127 ondersteunt niet meer het opzoeken van de UserPrincipalName in active Directory (via INI-parameters `useemail`, `ADsearchscope`, `ADserver`). Het alternatief hiervoor is om een CSV-opzoektabel te gebruiken. Je kunt deze CSV-tabel aanmaken met behulp van een script die de informatie leest uit Active Directory of uit een andere bron. Een voorbeeld van een script die de CSV-tabel vult met informatie uit Entra ID met behulp van Microsoft Graph PowerShell SDK vind je in link:Ophalen-ADMedewerkerUPN.ps1[Ophalen-EntraMedewerkerUPN-voorbeeld.ps1].
+TeamSync vanaf versie 20201127 ondersteunt niet meer het opzoeken van de UserPrincipalName in active Directory (via INI-parameters `useemail`, `ADsearchscope`, `ADserver`). Het alternatief hiervoor is om een CSV-opzoektabel te gebruiken. Je kunt deze CSV-tabel aanmaken met behulp van een script die de informatie leest uit Active Directory of uit een andere bron. Een voorbeeld van een script die de CSV-tabel vult met informatie uit Entra ID met behulp van Microsoft Graph PowerShell SDK vind je in link:Ophalen-ADMedewerkerUPN.ps1[Ophalen-EntraMedewerkerUPN-voorbeeld.ps1]. Dit script genereert een CSV met een kolom UserPrincipalName en een kolom EmployeeId.
 
 De gewenste koppelmethode wordt aangeduid met één van de volgende variabelen. 
 
@@ -71,7 +71,7 @@ De gewenste koppelmethode wordt aangeduid met één van de volgende variabelen.
 
 ** `medewerker_id=code` : Koppel Id aan Magister code. Id bevat geen domeinsuffix. School Data Sync (SDS) vult Id aan met een domeinsuffix.
 
-** `medewerker_id=csv_upn` : Koppel Id aan UserPrincipalName van de gebruiker in een extern CSV-bestand waarvan employeeId overeenkomt met Magister stamnummer. Zie sectie Medewerker-UPN-CSV voor een beschrijving van dit bestand. Id bevat de domeinsuffix.
+** `medewerker_id=csv_upn` : Koppel Id aan UserPrincipalName van de gebruiker in een extern CSV-bestand waarvan employeeId overeenkomt met EmployeeId_prefix + Magister-stamnummer. Zie sectie Medewerker-UPN-CSV voor een beschrijving van dit bestand. Id bevat de domeinsuffix.
 
 ** `leerling_id=loginaccount` : koppel Id aan Magister loginaccount. Id bevat geen domeinsuffix. SDS vult Id aan met een domeinsuffix.
 
@@ -152,8 +152,11 @@ Voor elk van de vereiste bestanden in de SDS CSV V1 specificatie, neemt TeamSync
 * Indien het bestand in de ExportVerzamelmap wel aanwezig is, dan voegt TeamSync de gegevens toe aan het bestaande bestand. 
 
 === Medewerker_UPN.CSV
-Dit wordt ingelezen door importscript uit de importfiltermap. Indien de koppelmethode gebruik maakt van een CSV-bestand (configuratieparameter "medewerker_id=csv_upn"), dan moet in de Importfiltermap een CSV-bestand worden aangeleverd worden. 
-De naam van dit bestand is `Medewerker_UPN.csv`. De inhoud van dit bestand bestaat uit een kopregel en één of meer gegevensregels. De kopregel bevat "employeeId,UserPrincipalName". Voor elke medewerker in Magister is er een gegevensregel. De gegevensregels bevatten elk twee gegevensvelden, gescheiden door een komma. Het eerste gegevensveld bevat het stamnummer van een medewerker. Het tweede gegevensveld bevat de overeenkomstige UserPrincipalName die de gebruiker in Microsoft 365 uniek identificeert. De velden mogen omsloten zijn door dubbele aanhalingstekens, maar dat is niet verplicht.
+Indien de koppelmethode is ingesteld op een CSV-bestand (configuratieparameter "medewerker_id=csv_upn"), dan leest het importscript dit bestand uit de uit de importfiltermap. Het importscript gebruikt deze tabel om de medewerkers UserPrincipalName op te zoeken bij een stamnummer uit Magister. 
+
+De inhoud van dit bestand bestaat uit een kopregel en één of meer gegevensregels. De kopregel bevat "employeeId,UserPrincipalName". Voor elke medewerker in Magister is er een gegevensregel. De gegevensregels bevatten elk twee gegevensvelden, gescheiden door een komma. Het eerste gegevensveld bevat de employeeId van een medewerker. Het tweede gegevensveld bevat de overeenkomstige UserPrincipalName die de gebruiker in Entra ID uniek identificeert. De velden mogen omsloten zijn door dubbele aanhalingstekens, maar dat is niet verplicht.
+
+Normaliter zul je deze tabel moeten ophalen uit Entra ID,  met behulp van een script afgeleid van het voorbeeldbestand link:Ophalen-ADMedewerkerUPN.ps1[Ophalen-EntraMedewerkerUPN-voorbeeld.ps1]. Let op: dit script slaat de medewerkergegevens op in de huidige map. Je zult het CSV-bestand zelf moeten kopieren naar de juiste importmap afhankelijk van de gebruikte configuratie voor het importscript.
 
 === Filters
 In zowel de Importfiltermap als de Exportfiltermap kunnen één of meer bestanden worden geplaatst om filters toe te passen op de te verwerken gegevens. Hierbij wordt gebruikt gemaakt van zogenaamde 'regular expressions' oftewel regex-patronen. Met behulp van de regex-patronen kunnen krachtige selecties worden gemaakt die bepalen welke gegevens moeten worden verwerkt en welke niet. De filters kunnen worden toegepast om de hoeveelheid te verwerken gegevens te reduceren en slimme selecties te maken op welke gegevens resulteren in actieve klassenteams. 
@@ -366,6 +369,11 @@ Vanaf versie 20220718 heeft deze parameter geen functie meer.
 === docenten_per_team_limiet
 Deze parameter bevat een getal dat wordt vergeleken met het aantal docenten in elke kandidaatteam. Indien het aantal docenten hoger is dan gegeven door deze parameter, dan wordt het team overgeslagen bij het identificeren van actieve teams. Wanneer deze parameter `0` is, dan wordt deze controle op het aantal docenten niet uitgevoerd. Bij verstek is de waarde `0`.
 
+=== employeeid_prefix
+Deze parameter heeft betekenis bij het opzoeken van de UserPrincipalName van een medewerker uit een CSV tabel. Het importscript zoekt een employeeid die gelijk is aan de employeeid_prefix + Magister-stamnummer. Indien gevonden, dan wordt de bijbehorende UserPrincipalName gebruikt als de unieke id van de docent in de uitvoer voor School Data Sync. 
+
+Voorbeeld:
+De employeeid_prefix bevat normaliter een waarde uniek voor een Magisterinstantie. In Stichting Voortgezet Onderwijs Kaagland worden alle medewerkers in Entra ID door een IAM applicatie gesynchroniseerd, waarbij het employeeId-veld wordt gevuld met een drielettercode voor de Magisterinstantie "JPT", "KEN" of "BON" gevolgd door het Magister-stamnummer. Het Importscript vindt de juiste UserPrincipalName terug door te zoeken naar de employeeid gelijk aan de employeeid_prefix "JPT" voor Jan Peter Thieme College, "KEN" voor Kaagland College en "BON" voor Bonifaciuscollege, gevolgd door het Magister-stamnummer.
 
 == Commandoregelparameters
 

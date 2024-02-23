@@ -9,7 +9,7 @@
     TeamSync script Import-Magister.ps1 (ophalen) haalt gegevens op uit Medius (Magister)
     Webservice.
 
-    Versie 20230921
+    Versie 20240224
     Auteur Paul Wiegmans (p.wiegmans@svok.nl)
 
     naar een voorbeeld door Wim den Ronde, Eric Redegeld, Joppe van Daalen
@@ -68,6 +68,7 @@ $logtag = "IMPORT"
 $medewerker_id = "NIETBESCHIKBAAR"
 $leerling_id = "NIETBESCHIKBAAR"
 $toondata = "0"
+$employeeid_suffix = ""
 
 #region Functies
 
@@ -354,7 +355,7 @@ function Verzamel_docenten()
     }
     elseif ($KOPPEL_MEDEWERKERID_AAN_CSVUPN -eq $medewerker_id) {
         foreach ($mw in $mag_doc) {
-            $mw.Id = $upntabel[$mw.stamnr]
+            $mw.Id = $upntabel[$employeeid_prefix + $mw.stamnr]
         }
     }
 
@@ -546,12 +547,12 @@ Try {
         if (!$users)  {
             Throw "Geen records in de medewerker_upn tabel"
         }
-        # maak een hashtable
+        # maak een hashtable zoekbaar op employeeId
         $upntabel = @{}
         foreach ($user in $users) {
             $upntabel[$user.employeeId] = $user.UserPrincipalName
         }
-        # hashtable $upntabel["$stamnr"] geeft $UserPrincipalName
+        # hashtable $upntabel["$employeeId"] geeft $UserPrincipalName
     }
 
     # voor dataminimalisatie houd ik een lijstje met vakken bij
