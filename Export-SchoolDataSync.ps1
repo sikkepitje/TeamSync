@@ -10,7 +10,7 @@
     bepaalt actieve teams en genereert CSV-bestanden ten behoeve van 
     School Data Sync.
 
-    Versie 20240222a
+    Versie 20240827
     Auteur Paul Wiegmans (p.wiegmans@svok.nl)
 
     naar een voorbeeld door Wim den Ronde, Eric Redegeld, Joppe van Daalen
@@ -20,9 +20,9 @@
     bepaalt de bestandsnaam van het configuratiebestand, relatief ten opzichte van het pad van dit script.
 
     .INPUTS
-    Diverse; Zie READM.adoc
+    Diverse; Zie README.adoc
     .OUTPUTS
-    Diverse; Zie READM.adoc
+    Diverse; Zie README.adoc
     .LINK
 
     https://github.com/sikkepitje/teamsync
@@ -64,7 +64,8 @@ $schoolnaam = $null
 $teamid_prefix = ""
 $teamnaam_prefix = ""
 $teamnaam_suffix = ""
-$maakklassenteams = "1"
+$maakklassenteams = "1"   # configuratieparameter die niets doet
+$samenvoegen = "0"
 $logtag = "INIT" 
 $toonresultaat = "0"
 $bon_match_docentlesgroep_aan_leerlingklas = "0"
@@ -144,6 +145,7 @@ Try {
     $toonresultaat = $toonresultaat -ne "0"  # maak boolean
     $bon_match_docentlesgroep_aan_leerlingklas = $bon_match_docentlesgroep_aan_leerlingklas -ne "0" # maak boolean
     [int]$docenten_per_team_limiet = $docenten_per_team_limiet # maak integer
+    $samenvoegen = $samenvoegen -ne "0"  # maak boolean
 
     $logtag = $teamid_prefix.Trim()
     $host.ui.RawUI.WindowTitle = ((Split-Path -Leaf $MyInvocation.MyCommand.Path) -replace ".ps1") + " " + $logtag
@@ -352,7 +354,7 @@ Try {
 
     # maak opzoektabel groep->team
     $groepteams =@{} 
-    $team.Values | foreach {
+    $team.Values | ForEach-Object {
         if ($groepteams.Keys -notcontains $_.Groep) {
             $grpteam = [PSCustomObject]@{
                 Groep = $_.Groep
@@ -367,7 +369,7 @@ Try {
         $grpteam.Aantal += 1        
     }
     
-    function ToevoegenAan-Team ($Leerling, $Groep, $Label) {
+    function ToevoegenAanTeam ($Leerling, $Groep, $Label) {
         $teams = $groepteams[$groep].Teams  # zoek bijbehorend teamindex(en) in opzoektabel
         if ($teams) {
             foreach ($samegroup in $teams) {
@@ -390,9 +392,9 @@ Try {
     $teller = 0
     $leerlingprocent = 100 / [Math]::Max($mag_leer.count, 1)
     foreach ($leerling in $mag_leer) {
-        ToevoegenAan-Team -Leerling $leerling -Groep $leerling.klas -Label "klas"
+        ToevoegenAanTeam -Leerling $leerling -Groep $leerling.klas -Label "klas"
         foreach ($groep in $leerling.groepen) {
-            ToevoegenAan-Team -Leerling $leerling -Groep $groep -Label "groep"
+            ToevoegenAanTeam -Leerling $leerling -Groep $groep -Label "groep"
         }
 
         if (!(++$teller % 50)) {
@@ -570,13 +572,15 @@ Try {
     $teacherroster      | Export-Csv -Path $filename_TeacherRoster      -Encoding UTF8 -NoTypeInformation
 
     # gegevens opslaan/toevoegen in ExportVerzamelmap
-    write-Host ("Lijsten opslaan in verzamelmap ...")
-    $school            | Export-Csv -Path $filename_CollectedSchool            -Encoding UTF8 -NoTypeInformation -Append
-    $section           | Export-Csv -Path $filename_CollectedSection           -Encoding UTF8 -NoTypeInformation -Append
-    $student           | Export-Csv -Path $filename_CollectedStudent           -Encoding UTF8 -NoTypeInformation -Append
-    $studentenrollment | Export-Csv -Path $filename_CollectedStudentEnrollment -Encoding UTF8 -NoTypeInformation -Append
-    $teacher           | Export-Csv -Path $filename_CollectedTeacher           -Encoding UTF8 -NoTypeInformation -Append
-    $teacherroster     | Export-Csv -Path $filename_CollectedTeacherRoster     -Encoding UTF8 -NoTypeInformation -Append
+    if ($samenvoegen) {
+        write-Host ("Lijsten opslaan in verzamelmap ...")
+        $school            | Export-Csv -Path $filename_CollectedSchool            -Encoding UTF8 -NoTypeInformation -Append
+        $section           | Export-Csv -Path $filename_CollectedSection           -Encoding UTF8 -NoTypeInformation -Append
+        $student           | Export-Csv -Path $filename_CollectedStudent           -Encoding UTF8 -NoTypeInformation -Append
+        $studentenrollment | Export-Csv -Path $filename_CollectedStudentEnrollment -Encoding UTF8 -NoTypeInformation -Append
+        $teacher           | Export-Csv -Path $filename_CollectedTeacher           -Encoding UTF8 -NoTypeInformation -Append
+        $teacherroster     | Export-Csv -Path $filename_CollectedTeacherRoster     -Encoding UTF8 -NoTypeInformation -Append    
+    }
 
     $stopwatch.Stop()
     Write-Log ("Klaar in " + $stopwatch.Elapsed.Hours + " uur " + $stopwatch.Elapsed.Minutes + " minuten " + $stopwatch.Elapsed.Seconds + " seconden ")    

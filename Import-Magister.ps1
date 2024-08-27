@@ -9,7 +9,7 @@
     TeamSync script Import-Magister.ps1 (ophalen) haalt gegevens op uit Medius (Magister)
     Webservice.
 
-    Versie 20240224
+    Versie 20240827
     Auteur Paul Wiegmans (p.wiegmans@svok.nl)
 
     naar een voorbeeld door Wim den Ronde, Eric Redegeld, Joppe van Daalen
@@ -45,7 +45,6 @@ $host.ui.RawUI.WindowTitle = Split-Path -Leaf $selfpath_base
 $logCountLimit  = 7
 $selfpath = $MyInvocation.MyCommand.Path
 $selfdir  = Split-Path -Parent $selfpath
-$selfname  = Split-Path -Leaf $selfpath 
 $selfbasename  = [System.IO.Path]::GetFileNameWithoutExtension($selfpath)
 $logBaseFilename = "$selfdir\Log\$selfbasename"
 $currentLogFilename = "$logBaseFilename.log"
@@ -59,7 +58,7 @@ Constante KOPPEL_MEDEWERKERID_AAN_CSVUPN    'csv_upn'
 Constante KOPPEL_LEERLINGID_AAN_LOGIN       'loginaccount'
 Constante KOPPEL_LEERLINGID_AAN_EMAIL       'email'
 
-# initialisatie variabelen 
+# initialisatie variabelen voor configuratieparameters
 $importfiltermap = "importfilter"
 $importkladmap = "importklad"
 $importdatamap = "importdata"
@@ -68,8 +67,7 @@ $logtag = "IMPORT"
 $medewerker_id = "NIETBESCHIKBAAR"
 $leerling_id = "NIETBESCHIKBAAR"
 $toondata = "0"
-$employeeid_suffix = ""
-
+$employeeid_prefix = ""
 #region Functies
 
 function PreviousLogFilename($Number) {
@@ -535,7 +533,6 @@ Try {
     # Kladbestanden (W)
     $filename_t_leerling        = $tempPath + "\leerling.csv"
     $filename_t_docent          = $tempPath + "\docent.csv"
-    $filename_persemail_xml     = $tempPath + "\personeelemail.clixml"
 
     # importdata geproduceerd (W)
     $filename_mag_leerling_xml  = $dataPath + "\magister_leerling.clixml"

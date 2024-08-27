@@ -212,6 +212,10 @@ Toevoeging configuratieparameter bon_match_docentlesgroep_aan_leerlingklas voor 
 ** bij koppelmethode CSVUPN worden medewerkers in de tabel gezocht op employeeid, in plaats van stamnummer.
 ** toegevoegd configuratievariabele 'employeeid_prefix'
 
+## 20240827
+* Export-SchoolDataSync: toegevoegd configuratievariabele 'samenvoegen' = {0|1} , bepaalt of uitvoer wel/niet wordt toegevoegd in de verzamelmap. 
+* README: 20% verbeterd.
+
 ## TO DO
 Dit zijn geplande wijzigingen zonder een vastgesteld tijdpad (krabbels van de auteur).
 

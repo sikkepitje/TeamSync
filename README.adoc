@@ -1,4 +1,4 @@
-= TeamSync versie 20240224
+= TeamSync versie 20240827
 
 Paul Wiegmans <p.wiegmans@svok.nl>
 
@@ -209,15 +209,15 @@ Speciale betekenis hebben:
 
 Voor een uitgebreidere uitleg over regular expressions of regex, zie https://nl.wikipedia.org/wiki/Reguliere_expressie[Reguliere expressie - Wikipedia]
 
-==== Voorbeelden van filters
-===== Filtervoorbeeld VAVO uitfilteren
+==== Voorbeelden
+===== VAVO uitfilteren
 Alle leerlingen waarvan de studie eindigt op "VAVO" worden uitgesloten.
 
 Het bestand `ImportFilterMap\excl_studie.csv` wordt aangemaakt en bevat: 
 ```
 VAVO$
 ```
-===== Filtervoorbeeld Brugklassen, Mavo, Havo, Vwo
+===== Brugklassen, Mavo, Havo, Vwo
 We willen de leerlingen van Mavo, Havo, Vwo en de brugklassen verwerken; alle leerlingen in een studie die begint met B,M,H of V moeten worden verwerkt. 
 
 Het bestand `ImportFilterMap\incl_studie.csv` wordt aangemaakt en bevat:
@@ -227,7 +227,7 @@ Het bestand `ImportFilterMap\incl_studie.csv` wordt aangemaakt en bevat:
 ^V
 ^B
 ```
-===== Filtervoorbeeld: H4 en H5
+===== H4 en H5
 Voorbeeld : we willen alleen 4 en 5 Havo en verwerken; alle leerlingen in de klas die begint met '4H' of '5H' moeten worden verwerkt. 
 
 Het bestand `ImportFilterMap\incl_klas.csv` bevat:
@@ -236,7 +236,7 @@ Het bestand `ImportFilterMap\incl_klas.csv` bevat:
 ^4H
 ```
 
-===== Filtervoorbeeld: Geen tweede rol in Magister
+===== Geen tweede rol in Magister
 Voorbeeld: we willen alleen docenten wiens id niet begint met '_' of eindigt op '*'. 
 
 Het bestand `ImportFilterMap\excl_docent.csv` bevat:
@@ -245,7 +245,7 @@ Het bestand `ImportFilterMap\excl_docent.csv` bevat:
 \*$
 ```
 
-===== Filtervoorbeeld: 1 Magister, 4 scholen
+===== Één Magister, vier scholen
 Voorbeeld: In het geval dat er 4 scholen gebruik maken van 1 Magisterinstantie, en alleen klassenteams voor Beroepsgericht zijn gewenst. Alle docenten, leerlingen en lesgroepen hebben Magister:Administratieve_eenheid.Omschrijving = "Beroepsgericht".
 
 Het bestand `ImportFiltermap\incl_locatie.csv` *of* `ExportFiltermap\incl_locatie.csv` bevat: 
@@ -253,7 +253,7 @@ Het bestand `ImportFiltermap\incl_locatie.csv` *of* `ExportFiltermap\incl_locati
 Beroepsgericht
 ```
 
-===== Filtervoorbeeld: Alleen teams met " EN "
+===== Alleen teams met " EN "
 Voorbeeld: alleen teams met " EN " in de naam. 
 
 Het bestand `Export-Filter\incl_teamnaam.csv` bevat: 
@@ -276,7 +276,7 @@ Aanhalingstekens zijn toegestaan maar niet nodig. Spaties in het waarde-deel zij
 
 IMPORTANT:  Backslashes worden opgevat als escape-karakters. Om backslashes in paden op te geven, escape deze met een extra backslash. Bijvoorbeeld: `Importfiltermap=Submap1\\Submap2\\Submap3`
 
-=== Lijst configuratievariabelen voor importscript
+=== Parameters voor importscript
 De volgende parameters kunnen worden gedefinieerd in het configuratiebestand van het importscript.
 
 [square]
@@ -290,7 +290,7 @@ De volgende parameters kunnen worden gedefinieerd in het configuratiebestand van
 * `medewerker_id=waarde` : koppelmethode voor medewerkers
 * `leerling_id=waarde` : koppelmethode voor leerlingen
 
-=== Lijst configuratievariabelen voor exportscript
+=== Parameters voor exportscript
 De volgende parameters kunnen worden gedefinieerd in het configuratiebestand van het exportscript.
 
 * `Importdatamap=waarde` : pad naar importdatamap relatief t.o.v. scriptpad
@@ -306,67 +306,75 @@ De volgende parameters kunnen worden gedefinieerd in het configuratiebestand van
 * `maakklassenteams=waarde` : schakelaar voor aanmaken van een team voor iedere (stam)klas
 * `bon_match_docentlesgroep_aan_leerlingklas=waarde`  : schakelaar voor matchen aan tweede deel van docent-groepvaknaam
 * `docenten_per_team_limiet=waarde` : bepaalt limiet van het aantal docenten per tema.
+* `samenvoegen=waarde` : bepaalt of uitvoer wordt toegevoegd aan de bestanden in de verzamelmap`
 
-=== Verklaring van configuratievariabelen
+=== Verklaring van parameters
 
-==== Schoolid
-Deze parameter is verplicht. Dit is een identificatie van de school. Je kunt hiervoor het BRIN van de school gebruiken of een andere unieke aanduiding. 
+==== Schoolid = [tekenreeks]
+Deze verplichte parameter bevat een unieke identificatie van de school. Je kunt hiervoor het BRIN van de school gebruiken of een andere unieke aanduiding. 
 
-==== Schoolnaam 
-Deze parameter is verplicht. Dit is de weergavenaam van de school. 
+==== Schoolnaam = [tekenreeks]
+Deze verplichte parameter bevat de weergavenaam van de school. 
 
-==== MagisterUser, MagisterPassword, MagisterUrl 
-Deze parameters zijn verplicht. Deze gegevens zijn vereist om toegang te krijgen tot de Medius Webservices. De LAS-beheerder maakt een gebruiker aan in de Webservice gebruikerslijst in Magister. De gebruikersnaam en wachtwoord moeten worden gegeven in `MagisterUser` en `MagisterPassword`. Deze gebruiker heeft toegangsrechten nodig tot de *_ADfuncties_* in de Medius Webservices. De MagisterUrl is de URL waar de webservices worden aangeboden. Dit bestaat uit de schoolspecifieke URL voor  Schoolwerkplek met daarachter poort en padaanduiding _:8800/doc_ . De hele URL ziet er uit als `https://schooldomein.swp.nl:8800/doc`.
+==== MagisterUser = [tekenreeks]
+Deze verplichte parameter bevat de gebruikersnaam voor toegang tot de Medius Webservice.
 
-==== Teamid_prefix
+==== MagisterPassword = [tekenreeks]
+Deze verplichte parameter bevat het wachtwoord voor toegang tot de Medius Webservice.
+
+==== MagisterUrl = [tekenreeks]
+Deze verplichte parameter bevat de URL voor toegang tot de Medius Webservice.
+
+IMPORTANT: De parameters MagisterUser, MagisterPassword en MagisterUrl zijn vereist om toegang te krijgen tot de Medius Webservices. De LAS-beheerder maakt een gebruiker aan in de Webservice gebruikerslijst in Magister. De gebruikersnaam en wachtwoord moeten worden gegeven in `MagisterUser` en `MagisterPassword`. Deze gebruiker heeft toegangsrechten nodig tot de *_ADfuncties_* in de Medius Webservices. De MagisterUrl is de URL waar de webservices worden aangeboden. Dit bestaat uit de schoolspecifieke URL voor  Schoolwerkplek met daarachter de poort en het pad , welke meestal _:8800/doc_ is. De produktieomgeving is benaderbaar op poort 8800, de testomgeving op poort 8801 en de beta omgeving op poort 8802. De hele URL ziet er uit als `https://schooldomein.swp.nl:8800/doc`.  
+
+==== Teamid_prefix = [tekenreeks]
 Deze parameter is verplicht. Deze tekst wordt toegevoegd aan het begin van de ID van team. Dit wordt deel van de unieke ID die elk team uniek identificeert in Microsoft 365. Een nuttige prefix identificeert zowel de school als het schooljaar en is bijvoorbeeld "JPT 1920". Spaties in de naam worden omgezet in underscores ten behoeve van het bepalen van de ObjectID. 
 
-==== Teamnaam_prefix
+==== Teamnaam_prefix = [tekenreeks]
 Deze tekst wordt toegevoegd aan het begin van de weergavenaam van elk team en wordt zichtbaar in de teamlijst van alle deelnemers.
 
-==== Teamnaam_suffix
+==== Teamnaam_suffix = [tekenreeks]
 Deze tekst wordt toegevoegd aan het eind van de weergavenaam van elk team en wordt zichtbaar in de teamlijst van alle deelnemers.
 
-==== Importfiltermap
+==== Importfiltermap = [tekenreeks]
 Dit specifieert de naam van de Importfiltermap, relatief ten opzichte van de locatie van het script. Bij verstek is de naam `ImportFilter`. 
 
-==== Importkladmap
+==== Importkladmap = [tekenreeks]
 Dit specificeert de mapnaam van de Importkladmap relatief ten opzichte van de locatie van het script. Bij verstek is de naam `ImportKlad`.
 
-==== Importdatamap
+==== Importdatamap = [tekenreeks]
 Dit specificeert de mapnaam van de Importdatamap relatief ten opzichte van de locatie van het script. Bij verstek is de naam `ImportData`.
 
-==== Exportfiltermap
+==== Exportfiltermap = [tekenreeks]
 Dit specifieert de naam van de Exportfiltermap, relatief ten opzichte van de locatie van het script. Bij verstek is de naam `ExportFilter`. 
 
-==== Exportkladmap
+==== Exportkladmap = [tekenreeks]
 Dit specificeert de mapnaam van de Exportkladmap relatief ten opzichte van de locatie van het script. Bij verstek is de naam `ExportKlad`.
 
-==== Exportdatamap
+==== Exportdatamap = [tekenreeks]
 Dit specificeert de mapnaam van de Exportdatamap relatief ten opzichte van de locatie van het script. Bij verstek is de naam `ExportData`.
 
-==== Exportverzamelmap
+==== Exportverzamelmap = [tekenreeks]
 Dit specificeert de mapnaam van de Exportverzamelmap relatief ten opzichte van de locatie van het script. Bij verstek is de naam `ExportVerzameld`.
 
-
-==== handhaafJPTMedewerkerCodeIsLogin 
+==== handhaafJPTMedewerkerCodeIsLogin = {'0'|'1'}
 Gebruik `handhaafJPTMedewerkerCodeIsLogin=1`. Bij verstek geldt `handhaafJPTMedewerkerCodeIsLogin=0` . Deze instelling dient om uitsluitend medewerkers te verwerken waarbij Magister->Code gelijk is aan Magister->loginaccount.naam. Dit filter wordt in een speciaal geval voor JPT toegepast om dubbele identiteiten weg te filteren. 
 
-==== medewerker_id
+==== medewerker_id = {'code'|'loginaccount'|'ad_upn'|'csv_upn'}
 Deze parameter duidt aan hoe identiteiten van medewerkers in Azure AD worden gekoppeld aan Magister. Deze parameter is verplicht. Toegestane waarden zijn 
 `code`, `loginaccount`, `ad_upn`, `csv_upn`
 . Zie <<Identiteiten koppelen>> . 
 
-==== leerling_id
+==== leerling_id = { loginaccount'|'email'}
 Deze parameter duidt aan hoe identiteiten van leerlingen in Azure AD worden gekoppeld aan Magister. Deze parameter is verplicht. Toegestane waarden zijn 
 `loginaccount`, `email`
 . Zie <<Identiteiten koppelen>> . 
 
-=== bon_match_docentlesgroep_aan_leerlingklas
+=== bon_match_docentlesgroep_aan_leerlingklas = {'0'|'1'}
 Deze parameter is een schakelaar die uit staat met `0` of aan staat met de waarde `1`. Wanneer `1` dan worden extra teams aangemaakt, waarvan de naam wordt opgebouwd uit het deel van de klasnaam na de punt in de docent-groepvakken, gevolgd door een vaknaam. Bij verstek is de waarde `0`. Deze parameter zorgt ervoor dat het aantal actieve teams in de onderbouw van Bonhoeffercollege wordt verhoogd met teams voor docentgroepvakken voor lesgroepen met namen als "B.B2" en "M2.M2a", waarvan alleen het deel achter de punt wordt gebruikt om te kunnen koppelen aan leerlingklassen. 
 Vanaf versie 20220718 heeft deze parameter geen functie meer.
 
-=== docenten_per_team_limiet
+=== docenten_per_team_limiet = [getal]
 Deze parameter bevat een getal dat wordt vergeleken met het aantal docenten in elke kandidaatteam. Indien het aantal docenten hoger is dan gegeven door deze parameter, dan wordt het team overgeslagen bij het identificeren van actieve teams. Wanneer deze parameter `0` is, dan wordt deze controle op het aantal docenten niet uitgevoerd. Bij verstek is de waarde `0`.
 
 === employeeid_prefix
@@ -375,9 +383,12 @@ Deze parameter heeft betekenis bij het opzoeken van de UserPrincipalName van een
 Voorbeeld:
 De employeeid_prefix bevat normaliter een waarde uniek voor een Magisterinstantie. In Stichting Voortgezet Onderwijs Kaagland worden alle medewerkers in Entra ID door een IAM applicatie gesynchroniseerd, waarbij het employeeId-veld wordt gevuld met een drielettercode voor de Magisterinstantie "JPT", "KEN" of "BON" gevolgd door het Magister-stamnummer. Het Importscript vindt de juiste UserPrincipalName terug door te zoeken naar de employeeid gelijk aan de employeeid_prefix "JPT" voor Jan Peter Thieme College, "KEN" voor Kaagland College en "BON" voor Bonifaciuscollege, gevolgd door het Magister-stamnummer.
 
+=== samenvoegen = {'0'|'1'} 
+Deze parameter is een schakelaar met de waarde `0` of `1` die bepaalt of de uitvoer moet worden toegevoegd aan de bestanden in de verzamelmap. Door dit de waarde `0` te geven, is het mogelijk om de uitvoer in het huidige profiel te beoordelen, alvorens deze te uploaden naar School Data Sync. Wanneer de uitvoer naar wens is, kan door dit  waarde `1` te geven, de uitvoer worden samengevoegd met de bestanden in de verzamelmap om aan te bieden aan School Data Sync. 
+
 == Commandoregelparameters
 
-=== Parameter Inifile 
+=== Inifile 
 Met de commandoregelparameter `-Inifile` wordt de naam van een alternatief <<Configuratie>>-bestand opgegeven. De naam is geinterpreteerd als relatief ten opzichte van de map waarin het script staat. Deze voorziening maakt het mogelijk om gegevens van verscheidene instanties van Magister gescheiden te verwerken. 
 
 Een voorbeeld : 
@@ -401,7 +412,9 @@ Powershell.exe -NoProfile -NoLogo -ExecutionPolicy Bypass -File "%~dp0Export-Sch
 
 === Run de scripts
 
-Vanaf de PowerShell prompt gebruikmaken van verstekwaarden:
+TeamSync is met name bedoeld om zonder interactie als geplande taak worden uitgevoerd. 
+
+Vanaf de PowerShell prompt gebruikmakend van verstekwaarden:
 ```
 . .\Import-Magister.ps1
 . .\Export-SchoolDataSync.ps1
@@ -459,14 +472,11 @@ Een scenario van het soort 'Één Magister - twee scholen' kan er zo uitzien:
 ** de schoolspecifieke Exportfiltermap bevat in het bestand `incl_locatie.csv` een of meer school-specifieke regexpatronen die overeenkomen met de gewenste waarden voor het veld Administratieve_eenheid.Omschrijving in Magister. 
 ** `teamid_prefix` enz. verschilt per school.
 
-Dit scenario wordt gecomplementeerd met een eigen synchronisatieprofiel voor elke school in School Data Sync. De uitvoerbestanden worden geupload naar het respectievelijke synchronisatieprofiel.
+Met ingang van 'New School Data Sync' beschikbaar vanaf eind 2023, wordt de uitvoer van diverse TeamSync instanties samengevoegd in de verzamelmap om als één dataset te worden geupload naar School Data Sync. 
 
 === LET OP: Leerlingen, docenten en vakken moeten actief zijn in Magister
 
-Probeer je TeamSync uit, maar krijg je geen actieve teams? Waarschijnlijk haal je de Magistergegevens op in de zomervakantie. 
-Dat gaat niet werken en waarom wordt hieronder uitgelegd. 
-
-Om een lijst met actieve teams te genereren, moeten de gegevens in Magister aan een aantal strikte voorwaarden voldoen:
+Probeer je TeamSync uit, maar krijg je geen actieve teams? Waarschijnlijk haal je de Magistergegevens op in de zomervakantie. Om een lijst met actieve teams te genereren, moeten de gegevens in Magister aan een aantal strikte voorwaarden voldoen:
 
 * Leerlingen en docenten moeten actief zijn, d.w.z. de inschrijfdatum moet in het verleden liggen, en de uitschrijfdatum in de toekomst of leeg.
 * Leerlingen en docenten moeten een ingevulde locatie oftewel "Administratieve_eenheid.Omschrijving" hebben.
