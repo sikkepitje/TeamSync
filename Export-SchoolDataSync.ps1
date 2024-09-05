@@ -10,7 +10,7 @@
     bepaalt actieve teams en genereert CSV-bestanden ten behoeve van 
     School Data Sync.
 
-    Versie 20240827
+    Versie: zie variabele
     Auteur Paul Wiegmans (p.wiegmans@svok.nl)
 
     naar een voorbeeld door Wim den Ronde, Eric Redegeld, Joppe van Daalen
@@ -30,8 +30,7 @@
     .NOTES
 
     TO DO 
-    * situatie voor Magister zonder SSO: gebruik Emailaddress i.p.v. Login
-
+    * produceert in students.csv ook 'First Name','Last Name'
 #>
 [CmdletBinding()]
 param (
@@ -41,6 +40,7 @@ param (
     [Alias('Inifile','Inibestandsnaam','Config','Configfile','Configuratiebestand')]
     [String]  $Inifilename = "Export-SchoolDataSync.ini"
 )
+$versie = '20240904'
 $stopwatch = [Diagnostics.Stopwatch]::StartNew()
 $herePath = Split-Path -parent $MyInvocation.MyCommand.Definition
 # scriptnaam in venstertitel
@@ -114,11 +114,12 @@ Function ConvertTo-ASCII([string]$naam) {
 
 #endregion Functies
 
-# Start hoofdprogramma
+#region hoofdprogramma
 LogRotate
 Write-Log ""
-Write-Log ("START " + $MyInvocation.MyCommand.Name)
+Write-Log ("START " + $MyInvocation.MyCommand.Name + " versie $versie")
 Try {
+    #region init
     # Lees instellingen uit bestand met key=value
     $filename_settings = $herePath + "\" + $Inifilename
     Write-Log ("Configuratiebestand: " + $filename_settings)
@@ -166,12 +167,6 @@ Try {
         Throw "Exportdatamap kan niet wijzen naar dezelfde map als ExportVerzamelmap: $((Resolve-path $exportdatamap).Path)" 
     }
 
-    Write-Log ("ImportDataMap    : " + $importPath)
-    Write-Log ("ExportFilterMap  : " + $filterPath)
-    Write-Log ("ExportKladMap    : " + $tempPath)
-    Write-Log ("ExportDataMap    : " + $outputPath)
-    Write-Log ("ExportVerzamelMap: " + $outputCollectPath)
-
     # Import
     $filename_mag_leerling_xml  = $importPath + "\magister_leerling.clixml"
     $filename_mag_docent_xml    = $importPath + "\magister_docent.clixml"
@@ -194,6 +189,7 @@ Try {
     $filename_t_hteamactief     = $tempPath + "\hteamactief_" + $hteamid + ".csv"
     $filename_t_hteam0ll        = $tempPath + "\hteam0ll_"    + $hteamid + ".csv"
     $filename_t_hteam0doc       = $tempPath + "\hteam0doc_"   + $hteamid + ".csv"
+    $filename_t_teamunfiltered  = $tempPath + "\teamunfiltered_"   + $hteamid + ".csv"
 
     # Files OUT
     $filename_School            = $outputPath + "\School.csv"
@@ -216,11 +212,10 @@ Try {
     if (!(Test-Path -Path $filename_mag_docent_xml)) {  Throw "Vereist bestand ontbreekt: " + $filename_mag_docent_xml }
     if (!(Test-Path -Path $filename_mag_vak_xml)) {  Throw "Vereist bestand ontbreekt: " + $filename_mag_vak_xml }
 
-    function ConvertTo-Teamnaam([string]$Naam) {
-        return ($teamnaam_prefix + $naam + $teamnaam_suffix)
-    }
+    #endregion init
 
     ################# LEES DATA van Import-Magister
+    #region invoer
     $mag_leer = Import-Clixml -Path $filename_mag_leerling_xml
     # velden: Stamnr, Id, Login, Roepnaam, Tussenv, Achternaam, Lesperiode, 
     # Leerjaar, Klas, Studie, Profiel, Groepen, Vakken, Email, Locatie
@@ -244,10 +239,6 @@ Try {
         $docent.Klasvakken = $docent.Klasvakken | Sort-Object
         $docent.Docentvakken = $docent.Docentvakken | Sort-Object
     }
-
-    Write-Log ("Leerlingen     : " + $mag_leer.count)
-    Write-Log ("Docenten       : " + $mag_doc.count)
-    Write-Log ("Vakken         : " + $mag_vak.count)
 
     if ($mag_doc.count -eq 0) {
         Throw "Er zijn nul docenten. Er is niets te doen"
@@ -291,6 +282,8 @@ Try {
         $mag_doc = $mag_doc | Where-Object {$_.Id -match $filter_incl_docent}
         Write-Log ("D na insluiting docent : " + $mag_doc.count)
     }
+    #endregion invoer
+    #region docentteams
 
     ################# Teams bepalen aan de hand van docent groepvakken (a la WootsSyncReadPhase.ps1)
     $team = @{}
@@ -316,15 +309,14 @@ Try {
             Vak     = $vak
             VakOms  = $mag_vak[$vak]
             Doctal  = 0
-            Docent  = @()
+            Docent  = [System.Collections.Generic.List[object]]::new()
             Lltal   = 0
             TypeL   = ""
-            Leerling = @()
+            Leerling = [System.Collections.Generic.List[object]]::new()
         }
     }
 
     $activity = "Teams voor docenten maken ..."
-    Write-Log ($activity)
     $teller = 0
     $docentprocent = 100 / [Math]::Max($mag_doc.count, 1)
     foreach ($docent in $mag_doc) {
@@ -340,7 +332,7 @@ Try {
                     $tm = $team[$id]
                 }
                 if ($tm.Docent -notcontains $docent.id) {
-                    $tm.Docent += $docent.id
+                    $tm.Docent.Add($docent.id)
                     $tm.Doctal += 1
                 }
             }
@@ -353,19 +345,19 @@ Try {
     Write-Progress -Activity $activity -status "Docent" -Completed
 
     # maak opzoektabel groep->team
-    $groepteams =@{} 
+    $groepteams = @{} 
     $team.Values | ForEach-Object {
         if ($groepteams.Keys -notcontains $_.Groep) {
             $grpteam = [PSCustomObject]@{
                 Groep = $_.Groep
                 Aantal = 0
-                Teams = @()
+                Teams = [System.Collections.Generic.List[object]]::new()
             }
             $groepteams[$_.Groep] = $grpteam
         } else {
             $grpteam = $groepteams[$_.Groep]
         }
-        $grpteam.Teams += $_.naam
+        $grpteam.Teams.Add($_.naam)
         $grpteam.Aantal += 1        
     }
     
@@ -375,7 +367,7 @@ Try {
             foreach ($samegroup in $teams) {
                 $tm = $team[$samegroup] 
                 if ($tm) {
-                    $tm.Leerling += $leerling.id 
+                    $tm.Leerling.Add($leerling.id)
                     $tm.Lltal += 1
                     if (!$tm.TypeL.contains($Label)){
                         $tm.TypeL += "$Label"
@@ -386,9 +378,9 @@ Try {
             }
         }
     }
-
+    #endregion docentteams
+    #region leerlingteams
     $activity = "Teams voor leerlingen maken ..."
-    Write-Log ($activity)
     $teller = 0
     $leerlingprocent = 100 / [Math]::Max($mag_leer.count, 1)
     foreach ($leerling in $mag_leer) {
@@ -405,6 +397,7 @@ Try {
     Write-Progress -Activity $activity -status "Leerling" -Completed
 
     $team = $team.Values | Sort-Object id
+    #endregion leerlingteams
 
     # Teamnaam en Id  bepalen volgens gewenst formaat
     foreach ($t in $team) {
@@ -412,23 +405,27 @@ Try {
         $t.Id = ConvertTo-ASCII (("{0}{1} {2}" -f ($teamid_prefix, $t.Groep, $t.Vak)) -replace $illegal_characters, $safe_character)
     }
     
-    Write-Log ("Team Totaal: {0} " -f $team.count)
+    Write-Log ("Teams totaal: {0} " -f $team.count)
+
+    # export ongefilterde teamslijst naar bestand voor inspectie
+    $team | Where-Object {$_.Docent.Count -gt 0 -and $_.Leerling.count -gt 0} | 
+    ConvertTo-Json | Out-File ($tempPath + "\teamunfiltered_"   + $hteamid + ".json")
 
     # Filteren op teamnaam
     if (Test-Path $filename_excl_teamnaam) {
         $filter_excl_teamnaam = $(Get-Content -Path $filename_excl_teamnaam -Encoding UTF8) -join '|'
         $team = $team | Where-Object {$_.Naam -notmatch $filter_excl_teamnaam}
-        Write-Log ("Team na uitsluiting teamnaam: " + $team.count)
+        Write-Log ("      na uitsluiting teamnaam: " + $team.count)
     }
     if (Test-Path $filename_incl_teamnaam) {
         $filter_incl_teamnaam = $(Get-Content -Path $filename_incl_teamnaam -Encoding UTF8) -join '|'
         $team = $team | Where-Object {$_.Naam -match $filter_incl_teamnaam}
-        Write-Log ("Team na insluiting teamnaam : " + $team.count)
+        Write-Log ("      na insluiting teamnaam : " + $team.count)
     }
     # filter op aantal docenten
     if ($docenten_per_team_limiet -gt 0) {
         $team = $team | Where-Object {$_.doctal -le $docenten_per_team_limiet}
-        Write-Log ("Team na toepassen docentenlimiet : " + $team.count)
+        Write-Log ("      na toepassen docentenlimiet : " + $team.count)
     }
 
     # Maak makkelijk leesbare lijsten om te helpen bij foutzoeken en fijnafstelling. 
@@ -463,24 +460,27 @@ Try {
     }
     
     ################# UITVOER
+    #region uitvoer
     $activity = "School Data Sync CSV v1 lijsten samenstellen ..."
-    Write-Log ($activity)
     # Ik maak de uiteindelijke bestanden aan, die naar School Data Sync worden geupload.
 
     # voorbereiden SDS formaat CSV bestanden
-    $school = [System.Collections.ArrayList]@()               # 'SIS ID','Name'    bijv "20MH","Jac P. Thijsse College"
-    $section =  [System.Collections.ArrayList]@()             # 'SIS ID','School SIS ID','Section Name'  bijv 'SDS_1920_1A_ak','20MH','SDS 1920 1A ak'
-    $student =  [System.Collections.ArrayList]@()             # 'SIS ID','School SIS ID','Username'   bijv '10935','20MH','10935'
-    $studentenrollment = [System.Collections.ArrayList]@()    # 'Section SIS ID','SIS ID'   bijv 'SDS_1920_1A','11210'
-    $teacher =  [System.Collections.ArrayList]@()             # 'SIS ID','School SIS ID','Username','First Name','Last Name'  bijv "ABl","20MH","ABl","Aaaaaa","Bbbbb"
-    $teacherroster =  [System.Collections.ArrayList]@()       # 'Section SIS ID','SIS ID'  bijv "SDS_1920_1A","DZn"
+    $school = [System.Collections.Generic.List[object]]::new()               # 'SIS ID','Name'    bijv "20MH","Jac P. Thijsse College"
+    $section =  [System.Collections.Generic.List[object]]::new()             # 'SIS ID','School SIS ID','Section Name'  bijv 'SDS_1920_1A_ak','20MH','SDS 1920 1A ak'
+    $student =  [System.Collections.Generic.List[object]]::new()             # 'SIS ID','School SIS ID','Username'   bijv '10935','20MH','10935'
+    $studentenrollment = [System.Collections.Generic.List[object]]::new()    # 'Section SIS ID','SIS ID'   bijv 'SDS_1920_1A','11210'
+    $teacher =  [System.Collections.Generic.List[object]]::new()             # 'SIS ID','School SIS ID','Username','First Name','Last Name'  bijv "ABl","20MH","ABl","Aaaaaa","Bbbbb"
+    $teacherroster =  [System.Collections.Generic.List[object]]::new()       # 'Section SIS ID','SIS ID'  bijv "SDS_1920_1A","DZn"
 
     # actieve leerlingen actieve docenten tabel 
-    $teamdoc = [System.Collections.ArrayList]@()
-    $teamleer = [System.Collections.ArrayList]@()
+    $teamdoc = [System.Collections.Generic.List[object]]::new()
+    $teamleer = [System.Collections.Generic.List[object]]::new()
     # maak docentopzoektabel
     $hashdoc = @{}
     $mag_doc | ForEach-Object { $hashdoc[$_.Id] = $_}
+    # maak leerlingopzoektabel
+    $hashleer = @{}
+    $mag_leer | ForEach-Object { $hashleer[$_.Id] = $_}
 
     $teamactief = $team | Where-Object {($_.lltal -gt 0) -and ($_.doctal -gt 0)}
 
@@ -492,15 +492,15 @@ Try {
         $rec.'SIS ID' = $t.id 
         $rec.'School SIS ID' = $schoolid
         $rec.'Section Name' = $t.naam 
-        $null = $section.Add($rec)
+        $section.Add($rec)
 
         foreach ($leerling in $t.leerling) {
             $rec = 1 | Select-Object 'Section SIS ID','SIS ID'
             $rec.'Section SIS ID' = $t.id
             $rec.'SIS ID' = $leerling
-            $null = $studentenrollment.Add($rec)
+            $studentenrollment.Add($rec)
             if ($teamleer -notcontains $leerling) {
-                $null = $teamleer.Add($leerling)
+                $teamleer.Add($leerling)
             }
         }
 
@@ -508,9 +508,9 @@ Try {
             $rec = 1 | Select-Object 'Section SIS ID','SIS ID'
             $rec.'Section SIS ID' = $t.id
             $rec.'SIS ID' = $docent
-            $null = $teacherroster.Add($rec)
+            $teacherroster.Add($rec)
             if ($teamdoc -notcontains $docent) {
-                $null = $teamdoc.Add($docent)
+                $teamdoc.Add($docent)
             }
         }
         if (!(++$teller % 10)) {
@@ -522,31 +522,47 @@ Try {
 
     # actieve docenten opzoeken 
     foreach ($doc in $teamdoc) {
-        $rec = 1 | Select-Object 'SIS ID','School SIS ID','Username','First Name','Last Name'
-        $rec.'SIS ID' = $hashdoc[$doc].Id
-        $rec.'School SIS ID' = $schoolid
-        $rec.'Username' = $hashdoc[$doc].Id
-        $rec.'First Name' = $hashdoc[$doc].Roepnaam
-        if ($hashdoc[$doc].Tussenv -ne '') {
-            $rec.'Last Name' = $hashdoc[$doc].Tussenv + " " + $hashdoc[$doc].Achternaam
+        #record met velden 'SIS ID','School SIS ID','Username','First Name','Last Name'
+        $thisdoc = $hashdoc[$doc]
+        if ($thisdoc.Tussenv -ne '') {
+            $achternaam = $thisdoc.Tussenv + ' ' + $thisdoc.Achternaam
         } else {
-            $rec.'Last Name' = $hashdoc[$doc].Achternaam
+            $achternaam = $thisdoc.Achternaam
         }
-        $null = $teacher.Add($rec)
+        $rec = [PSCustomObject]@{
+            'SIS ID' = $thisdoc.Id
+            'School SIS ID' = $schoolid
+            'Username' = $thisdoc.Id
+            'First Name' = $thisdoc.Roepnaam
+            'Last Name' = $achternaam
+        }
+        $teacher.Add($rec)
+
     }
+    # actieve leerlingen opzoeken
     foreach ($leer in $teamleer) {
-        $rec = 1 | Select-Object 'SIS ID','School SIS ID','Username'
-        $rec.'SIS ID' = $leer
-        $rec.'School SIS ID' = $schoolid
-        $rec.'Username' = $leer
-        $null = $student.Add($rec)
+        # record met velden 'SIS ID','School SIS ID','Username','First Name','Last Name'
+        $thisleer = $hashleer[$leer]
+        if ($thisleer.Tussenv -ne '') {
+            $achternaam = $thisleer.Tussenv + ' ' + $thisleer.Achternaam
+        } else {
+            $achternaam = $thisleer.Achternaam
+        }
+        $rec = [PSCustomObject]@{
+            'SIS ID' = $thisleer.Id
+            'School SIS ID' = $schoolid
+            'Username' = $thisleer.Id
+            'First Name' = $thisleer.Roepnaam
+            'Last Name' = $achternaam
+        }
+        $student.Add($rec)
     }
 
     # Maak een school
     $schoolrec = 1 | Select-Object 'SIS ID',Name
     $schoolrec.'SIS ID' = $schoolid
     $schoolrec.Name = $schoolnaam
-    $null = $school.Add($schoolrec)
+    $school.Add($schoolrec)
 
     Write-Log ("School               : " + $school.count)
     Write-Log ("Student              : " + $student.count)
@@ -563,7 +579,6 @@ Try {
     $teacherroster = $teacherroster | Sort-Object 'Section SIS ID','SIS ID'
 
     # gegevens opslaan in ExportDatamap
-    Write-Log ("Lijsten voor School Data Sync opslaan ...")
     $school             | Export-Csv -Path $filename_School             -Encoding UTF8 -NoTypeInformation
     $section            | Export-Csv -Path $filename_Section            -Encoding UTF8 -NoTypeInformation
     $student            | Export-Csv -Path $filename_Student            -Encoding UTF8 -NoTypeInformation
@@ -573,7 +588,6 @@ Try {
 
     # gegevens opslaan/toevoegen in ExportVerzamelmap
     if ($samenvoegen) {
-        write-Host ("Lijsten opslaan in verzamelmap ...")
         $school            | Export-Csv -Path $filename_CollectedSchool            -Encoding UTF8 -NoTypeInformation -Append
         $section           | Export-Csv -Path $filename_CollectedSection           -Encoding UTF8 -NoTypeInformation -Append
         $student           | Export-Csv -Path $filename_CollectedStudent           -Encoding UTF8 -NoTypeInformation -Append
@@ -581,6 +595,7 @@ Try {
         $teacher           | Export-Csv -Path $filename_CollectedTeacher           -Encoding UTF8 -NoTypeInformation -Append
         $teacherroster     | Export-Csv -Path $filename_CollectedTeacherRoster     -Encoding UTF8 -NoTypeInformation -Append    
     }
+    #endregion uitvoer
 
     $stopwatch.Stop()
     Write-Log ("Klaar in " + $stopwatch.Elapsed.Hours + " uur " + $stopwatch.Elapsed.Minutes + " minuten " + $stopwatch.Elapsed.Seconds + " seconden ")    
@@ -595,3 +610,4 @@ Catch {
     Write-Error "Caught exception: $msg at line $line"    
     exit 1  
 }
+#endregion hoofdprogramma

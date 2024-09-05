@@ -9,7 +9,6 @@
     TeamSync script Import-Magister.ps1 (ophalen) haalt gegevens op uit Medius (Magister)
     Webservice.
 
-    Versie 20240827
     Auteur Paul Wiegmans (p.wiegmans@svok.nl)
 
     naar een voorbeeld door Wim den Ronde, Eric Redegeld, Joppe van Daalen
@@ -35,8 +34,8 @@ param (
     [Alias('Inifile','Inibestandsnaam','Config','Configfile','Configuratiebestand')]
     [String]  $Inifilename = "Import-Magister.ini"
 )
+$versie = '20240904'
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
-
 $stopwatch = [Diagnostics.Stopwatch]::StartNew()
 $herePath = Split-Path -parent $MyInvocation.MyCommand.Definition
 # scriptnaam in venstertitel
@@ -126,6 +125,7 @@ function ADFunction ($Url = $magisterUrl, $Function, $SessionToken, $Stamnr = $n
 }
 
 ################# VERZAMEL LEERLINGEN
+#region leerlingen
 function Verzamel_leerlingen() 
 {
     # Ophalen leerlingdata, selecteer attributen, en bewaar hele tabel
@@ -177,8 +177,8 @@ function Verzamel_leerlingen()
         Klas,
         Studie,
         @{Name = 'Profiel'; Expression = {$_.'profiel.code'}},
-        @{Name = 'Groepen'; Expression = { @() }},
-        @{Name = 'Vakken'; Expression = { @() }},
+        @{Name = 'Groepen'; Expression = { $null }},
+        @{Name = 'Vakken'; Expression = { $null }},
         @{Name = 'Locatie'; Expression = { $_.'Administratieve_eenheid.Omschrijving' }}
 
     # velden: Stamnr, Id, Login, Roepnaam, Tussenv, Achternaam, Lesperiode, 
@@ -243,25 +243,27 @@ function Verzamel_leerlingen()
         # verzamel de lesgroepen
         # een team voor elke lesgroep
         $data = ADFunction -Url $magisterUrl -Sessiontoken $MyToken -Function "GetLeerlingGroepen" -Stamnr $leerling.Stamnr
+        $leerling.Groepen = [System.Collections.Generic.List[object]]::new()
         foreach ($groepnode in $data.vakken.vak) {
             <#
             Stamnr Lesgroep groep
             ------ -------- -----
             9479   11286    4h.maatA
             #>
-            $leerling.groepen += @($groepnode.groep)
+            $leerling.Groepen.Add($groepnode.groep)
         }
 
         # verzamel de vakken
         # een team voor elke vakklas
         $data = ADFunction -Url $magisterUrl -Sessiontoken $MyToken -Function "GetLeerlingVakken" -Stamnr $leerling.Stamnr
+        $leerling.Vakken = [System.Collections.Generic.List[object]]::new()
         foreach ($vaknode in $data.vakken.vak) {
             <#
             Stamnr Vak
             ------ ---
             11300  wi
             #>
-            $leerling.Vakken += @($vaknode.Vak)
+            $leerling.Vakken.Add($vaknode.Vak)
         }
 
         Write-Progress -Activity $activity -status `
@@ -285,9 +287,9 @@ function Verzamel_leerlingen()
 
     $csvleer | Export-Csv -Path $filename_t_leerling -Delimiter ";" -NoTypeInformation -Encoding UTF8
 }
-
+#endregion leerlingen
 ################# VERZAMEL DOCENTEN
-
+#region docenten
 function Verzamel_docenten() 
 {
     Write-Log "Ophalen docenten..."
@@ -333,9 +335,9 @@ function Verzamel_docenten()
         Code, Roepnaam, Tussenv, Achternaam,
         @{Name = 'Naam'; Expression = {$_.'Loginaccount.Volledige_naam'}},
         @{Name = 'Functie'; Expression = { $_.'Functie.Omschr' }},
-    @{Name = 'Groepvakken'; Expression = { @() } },
-        @{Name = 'Klasvakken'; Expression = { @() }},
-        @{Name = 'Docentvakken'; Expression = { @() }},
+        @{Name = 'Groepvakken'; Expression = { $null } },
+        @{Name = 'Klasvakken'; Expression = { $null }},
+        @{Name = 'Docentvakken'; Expression = {$null }},
         @{Name = 'Locatie'; Expression = { $_.'Administratieve_eenheid.Omschrijving' }}
     # velden: Stamnr, Id, Login, Code, Roepnaam, Tussenv, Achternaam, Naam,  
     # Functie, Groepvakken, Klasvakken, Docentvakken, Locatie
@@ -408,6 +410,7 @@ function Verzamel_docenten()
 
         # verzamel Groepvakken
         $data = ADFunction -Url $magisterUrl -Sessiontoken $MyToken -Function "GetPersoneelGroepVakken" -Stamnr $docent.stamnr
+        $docent.Groepvakken = [System.Collections.Generic.List[object]]::new()
         foreach ($gvnode in $data.Lessen.Les) {
             <# velden: 
             Personeelslid.Stamnr Klas     Vak.Vakcode Vak.Omschrijving
@@ -418,7 +421,7 @@ function Verzamel_docenten()
                 Klas    = $gvnode.Klas
                 Vakcode = $gvnode.'Vak.Vakcode'
             }
-            $docent.Groepvakken += @($rec) 
+            $docent.Groepvakken.Add($rec)
 
             if ($mag_vak.keys -notcontains $gvnode.'Vak.Vakcode') {
                 $mag_vak[$gvnode.'Vak.Vakcode'] = $gvnode.'Vak.Omschrijving'
@@ -427,24 +430,26 @@ function Verzamel_docenten()
 
         # verzamelen Klasvakken
         $data = ADFunction -Url $magisterUrl -Sessiontoken $MyToken -Function "GetPersoneelKlasVakken" -Stamnr $docent.stamnr
+        $docent.Klasvakken = [System.Collections.Generic.List[object]]::new()
         foreach ($kvnode in $data.Lessen.Les) {
             <# velden:
             Personeelslid.Stamnr Klas_Lesgroep Klas
             -------------------- ------------- ----
             11                   11182         5vD 
             #>
-            $docent.Klasvakken += @($kvnode.Klas)
+            $docent.Klasvakken.Add($kvnode.Klas)
         }
 
         # verzamel Docentvakken
         $data = ADFunction -Url $magisterUrl -Sessiontoken $MyToken -Function "GetPersoneelVakken" -Stamnr $docent.stamnr
+        $docent.Docentvakken = [System.Collections.Generic.List[object]]::new()
         foreach ($dvnode in $data.Lessen.Les) {
             <# velden:
             Personeelslid.Stamnr Vak.Vakcode Vak.Omschrijving
             -------------------- ----------- ----------------
             11                   dutl        Duitse taal en literatuur 
             #>
-            $docent.Docentvakken += @($dvnode.'Vak.Vakcode')
+            $docent.Docentvakken.Add($dvnode.'Vak.Vakcode')
 
             if ($mag_vak.keys -notcontains $dvnode.'Vak.Vakcode') {
                 $mag_vak[$dvnode.'Vak.Vakcode'] = $dvnode.'Vak.Omschrijving'
@@ -469,9 +474,9 @@ function Verzamel_docenten()
     $csvdoc = [System.Management.Automation.PSSerializer]::Deserialize([System.Management.Automation.PSSerializer]::Serialize($mag_doc)) # diepe kopie
 
     foreach ($d in $csvdoc) {
-        $gvlist = @()
+        $gvlist = [System.Collections.Generic.List[object]]::new()
         foreach ($g in $d.groepvakken) {
-            $gvlist += "$($g.klas)@$($g.vakcode)"
+            $gvlist.Add("$($g.klas)@$($g.vakcode)")
         }
         $d.groepvakken = $gvlist -join ','
         $d.klasvakken = $d.klasvakken -join ','
@@ -480,11 +485,12 @@ function Verzamel_docenten()
     $csvdoc | Export-Csv -Path $filename_t_docent -Delimiter ";" -NoTypeInformation -Encoding UTF8
 
 }
+#endregion docenten
 #endregion Functies
-
+#region main
 LogRotate
 Write-Log ""
-Write-Log ("START " + $MyInvocation.MyCommand.Name)
+Write-Log ("START " + $MyInvocation.MyCommand.Name + " versie $versie")
 Try {
 
     # Configuratieparameter inlezen
@@ -584,3 +590,4 @@ Catch {
     Write-Error "Caught exception: $msg at line $line"      
     exit 1
 }
+#endregion main

@@ -216,6 +216,13 @@ Toevoeging configuratieparameter bon_match_docentlesgroep_aan_leerlingklas voor 
 * Export-SchoolDataSync: toegevoegd configuratievariabele 'samenvoegen' = {0|1} , bepaalt of uitvoer wel/niet wordt toegevoegd in de verzamelmap. 
 * README: 20% verbeterd.
 
+## 20240904
+* Codeoptimalisaties: gebruikt generic lists waar mogelijk; null-toekenningen verwijderd; regions toegevoegd.
+* versie in variabele
+* Export-SchoolDataSync: 
+** voert ongefilterde lijst met teams uit ter inspectie.
+** Toevoegen 'First Name' en 'Last Name' velden aan SDS CSV v1 student.csv voor hopelijk fixen van rare bug in SDS.
+
 ## TO DO
 Dit zijn geplande wijzigingen zonder een vastgesteld tijdpad (krabbels van de auteur).
 
