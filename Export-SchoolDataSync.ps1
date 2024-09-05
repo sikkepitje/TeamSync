@@ -30,7 +30,7 @@
     .NOTES
 
     TO DO 
-    * produceert in students.csv ook 'First Name','Last Name'
+    * vermijdt '@' in SIS ID
 #>
 [CmdletBinding()]
 param (
@@ -40,7 +40,7 @@ param (
     [Alias('Inifile','Inibestandsnaam','Config','Configfile','Configuratiebestand')]
     [String]  $Inifilename = "Export-SchoolDataSync.ini"
 )
-$versie = '20240904'
+$versie = '20240905'
 $stopwatch = [Diagnostics.Stopwatch]::StartNew()
 $herePath = Split-Path -parent $MyInvocation.MyCommand.Definition
 # scriptnaam in venstertitel
@@ -225,6 +225,16 @@ Try {
     # velden van mag_doc[].Groepvakken:  Klas, Vakcode
     $mag_vak = Import-Clixml -Path $filename_mag_vak_xml
     # $mag_vak['Vakcode'] = 'VakOmschrijving'
+
+    # In Id hebben we nu de UserPrincipalName van de gebruikers. 
+    # Maak nu een id die veilig is voor gebruik in School Data Sync door @ te vervangen door _.
+    # Plaats "uid_" ervóór zodat het herkenbaar is gebruiker.
+    foreach ($l in $mag_leer) {
+        $l.id = 'uid_' + $l.id.replace('@','_')
+    }
+    foreach ($d in $mag_doc) {
+        $d.id = 'uid_' + $d.id.replace('@','_')
+    }
 
     # Zet om in hashtabel, kapitaliseer alle woorden in vakomschrijving, behalve en en and
     $vakoms = @{}
