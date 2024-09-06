@@ -226,6 +226,12 @@ Toevoeging configuratieparameter bon_match_docentlesgroep_aan_leerlingklas voor 
 ## 20240905
 * Export-SchoolDataSync: vervang '@' in SIS ID door een veilig teken.
 
+## 20240906
+* Export-SchoolDataSync:
+** bug verholpen waardoor de werkelijke id van studenten en teachers werd vervangen door SIS ID. 
+** code: padnamen gebruiken pathsep variabele waardoor script compatibel is met andere OS'en dan Windows.
+** bug opgelost waardoor padoplossing uitgaat van huidige directory i.p.v. scriptdirectory.
+
 ## TO DO
 Dit zijn geplande wijzigingen zonder een vastgesteld tijdpad (krabbels van de auteur).
 

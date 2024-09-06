@@ -40,7 +40,8 @@ param (
     [Alias('Inifile','Inibestandsnaam','Config','Configfile','Configuratiebestand')]
     [String]  $Inifilename = "Export-SchoolDataSync.ini"
 )
-$versie = '20240905'
+$versie = '20240906'
+$pathsep = [IO.Path]::DirectorySeparatorChar  # bevat de door OS gedefinieerde padscheidingsteken (path separator)
 $stopwatch = [Diagnostics.Stopwatch]::StartNew()
 $herePath = Split-Path -parent $MyInvocation.MyCommand.Definition
 # scriptnaam in venstertitel
@@ -50,7 +51,7 @@ $logCountLimit  = 7
 $selfpath = $MyInvocation.MyCommand.Path
 $selfdir  = Split-Path -Parent $selfpath
 $selfbasename  = [System.IO.Path]::GetFileNameWithoutExtension($selfpath)
-$logBaseFilename = "$selfdir\Log\$selfbasename"
+$logBaseFilename = $selfdir + $pathsep + "Log" + $pathsep + $selfbasename
 $currentLogFilename = "$logBaseFilename.log"
 
 # variabelen initialisatie
@@ -121,7 +122,7 @@ Write-Log ("START " + $MyInvocation.MyCommand.Name + " versie $versie")
 Try {
     #region init
     # Lees instellingen uit bestand met key=value
-    $filename_settings = $herePath + "\" + $Inifilename
+    $filename_settings = $herePath + $pathsep + $Inifilename
     Write-Log ("Configuratiebestand: " + $filename_settings)
     $settings = Get-Content $filename_settings -Encoding UTF8 | ConvertFrom-StringData
     foreach ($key in $settings.Keys) {
@@ -153,59 +154,59 @@ Try {
     Write-Log ("Schoolnaam     : " + $schoolnaam)
 
     # datamappen
-    $importPath         = "$herePath\$importdatamap"
-    $filterPath         = "$herePath\$exportfiltermap"
-    $tempPath           = "$herePath\$exportkladmap"
-    $outputPath         = "$herePath\$exportdatamap"
-    $outputCollectPath        = "$herePath\$exportverzamelmap"
+    $importPath         = "$herePath$pathsep$importdatamap"
+    $filterPath         = "$herePath$pathsep$exportfiltermap"
+    $tempPath           = "$herePath$pathsep$exportkladmap"
+    $outputPath         = "$herePath$pathsep$exportdatamap"
+    $outputCollectPath        = "$herePath$pathsep$exportverzamelmap"
 
     New-Item -path $tempPath -ItemType Directory -ea:Silentlycontinue | Out-Null
     New-Item -path $outputPath -ItemType Directory -ea:Silentlycontinue | Out-Null
     New-Item -path $outputCollectPath -ItemType Directory -ea:Silentlycontinue | Out-Null
 
-    if ((Resolve-path $exportdatamap).Path -eq (Resolve-Path $exportverzamelmap).Path) {
-        Throw "Exportdatamap kan niet wijzen naar dezelfde map als ExportVerzamelmap: $((Resolve-path $exportdatamap).Path)" 
+    if (($herepath+$pathsep+$exportdatamap) -eq ($herepath+$pathsep+$exportverzamelmap)) {
+        Throw "Exportdatamap kan niet wijzen naar dezelfde map als ExportVerzamelmap: $($herepath+$pathsep+$exportdatamap)" 
     }
 
     # Import
-    $filename_mag_leerling_xml  = $importPath + "\magister_leerling.clixml"
-    $filename_mag_docent_xml    = $importPath + "\magister_docent.clixml"
-    $filename_mag_vak_xml       = $importPath + "\magister_vak.clixml"
+    $filename_mag_leerling_xml  = $importPath + $pathsep + "magister_leerling.clixml"
+    $filename_mag_docent_xml    = $importPath + $pathsep + "magister_docent.clixml"
+    $filename_mag_vak_xml       = $importPath + $pathsep + "magister_vak.clixml"
     
     # Filters
-    $filename_excl_docent       = $filterPath + "\excl_docent.csv"
-    $filename_incl_docent       = $filterPath + "\incl_docent.csv"
-    $filename_excl_klas         = $filterPath + "\excl_klas.csv"
-    $filename_incl_klas         = $filterPath + "\incl_klas.csv"
-    $filename_excl_studie       = $filterPath + "\excl_studie.csv"
-    $filename_incl_studie       = $filterPath + "\incl_studie.csv"
-    $filename_incl_locatie      = $filterPath + "\incl_locatie.csv"
-    $filename_excl_teamnaam     = $filterPath + "\excl_teamnaam.csv"
-    $filename_incl_teamnaam     = $filterPath + "\incl_teamnaam.csv"
+    $filename_excl_docent       = $filterPath + $pathsep + "excl_docent.csv"
+    $filename_incl_docent       = $filterPath + $pathsep + "incl_docent.csv"
+    $filename_excl_klas         = $filterPath + $pathsep + "excl_klas.csv"
+    $filename_incl_klas         = $filterPath + $pathsep + "incl_klas.csv"
+    $filename_excl_studie       = $filterPath + $pathsep + "excl_studie.csv"
+    $filename_incl_studie       = $filterPath + $pathsep + "incl_studie.csv"
+    $filename_incl_locatie      = $filterPath + $pathsep + "incl_locatie.csv"
+    $filename_excl_teamnaam     = $filterPath + $pathsep + "excl_teamnaam.csv"
+    $filename_incl_teamnaam     = $filterPath + $pathsep + "incl_teamnaam.csv"
 
     # Kladbestanden
     $hteamid                    = $teamid_prefix.trim() -replace(" ","_")
-    $filename_t_hteamfull       = $tempPath + "\hteamfull_"   + $hteamid + ".csv"
-    $filename_t_hteamactief     = $tempPath + "\hteamactief_" + $hteamid + ".csv"
-    $filename_t_hteam0ll        = $tempPath + "\hteam0ll_"    + $hteamid + ".csv"
-    $filename_t_hteam0doc       = $tempPath + "\hteam0doc_"   + $hteamid + ".csv"
-    $filename_t_teamunfiltered  = $tempPath + "\teamunfiltered_"   + $hteamid + ".csv"
+    $filename_t_hteamfull       = $tempPath + $pathsep + "hteamfull_"   + $hteamid + ".csv"
+    $filename_t_hteamactief     = $tempPath + $pathsep + "hteamactief_" + $hteamid + ".csv"
+    $filename_t_hteam0ll        = $tempPath + $pathsep + "hteam0ll_"    + $hteamid + ".csv"
+    $filename_t_hteam0doc       = $tempPath + $pathsep + "hteam0doc_"   + $hteamid + ".csv"
+    $filename_t_teamunfiltered  = $tempPath + $pathsep + "teamunfiltered_"   + $hteamid + ".json"
 
     # Files OUT
-    $filename_School            = $outputPath + "\School.csv"
-    $filename_Section           = $outputPath + "\Section.csv"
-    $filename_Student           = $outputPath + "\Student.csv"
-    $filename_StudentEnrollment = $outputPath + "\StudentEnrollment.csv"
-    $filename_Teacher           = $outputPath + "\Teacher.csv"
-    $filename_TeacherRoster     = $outputPath + "\TeacherRoster.csv"
+    $filename_School            = $outputPath + $pathsep + "School.csv"
+    $filename_Section           = $outputPath + $pathsep + "Section.csv"
+    $filename_Student           = $outputPath + $pathsep + "Student.csv"
+    $filename_StudentEnrollment = $outputPath + $pathsep + "StudentEnrollment.csv"
+    $filename_Teacher           = $outputPath + $pathsep + "Teacher.csv"
+    $filename_TeacherRoster     = $outputPath + $pathsep + "TeacherRoster.csv"
 
     # Files OUT
-    $filename_CollectedSchool            = $outputCollectPath + "\School.csv"
-    $filename_CollectedSection           = $outputCollectPath + "\Section.csv"
-    $filename_CollectedStudent           = $outputCollectPath + "\Student.csv"
-    $filename_CollectedStudentEnrollment = $outputCollectPath + "\StudentEnrollment.csv"
-    $filename_CollectedTeacher           = $outputCollectPath + "\Teacher.csv"
-    $filename_CollectedTeacherRoster     = $outputCollectPath + "\TeacherRoster.csv"
+    $filename_CollectedSchool            = $outputCollectPath + $pathsep + "School.csv"
+    $filename_CollectedSection           = $outputCollectPath + $pathsep + "Section.csv"
+    $filename_CollectedStudent           = $outputCollectPath + $pathsep + "Student.csv"
+    $filename_CollectedStudentEnrollment = $outputCollectPath + $pathsep + "StudentEnrollment.csv"
+    $filename_CollectedTeacher           = $outputCollectPath + $pathsep + "Teacher.csv"
+    $filename_CollectedTeacherRoster     = $outputCollectPath + $pathsep + "TeacherRoster.csv"
     
     # controleer vereiste bestanden
     if (!(Test-Path -Path $filename_mag_leerling_xml)) {  Throw "Vereist bestand ontbreekt: " + $filename_mag_leerling_xml }
@@ -225,16 +226,6 @@ Try {
     # velden van mag_doc[].Groepvakken:  Klas, Vakcode
     $mag_vak = Import-Clixml -Path $filename_mag_vak_xml
     # $mag_vak['Vakcode'] = 'VakOmschrijving'
-
-    # In Id hebben we nu de UserPrincipalName van de gebruikers. 
-    # Maak nu een id die veilig is voor gebruik in School Data Sync door @ te vervangen door _.
-    # Plaats "uid_" ervóór zodat het herkenbaar is gebruiker.
-    foreach ($l in $mag_leer) {
-        $l.id = 'uid_' + $l.id.replace('@','_')
-    }
-    foreach ($d in $mag_doc) {
-        $d.id = 'uid_' + $d.id.replace('@','_')
-    }
 
     # Zet om in hashtabel, kapitaliseer alle woorden in vakomschrijving, behalve en en and
     $vakoms = @{}
@@ -419,7 +410,7 @@ Try {
 
     # export ongefilterde teamslijst naar bestand voor inspectie
     $team | Where-Object {$_.Docent.Count -gt 0 -and $_.Leerling.count -gt 0} | 
-    ConvertTo-Json | Out-File ($tempPath + "\teamunfiltered_"   + $hteamid + ".json")
+    ConvertTo-Json | Out-File ($filename_t_teamunfiltered)
 
     # Filteren op teamnaam
     if (Test-Path $filename_excl_teamnaam) {
@@ -474,6 +465,32 @@ Try {
     $activity = "School Data Sync CSV v1 lijsten samenstellen ..."
     # Ik maak de uiteindelijke bestanden aan, die naar School Data Sync worden geupload.
 
+    # In Id hebben we nu de UserPrincipalName van de gebruikers. 
+    # Voeg nu een property toe met een speciale id die veilig is voor 
+    # gebruik in School Data Sync door @ te vervangen door _.
+    # Plaats "uid_" ervóór zodat het herkenbaar is gebruiker.
+    # Combineer ook een achternaam met tussenvoegsel
+    $mag_leer | Add-Member -MemberType NoteProperty -Name 'sisid' -Value ""
+    $mag_leer | Add-Member -MemberType NoteProperty -Name 'achternaamlang' -Value ""
+    foreach ($l in $mag_leer) {
+        $l.sisid = 'uid_' + $l.id.replace('@','_')
+        if ($l.Tussenv -ne '') {
+            $l.achternaamlang = $l.Tussenv + ' ' + $l.Achternaam
+        } else {
+            $l.achternaamlang = $l.Achternaam
+        }
+    }
+    $mag_doc | Add-Member -MemberType NoteProperty -Name 'sisid' -Value ""
+    $mag_doc | Add-Member -MemberType NoteProperty -Name 'achternaamlang' -Value ""
+    foreach ($d in $mag_doc) {
+        $d.sisid = 'uid_' + $d.id.replace('@','_')
+        if ($d.Tussenv -ne '') {
+            $d.achternaamlang = $d.Tussenv + ' ' + $d.Achternaam
+        } else {
+            $d.achternaamlang = $d.Achternaam
+        }
+    }
+
     # voorbereiden SDS formaat CSV bestanden
     $school = [System.Collections.Generic.List[object]]::new()               # 'SIS ID','Name'    bijv "20MH","Jac P. Thijsse College"
     $section =  [System.Collections.Generic.List[object]]::new()             # 'SIS ID','School SIS ID','Section Name'  bijv 'SDS_1920_1A_ak','20MH','SDS 1920 1A ak'
@@ -505,22 +522,24 @@ Try {
         $section.Add($rec)
 
         foreach ($leerling in $t.leerling) {
-            $rec = 1 | Select-Object 'Section SIS ID','SIS ID'
-            $rec.'Section SIS ID' = $t.id
-            $rec.'SIS ID' = $leerling
-            $studentenrollment.Add($rec)
+            $senroll = [PSCustomObject]@{
+                'Section SIS ID' = $t.id
+                'SIS ID' = $hashleer[$leerling].sisid
+            }
+            $studentenrollment.Add($senroll)
             if ($teamleer -notcontains $leerling) {
-                $teamleer.Add($leerling)
+                $teamleer.Add($leerling)    # bewaar upn in lijst
             }
         }
 
         foreach ($docent in $t.docent) {
-            $rec = 1 | Select-Object 'Section SIS ID','SIS ID'
-            $rec.'Section SIS ID' = $t.id
-            $rec.'SIS ID' = $docent
-            $teacherroster.Add($rec)
+            $troster = [PSCustomObject]@{
+                'Section SIS ID' = $t.id
+                'SIS ID' = $hashdoc[$docent].sisid
+            }
+            $teacherroster.Add($troster)
             if ($teamdoc -notcontains $docent) {
-                $teamdoc.Add($docent)
+                $teamdoc.Add($docent)    # bewaar upn in lijst
             }
         }
         if (!(++$teller % 10)) {
@@ -534,36 +553,25 @@ Try {
     foreach ($doc in $teamdoc) {
         #record met velden 'SIS ID','School SIS ID','Username','First Name','Last Name'
         $thisdoc = $hashdoc[$doc]
-        if ($thisdoc.Tussenv -ne '') {
-            $achternaam = $thisdoc.Tussenv + ' ' + $thisdoc.Achternaam
-        } else {
-            $achternaam = $thisdoc.Achternaam
-        }
-        $rec = [PSCustomObject]@{
-            'SIS ID' = $thisdoc.Id
+        $teacher1 = [PSCustomObject]@{
+            'SIS ID' = $thisdoc.sisid
             'School SIS ID' = $schoolid
             'Username' = $thisdoc.Id
             'First Name' = $thisdoc.Roepnaam
-            'Last Name' = $achternaam
+            'Last Name' = $thisdoc.achternaamlang
         }
-        $teacher.Add($rec)
-
+        $teacher.Add($teacher1)
     }
     # actieve leerlingen opzoeken
     foreach ($leer in $teamleer) {
         # record met velden 'SIS ID','School SIS ID','Username','First Name','Last Name'
         $thisleer = $hashleer[$leer]
-        if ($thisleer.Tussenv -ne '') {
-            $achternaam = $thisleer.Tussenv + ' ' + $thisleer.Achternaam
-        } else {
-            $achternaam = $thisleer.Achternaam
-        }
         $rec = [PSCustomObject]@{
-            'SIS ID' = $thisleer.Id
+            'SIS ID' = $thisleer.sisid
             'School SIS ID' = $schoolid
             'Username' = $thisleer.Id
             'First Name' = $thisleer.Roepnaam
-            'Last Name' = $achternaam
+            'Last Name' = $thisleer.achternaamlang
         }
         $student.Add($rec)
     }
