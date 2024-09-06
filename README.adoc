@@ -1,4 +1,4 @@
-= TeamSync versie 20240827
+= TeamSync versie 20240906
 
 Paul Wiegmans <p.wiegmans@svok.nl>
 
@@ -274,7 +274,7 @@ De parameters in het configuratiebestand worden gespecificeerd als een naam-waar
 
 Aanhalingstekens zijn toegestaan maar niet nodig. Spaties in het waarde-deel zijn toegestaan. Commentaarregels zijn toegestaan, door de regel te beginnen met '#'.
 
-IMPORTANT:  Backslashes worden opgevat als escape-karakters. Om backslashes in paden op te geven, escape deze met een extra backslash. Bijvoorbeeld: `Importfiltermap=Submap1\\Submap2\\Submap3`
+IMPORTANT:  Backslashes worden opgevat als escape-karakters. Om backslashes in paden op te geven, escape deze met een extra backslash, bijvoorbeeld: `Importfiltermap=Submap1\\Submap2\\Submap3`. Je mag ze ook vervangen door een forward slash, bijvoorbeeld: 'Importfiltermap=Submap1/Submap2/Submap3'.
 
 === Parameters voor importscript
 De volgende parameters kunnen worden gedefinieerd in het configuratiebestand van het importscript.
