@@ -41,7 +41,7 @@ $herePath = Split-Path -parent $MyInvocation.MyCommand.Definition
 # scriptnaam in venstertitel
 $selfpath_base = $MyInvocation.MyCommand.Path.replace(".ps1","")  # compleet pad zonder extensie
 $host.ui.RawUI.WindowTitle = Split-Path -Leaf $selfpath_base
-$logCountLimit  = 7
+$logCountLimit  = 9
 $selfpath = $MyInvocation.MyCommand.Path
 $selfdir  = Split-Path -Parent $selfpath
 $selfbasename  = [System.IO.Path]::GetFileNameWithoutExtension($selfpath)

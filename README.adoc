@@ -1,4 +1,4 @@
-= TeamSync versie 20240906
+= TeamSync versie 20240909
 
 Paul Wiegmans <p.wiegmans@svok.nl>
 
@@ -303,7 +303,7 @@ De volgende parameters kunnen worden gedefinieerd in het configuratiebestand van
 * `teamid_prefix=waarde` : prefix voor team-ids in SDS
 * `teamnaam_prefix=waarde` : prefix voor teamnamen in SDS
 * `teamnaam_suffix=waarde` : suffix voor teamnamen in SDS
-* `maakklassenteams=waarde` : schakelaar voor aanmaken van een team voor iedere (stam)klas
+* `maakalleenlesgroepteams=waarde` : schakelaar voor aanmaken van een team voor alleen lesgroepen
 * `bon_match_docentlesgroep_aan_leerlingklas=waarde`  : schakelaar voor matchen aan tweede deel van docent-groepvaknaam
 * `docenten_per_team_limiet=waarde` : bepaalt limiet van het aantal docenten per tema.
 * `samenvoegen=waarde` : bepaalt of uitvoer wordt toegevoegd aan de bestanden in de verzamelmap`
@@ -335,6 +335,9 @@ Deze tekst wordt toegevoegd aan het begin van de weergavenaam van elk team en wo
 
 ==== Teamnaam_suffix = [tekenreeks]
 Deze tekst wordt toegevoegd aan het eind van de weergavenaam van elk team en wordt zichtbaar in de teamlijst van alle deelnemers.
+
+==== maakalleenlesgroepteams = {'0'|'1'}
+Geef '0' als je teams van klassen en lesgroepen wilt maken, '1' als je teams van alleen lesgroepen wilt maken. Bij verstek is de waarde '0'. 
 
 ==== Importfiltermap = [tekenreeks]
 Dit specifieert de naam van de Importfiltermap, relatief ten opzichte van de locatie van het script. Bij verstek is de naam `ImportFilter`. 

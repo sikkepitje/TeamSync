@@ -232,6 +232,14 @@ Toevoeging configuratieparameter bon_match_docentlesgroep_aan_leerlingklas voor 
 ** code: padnamen gebruiken pathsep variabele waardoor script compatibel is met andere OS'en dan Windows.
 ** bug opgelost waardoor padoplossing uitgaat van huidige directory i.p.v. scriptdirectory.
 
+## 20240909
+* Export-SchoolDataSync:
+** Configuratievariabele 'maakalleenlesgroepteams' toegevoegd.
+
+## FUTURE
+* Export-SchoolDataSync:
+** Verwijderd achterloopspatie in section name.
+
 ## TO DO
 Dit zijn geplande wijzigingen zonder een vastgesteld tijdpad (krabbels van de auteur).
 

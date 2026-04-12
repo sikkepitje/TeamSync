@@ -40,7 +40,7 @@ param (
     [Alias('Inifile','Inibestandsnaam','Config','Configfile','Configuratiebestand')]
     [String]  $Inifilename = "Export-SchoolDataSync.ini"
 )
-$versie = '20240906'
+$versie = '20240909'
 $pathsep = [IO.Path]::DirectorySeparatorChar  # bevat de door OS gedefinieerde padscheidingsteken (path separator)
 $stopwatch = [Diagnostics.Stopwatch]::StartNew()
 $herePath = Split-Path -parent $MyInvocation.MyCommand.Definition
@@ -65,7 +65,7 @@ $schoolnaam = $null
 $teamid_prefix = ""
 $teamnaam_prefix = ""
 $teamnaam_suffix = ""
-$maakklassenteams = "1"   # configuratieparameter die niets doet
+$maakalleenlesgroepteams = '0'  # '1' om teams van alleen lesgroep te maken
 $samenvoegen = "0"
 $logtag = "INIT" 
 $toonresultaat = "0"
@@ -429,6 +429,12 @@ Try {
         Write-Log ("      na toepassen docentenlimiet : " + $team.count)
     }
 
+    # indien gewenst, maak teams gebaseerd op alleen lesgroep
+    if ($maakalleenlesgroepteams -ne '0') {
+        $team = $team | Where-Object {$_.TypeL -eq 'groep'}
+        Write-Log ("  Alleen lesgroepteams: " + $team.count)
+    }
+    
     # Maak makkelijk leesbare lijsten om te helpen bij foutzoeken en fijnafstelling. 
     $hteam = $team | Select-Object Id, Naam, Groep,Vak,VakOms,
         @{Name = 'Aantal_docenten'; Expression = {$_.Doctal}},
@@ -510,7 +516,7 @@ Try {
     $mag_leer | ForEach-Object { $hashleer[$_.Id] = $_}
 
     $teamactief = $team | Where-Object {($_.lltal -gt 0) -and ($_.doctal -gt 0)}
-
+   
     $teller = 0
     $teamprocent = 100 / [Math]::Max($teamactief.count, 1)
 
@@ -518,7 +524,7 @@ Try {
         $rec = 1 | Select-Object 'SIS ID','School SIS ID','Section Name'
         $rec.'SIS ID' = $t.id 
         $rec.'School SIS ID' = $schoolid
-        $rec.'Section Name' = $t.naam 
+        $rec.'Section Name' = $t.naam.trim()
         $section.Add($rec)
 
         foreach ($leerling in $t.leerling) {
