@@ -144,7 +144,7 @@ Deze bestanden zijn bedoeld om te uploaden naar het gewenste synchronisatieprofi
 
 === ExportVerzamelmap
 
-In deze map worden de naar SDS te uploaden gegevensbestanden voor alle scholen wordt verzameld. Elke keer dat Export-SchoolDataSync wordt uitgevoerd, wordt de uitvoer die afzonderlijk worden opgeslagen in de exportdatamap óók *toegevoegd* aan de bestanden in de ExportVerzamelmap. Deze functie is toegevoegd in TeamSync vanaf versie 20240222 en compenseert het gebrek aan "Single Subscription - Multi-Academy Trust Support" in de huidige School Data Sync v2. Het maakt het mogelijk dat TeamSync gegevens van verscheidene scholen samenvoegt om te kunnen uploaden naar School Data Sync v2. 
+In deze map worden de naar SDS te uploaden gegevensbestanden voor alle scholen wordt verzameld. Elke keer dat Export-SchoolDataSync wordt uitgevoerd, wordt de uitvoer die afzonderlijk worden opgeslagen in de exportdatamap óók *toegevoegd* aan de bestanden in de ExportVerzamelmap. Deze functie is toegevoegd in TeamSync vanaf versie 20240222 en compenseert het gebrek aan "Single Subscription - Multi-Academy Trust Support" in de huidige School Data Sync v2. Het maakt het mogelijk dat TeamSync gegevens van verscheidene scholen of Magister-instantiessamenvoegt om te kunnen uploaden naar een enkele instantie van School Data Sync v2. 
 
 Voor elk van de vereiste bestanden in de SDS CSV V1 specificatie, neemt TeamSync de volgende beslissing:
 
@@ -506,7 +506,7 @@ Om ten volle gebruik te maken van dagelijks bijgewerkte Microsoft 365 klassentea
 
 === Een woordje over de nieuwe School Data Sync v2 
 
-d.d. September 2023 is SDS in een overgangsfase. De oorspronkelijke School Data Sync heet nu School Data Sync (Classic) en de actuele versie heet "Microsoft School Data Sync". School Data Sync (Classic) blijft beschikbaar tot einde 2024. De nieuwe SDS wijkt in zoverre af van de oude School Data Sync dat het geen afzonderlijke synchronisatieprofielen ondersteunt. In de woorden van Microsoft heet het dat "Single Subscription - Multi-Academy Trust Support" vooralsnog ontbreekt. De consequentie hiervan is dat het gelijktijdig synchroniseren van verscheidene scholen naar School Data Sync alleen mogelijk is door de uitvoer van TeamSync voor verscheidene scholen samen te voegen in één bestandenverzameling voor School Data Sync. TeamSync ondersteunt dat nog niet, maar misschien gebeurt dat nog ooit in de toekomst, afhankelijk van de behoefte bij Stichting Voortgezet Onderwijs Kennemerland. Voor schooljaar 2023-2024 is dat in ieder geval nog niet het geval.
+Anno 2026 is School Data Sync in versie 2. De versie SDS wijkt in zoverre af van de oude School Data Sync dat het geen afzonderlijke synchronisatieprofielen ondersteunt. In de woorden van Microsoft heet het dat "Single Subscription - Multi-Academy Trust Support" vooralsnog ontbreekt. De consequentie hiervan is dat het gelijktijdig synchroniseren van verscheidene scholen naar School Data Sync alleen mogelijk is door de uitvoer van TeamSync voor verscheidene scholen/profielen samen te voegen in één bestandenverzameling voor School Data Sync. TeamSync ondersteunt dat met de variabele ```exportverzamelmap``` in de configuratie voor Export-SchoolDataSync.ps1.
 
 === Een woordje over School Data Sync CSV v2.1 
 

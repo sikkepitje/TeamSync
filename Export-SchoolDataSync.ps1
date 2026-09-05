@@ -474,7 +474,7 @@ Try {
     # In Id hebben we nu de UserPrincipalName van de gebruikers. 
     # Voeg nu een property toe met een speciale id die veilig is voor 
     # gebruik in School Data Sync door @ te vervangen door _.
-    # Plaats "uid_" ervÃ³Ã³r zodat het herkenbaar is gebruiker.
+    # Plaats "uid_" ervóór zodat het herkenbaar is als een gebruikersidentificatie.
     # Combineer ook een achternaam met tussenvoegsel
     $mag_leer | Add-Member -MemberType NoteProperty -Name 'sisid' -Value ""
     $mag_leer | Add-Member -MemberType NoteProperty -Name 'achternaamlang' -Value ""
